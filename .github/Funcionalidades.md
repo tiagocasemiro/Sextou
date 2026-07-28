@@ -24,6 +24,18 @@ Funciona como um bookmark de locais desejados para os próximos fins de semana.
 * Integração Google Maps: Utiliza o place_id do estabelecimento visualizado.
 * Persistência Local: O banco local armazena esses IDs em uma tabela Lista_Para_Conhecer. Permite que o usuário consulte seus planos de rolê mesmo se estiver totalmente offline ou sem sinal de internet no subúrbio.
 
+### ✅ Já Visitei o Estabelecimento
+Permite ao usuário marcar os botecos, trailers e restaurantes onde ele já esteve, criando um histórico pessoal de locais conferidos.
+*   **Integração Google Maps:** Utiliza o `place_id` fornecido pela API do Google para identificar o local de forma única na tela de detalhes ou diretamente no card da listagem.
+*   **Persistência Local (Room/SQLite):** O aplicativo cria uma tabela chamada `Historico_Visitas`. Quando o usuário ativa essa função, o `place_id` é salvo com o registro da data. Na interface, o card ganha um indicador visual (ex: um check verde escrito "Já fui!").
+
+### 🚫 Não Voltar no Estabelecimento
+Funciona como uma "lista negra" privada do usuário para sinalizar locais com atendimento ruim, cerveja quente ou que não valem o custo-benefício.
+*   **Integração Google Maps:** Vincula a ação de bloqueio ao `place_id` do estabelecimento correspondente.
+*   **Persistência Local (Room/SQLite):** O aplicativo armazena o ID em uma tabela chamada `Lista_Negra`.
+*   **Regra de Negócio Local:** Toda vez que o aplicativo carregar os resultados vindos da API do Google Maps, o código fará uma checagem rápida no banco local. Se o `place_id` constar na `Lista_Negra`, o estabelecimento é **totalmente ocultado** do mapa e da listagem do usuário, garantindo um feed livre de ciladas.
+
+
 ------------------------------
 ## 💡 Sugestão de Funcionalidades Secundárias (Foco em Entretenimento e Lazer)## 🎙️ Filtros Rápidos de Entretenimento (Tags do Sextou)
 Botões no topo da tela para filtrar locais com Karaokê, Música ao Vivo ou Parquinhos.
