@@ -1,7 +1,10 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
+
+val placesApiKey = providers.gradleProperty("PLACES_API_KEY").orElse("")
 
 android {
     namespace = "com.sextou"
@@ -13,6 +16,7 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
+        buildConfigField("String", "PLACES_API_KEY", "\"${placesApiKey.get()}\"")
     }
 
     buildTypes {
@@ -30,19 +34,22 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.14"
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
 
 dependencies {
+    implementation(project(":domain"))
+    implementation(project(":networking"))
     implementation("androidx.activity:activity-compose:1.9.0")
+    implementation("io.insert-koin:koin-android:4.0.4")
 }
