@@ -12,6 +12,34 @@ Exibe os estabelecimentos em um mapa interativo do Google, facilitando a navega�
 * Integração Google Maps: Utilização do Google Maps SDK para Android. A API plota os pinos (markers) na tela utilizando as coordenadas de latitude e longitude (location) obtidas na busca do Places. [5, 6, 7]
 * Persistência Local: O banco local faz a ponte para colorir ou modificar os pinos com base no comportamento do usuário (ex: exibir um pino com ícone de coração se o local estiver favoritado no banco de dados).
 
+## 🍽️ Visualização do Cardápio
+Permite ao usuário consultar, na tela de detalhes do estabelecimento, um resumo das opções de comida e bebida informadas pelo Google Maps e acessar a fonte externa quando houver um cardápio mais completo.
+
+* **Resumo no Sextou:** Exibe faixa de preço e indicadores como café da manhã, brunch, almoço, jantar, sobremesa, café, cerveja, vinho, coquetéis, comida vegetariana e cardápio infantil. Também informa se o local oferece consumo no estabelecimento, retirada, entrega ou retirada na calçada.
+* **Integração Google Maps:** Ao abrir os detalhes, o app consulta o estabelecimento pelo `place_id` usando o Places SDK for Android e solicita somente os campos necessários: `PRICE_LEVEL`, `PRICE_RANGE`, `SERVES_BREAKFAST`, `SERVES_BRUNCH`, `SERVES_LUNCH`, `SERVES_DINNER`, `SERVES_DESSERT`, `SERVES_COFFEE`, `SERVES_BEER`, `SERVES_WINE`, `SERVES_COCKTAILS`, `SERVES_VEGETARIAN_FOOD`, `MENU_FOR_CHILDREN`, `DINE_IN`, `TAKEOUT`, `DELIVERY`, `CURBSIDE_PICKUP`, `PHOTO_METADATAS`, `WEBSITE_URI` e `GOOGLE_MAPS_URI`. A máscara de campos deve ser restrita para controlar latência e cobrança.
+* **Fotos:** Quando disponíveis, as fotos do estabelecimento podem complementar a visualização. Como o Places não identifica quais fotos representam o cardápio, elas devem aparecer como “fotos do local”, sem serem apresentadas como uma lista oficial de pratos.
+* **Cardápio completo:** A ação “Ver cardápio completo” abre primeiro o site oficial (`websiteUri`), quando informado, ou a página do estabelecimento no Google Maps (`googleMapsUri`) como alternativa. O botão não deve ser exibido quando nenhum dos dois endereços estiver disponível.
+* **Dados indisponíveis:** Campos ausentes ou com valor desconhecido devem ser omitidos. Se nenhum atributo de alimentação estiver disponível, a tela informa “Cardápio não informado pelo estabelecimento” e ainda oferece o acesso externo, caso exista.
+* **Persistência Local:** Armazena o resumo vinculado ao `place_id` apenas como cache temporário, respeitando as políticas de armazenamento e atribuição do Google Maps Platform. Ao existir conexão, o app prioriza uma consulta atualizada antes de exibir informações sensíveis a mudança, como faixa de preço e modalidades de atendimento.
+* **Limitação da fonte:** A Places API não disponibiliza ao Sextou os itens, descrições e preços de cardápios completos de estabelecimentos arbitrários. A Google Business Profile API possui dados itemizados, mas seu acesso exige autorização OAuth da conta proprietária de cada local; por isso, ela não faz parte desta funcionalidade principal.
+
+## ⭐ Nota do Estabelecimento
+Exibe a avaliação média atribuída pelos usuários do Google ao estabelecimento para ajudar na comparação entre os locais.
+
+* **Exibição:** Mostra a nota de `1,0` a `5,0`, com uma casa decimal, acompanhada da quantidade de avaliações e da identificação de que a informação vem do Google. Exemplo: “4,6 ★ no Google (328 avaliações)”.
+* **Integração Google Maps:** O app solicita os campos `RATING` e `USER_RATING_COUNT` do Places SDK for Android. A nota é geral e representa a experiência no estabelecimento; ela não deve ser apresentada como uma avaliação exclusiva da comida, bebida, atendimento ou ambiente.
+* **Dados indisponíveis:** Quando `RATING` estiver ausente, a interface exibe “Ainda sem avaliação no Google”. A quantidade de avaliações só deve ser mostrada quando `USER_RATING_COUNT` estiver disponível.
+* **Persistência Local:** A nota e a quantidade de avaliações podem ser mantidas apenas como cache temporário associado ao `place_id`. Sempre que houver conexão, a tela de detalhes deve priorizar os valores atualizados.
+
+## 💲 Faixa de Preço de Comidas e Bebidas
+Apresenta uma estimativa do nível de preço do estabelecimento para ajudar o usuário a escolher um local compatível com seu orçamento.
+
+* **Exibição:** Mostra o nível retornado pelo Google em uma escala visual de preço, de gratuito a muito caro, e exibe os valores monetários mínimo e máximo quando uma faixa estiver disponível. A moeda retornada pela API deve ser preservada.
+* **Integração Google Maps:** O app solicita `PRICE_LEVEL` e `PRICE_RANGE` pelo Places SDK for Android. Esses campos descrevem o estabelecimento como um todo e não distinguem os preços de comidas dos preços de bebidas.
+* **Limitação da fonte:** A Places API não fornece uma nota de custo-benefício nem uma avaliação de preço em estrelas. Por isso, a interface deve usar os termos “nível de preço” ou “faixa de preço” e nunca apresentar o dado como opinião dos clientes.
+* **Dados indisponíveis:** Quando os dois campos estiverem ausentes, a interface exibe “Faixa de preço não informada”. Se apenas um deles existir, somente a informação disponível deve ser mostrada.
+* **Persistência Local:** Os valores podem ser armazenados apenas como cache temporário associado ao `place_id`, com atualização prioritária quando houver conexão.
+
 ## ⭐️ Favoritar Estabelecimentos
 Permite ao usuário salvar os botecos e trailers que ele mais frequenta e ama.
 
@@ -62,17 +90,10 @@ Permite ao usuário escrever lembretes privados sobre o local (Ex: "Pedir a bata
 * Persistência Local: Totalmente gerenciado pelo banco local (Room). O app cria uma tabela Notas_Usuario associando o texto criado ao place_id correspondente.
 
 ------------------------------
-Para começarmos a colocar a mão na massa na parte técnica do seu app exclusivo para Android, o que você gostaria de definir agora?
+## Referências oficiais
 
-* A estrutura das tabelas do banco de dados local (Room/SQLite) para gerenciar os favoritos e notas?
-* A lista de palavras-chave exatas em português que o código vai usar para caçar os karaokês e parquinhos nas reviews do Google?
-* A configuração inicial do projeto no Android Studio com as dependências da Google Play Services?
-
-
-[1] [https://www.luiztools.com.br](https://www.luiztools.com.br/post/tutorial-crud-em-android-com-sqlite-e-recyclerview/)
-[2] [https://www.thiengo.com.br](https://www.thiengo.com.br/banco-de-dados-local-com-a-room-api-youtuber-android-app-parte-6)
-[3] [https://developers.google.com](https://developers.google.com/maps/documentation/places/web-service?hl=pt-br)
-[4] [https://developers.google.com](https://developers.google.com/maps/architecture/discover-with-place-search-element?hl=pt-br)
-[5] [https://www.youtube.com](https://www.youtube.com/watch?v=rpqi7Y1NQZY)
-[6] [https://developers.google.com](https://developers.google.com/maps?hl=pt-br)
-[7] [https://developers.google.com](https://developers.google.com/maps/documentation/capabilities-explorer?hl=pt-br)
+* [Campos de dados da Places API](https://developers.google.com/maps/documentation/places/web-service/data-fields)
+* [Campos do modelo `Place` no Places SDK for Android](https://developers.google.com/maps/documentation/places/android-sdk/reference/com/google/android/libraries/places/api/model/Place.Field)
+* [Modelo `Place` e limites de nota e preço](https://developers.google.com/maps/documentation/places/android-sdk/reference/com/google/android/libraries/places/api/model/Place)
+* [Uso de máscaras de campos](https://developers.google.com/maps/documentation/places/web-service/choose-fields)
+* [Cardápios na Google Business Profile API](https://developers.google.com/my-business/reference/rest/v4/accounts.locations/getFoodMenus)
