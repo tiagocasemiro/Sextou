@@ -1,6 +1,6 @@
 ---
 name: manage-sextou-tasks
-description: Gerenciar as tasks do projeto Sextou no GitHub usando Issues e o GitHub Project correspondente. Usar ao listar, pesquisar, criar, comentar, editar, atribuir, rotular, fechar ou reabrir issues; adicionar issues ao board; consultar campos do board; ou mover cards entre Backlog, Read to work, In Progress, Validation, Wait publish e Done.
+description: Gerenciar as tasks do projeto Sextou no GitHub usando Issues e o GitHub Project correspondente. Usar ao listar, pesquisar, criar, comentar, editar, atribuir, rotular, fechar ou reabrir issues; normalizar tipos e títulos de tasks; adicionar issues ao board; consultar campos do board; ou mover cards entre Backlog, Read to work, In Progress, Validation, Wait publish e Done.
 ---
 
 # Gerenciar tasks do Sextou
@@ -8,6 +8,47 @@ description: Gerenciar as tasks do projeto Sextou no GitHub usando Issues e o Gi
 Tratar cada task como uma Issue de `tiagocasemiro/Sextou` vinculada ao GitHub Project `Sextou` nº 4.
 
 Antes de qualquer operação, ler [references/github-task-operations.md](references/github-task-operations.md). Usar os identificadores registrados ali como ponto de partida, mas consultar o GitHub novamente se uma operação falhar ou se campos/opções puderem ter mudado.
+
+## Tipos e títulos das tasks
+
+Usar somente estes tipos de task: `Épico`, `História`, `Tarefa` e `Bug`.
+O tipo deve aparecer como prefixo do título, no formato `<Tipo> - <Título>`:
+
+```text
+Épico - Feed principal
+História - Filtrar estabelecimentos por categoria
+Tarefa - Criar o repositório de favoritos
+Bug - Corrigir persistência da tabela de favoritos
+```
+
+Seguir a semântica padrão do Jira ao escolher o tipo:
+
+- `Épico`: iniciativa ou entrega ampla, normalmente uma funcionalidade
+  significativa, composta por várias `Histórias`, `Tarefas` ou `Bugs`. Usar
+  para agrupar um objetivo maior; não usar para uma atividade isolada.
+- `História`: funcionalidade, necessidade ou trabalho de desenvolvimento
+  expressado como um objetivo do usuário e que entrega valor diretamente para
+  ele. Preferir a perspectiva “como usuário, quero..., para...”.
+- `Tarefa`: trabalho específico que precisa ser feito, especialmente uma
+  atividade técnica, investigação, configuração ou trabalho administrativo que
+  não precise ser descrito como objetivo do usuário.
+- `Bug`: problema existente que prejudica ou impede uma função do produto,
+  como comportamento incorreto, funcionalidade quebrada ou discrepância de
+  interface. Não usar para solicitar uma capacidade nova.
+
+Para escolher entre os tipos, usar esta ordem: trabalho amplo que será
+dividido em vários itens → `Épico`; objetivo de usuário ou nova capacidade →
+`História`; ação técnica/administrativa independente → `Tarefa`; defeito em
+algo que deveria funcionar → `Bug`. A semântica segue o Jira, mas o Sextou
+registra o tipo somente no prefixo porque o repositório não possui tipos nativos
+de Issue habilitados.
+
+O prefixo é a forma canônica de representar o tipo no Sextou e não deve ser
+substituído por um tipo nativo do GitHub. Ao criar uma task, identificar o tipo
+antes de pesquisar duplicatas e criar a Issue. Se o tipo não for informado,
+solicitar essa informação antes da criação. Se o título já tiver um prefixo
+canônico, não duplicá-lo; ao editar o título, preservar o prefixo atual salvo
+quando o usuário pedir explicitamente a mudança de tipo.
 
 ## Estrutura do board
 

@@ -25,6 +25,56 @@ Uma task é uma Issue de `tiagocasemiro/Sextou`. O card do board é um item do P
 - coluna/status pertence ao campo `Status` do item no Project;
 - o identificador da Issue (`issue_number`) difere do identificador do item (`item_id`/`node_id`).
 
+## Tipo e título da task
+
+Os tipos válidos são `Épico`, `História`, `Tarefa` e `Bug`. O tipo não é
+enviado como tipo nativo do GitHub; ele deve ser representado no início do
+título usando o formato canônico:
+
+```text
+<Tipo> - <Título>
+```
+
+Exemplo: uma task do tipo `Épico` com o título-base `Feed principal` deve ser
+criada como `Épico - Feed principal`.
+
+### Orientação Jira para escolher o tipo
+
+- `Épico`: iniciativa ou entrega ampla, geralmente uma funcionalidade
+  significativa composta por várias histórias, tarefas ou bugs. Deve agrupar
+  trabalho relacionado a um objetivo maior.
+- `História`: funcionalidade ou trabalho de desenvolvimento expresso como um
+  objetivo do usuário e com valor direto para ele. Quando aplicável, escrever
+  o título-base a partir de “como usuário, quero..., para...”.
+- `Tarefa`: trabalho específico a executar, como atividade técnica,
+  investigação, configuração ou trabalho administrativo. Não precisa expressar
+  uma necessidade do usuário.
+- `Bug`: problema que prejudica ou impede o funcionamento do produto, incluindo
+  comportamento incorreto, funcionalidade quebrada ou discrepância de
+  interface. Não classificar uma nova capacidade como `Bug`.
+
+Regra de decisão: iniciativa que será dividida em vários itens é `Épico`;
+objetivo de usuário ou capacidade nova é `História`; ação técnica ou
+administrativa independente é `Tarefa`; defeito em comportamento existente é
+`Bug`. Essa é a semântica do Jira adaptada ao Sextou, que a registra no prefixo
+do título porque o GitHub deste repositório não oferece tipos nativos de Issue.
+
+Regras:
+
+- exigir o tipo antes de criar uma task; se ele não vier na solicitação,
+  solicitar a informação antes da mutação;
+- pesquisar duplicatas usando o título completo com prefixo e também termos
+  equivalentes do título-base;
+- não duplicar o prefixo quando o título já estiver normalizado;
+- ao editar um título, preservar o prefixo atual, exceto quando a mudança de
+  tipo for solicitada explicitamente;
+- nunca inventar tipos ou alterar a grafia canônica, inclusive os acentos dos
+  tipos definidos.
+
+Essa classificação segue as definições de work types do Jira documentadas pela
+Atlassian: [tipos de work item](https://support.atlassian.com/jira-software-cloud/docs/set-up-issue-types-in-team-managed-projects/),
+[work types e hierarquia](https://support.atlassian.com/jira-cloud-administration/docs/what-are-issue-types/).
+
 Apesar dessa separação, o Project possui uma automação confirmada em 2026-08-15: mover um card para `Done` fecha a Issue vinculada com `state: closed` e `state_reason: completed`. A resposta imediata de `projects_write/update_project_item` pode ainda mostrar `state: open`; verificar depois com chamadas independentes. Não foi confirmado se mover de `Done` para outro status reabre a Issue.
 
 ## Campos atuais do Project
@@ -152,7 +202,8 @@ Paginar usando `pageInfo.hasNextPage` e `pageInfo.nextCursor` no argumento `afte
 
 ## Criar uma task
 
-1. Pesquisar duplicatas.
+1. Identificar o tipo, normalizar o título para `<Tipo> - <Título>` e pesquisar
+   duplicatas pelo título completo e pelo título-base.
 2. Criar a Issue com `issue_write`:
 
 ```json
@@ -160,7 +211,7 @@ Paginar usando `pageInfo.hasNextPage` e `pageInfo.nextCursor` no argumento `afte
   "method": "create",
   "owner": "tiagocasemiro",
   "repo": "Sextou",
-  "title": "TÍTULO",
+  "title": "Épico - TÍTULO",
   "body": "DESCRIÇÃO"
 }
 ```
@@ -202,7 +253,9 @@ Verificar o comentário com `issue_read/get_comments` e comparar o corpo e a URL
 
 ## Editar uma task
 
-Usar `issue_write` com `method: update`. Enviar somente os campos que devem mudar:
+Usar `issue_write` com `method: update`. Enviar somente os campos que devem mudar.
+Ao alterar o título, enviar o título completo com o prefixo canônico e manter o
+tipo existente, salvo solicitação explícita de mudança de tipo:
 
 ```json
 {
@@ -210,7 +263,7 @@ Usar `issue_write` com `method: update`. Enviar somente os campos que devem muda
   "owner": "tiagocasemiro",
   "repo": "Sextou",
   "issue_number": 123,
-  "title": "NOVO TÍTULO",
+  "title": "Tarefa - NOVO TÍTULO",
   "body": "NOVA DESCRIÇÃO",
   "assignees": ["tiagocasemiro"],
   "labels": ["LABEL"]

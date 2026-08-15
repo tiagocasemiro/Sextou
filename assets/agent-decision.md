@@ -1,5 +1,42 @@
 # Decisões do agente
 
+## 2026-08-15 — Semântica Jira para tipos de task
+
+* A skill `manage-sextou-tasks` passou a orientar a escolha de `Épico`,
+  `História`, `Tarefa` e `Bug` conforme a semântica padrão do Jira.
+* `Épico` representa trabalho amplo composto por itens menores; `História`
+  representa objetivo/valor do usuário; `Tarefa` representa ação técnica ou
+  administrativa; e `Bug` representa defeito em comportamento existente.
+* A hierarquia e o significado são do Jira, mas a implementação do Sextou
+  continua usando o prefixo no título, pois o GitHub do projeto não habilita
+  tipos nativos de Issue.
+
+## 2026-08-15 — Substituição do tipo Sub-tarefa por Bug
+
+* O conjunto vigente de tipos da skill `manage-sextou-tasks` foi alterado para
+  `Épico`, `História`, `Tarefa` e `Bug`.
+* `Bug` passa a usar o mesmo formato de prefixo: `Bug - <Título>`.
+
+## 2026-08-15 — Tipos de task no prefixo do título
+
+* A skill `manage-sextou-tasks` passou a exigir os tipos `Épico`, `História`,
+  `Tarefa` e `Sub-tarefa` no prefixo do título, usando o formato
+  `<Tipo> - <Título>`.
+* O tipo será representado no título em vez de depender de tipos nativos do
+  GitHub, que não estão habilitados no repositório pessoal do projeto.
+* A normalização evita prefixos duplicados, preserva o tipo em edições e exige
+  a definição do tipo antes da criação de uma task.
+
+## 2026-08-15 — Bloqueio na criação de épicos das features
+
+* A criação das 13 Issues solicitadas foi interrompida antes de qualquer
+  mutação porque o repositório pessoal `tiagocasemiro/Sextou` não oferece tipos
+  nativos de Issue: `list_issue_types` retornou `404` e não há campo `Type`
+  configurado no repositório.
+* O parâmetro `type: "Epic"` só deve ser enviado quando os tipos de Issue
+  estiverem habilitados; criar Issues comuns com um título ou label de épico
+  seria uma representação diferente do pedido e depende de confirmação.
+
 ## 2026-08-15 — Instruções de uso das skills locais
 
 * O `AGENTS.md` passou a documentar a seleção, leitura, composição e uso das
