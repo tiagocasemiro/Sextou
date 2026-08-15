@@ -1,0 +1,2 @@
+<critical>Use somente a stack determinada na skill de arquitetura @skills/architecture. Use os frameworks, libs, patterns, nomenclaturas definidas nessa skill</critical>
+<critical>Caso não seja encontrado algo que seja util para o projeto, após adicionar ao projeto, relate a adição no arquivo @assets/skill-debts.md</critical>
