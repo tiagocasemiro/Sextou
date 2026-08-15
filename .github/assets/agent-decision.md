@@ -1,0 +1,5 @@
+# Decisões do agente
+
+- 2026-08-15: Foi adicionada ao `AGENTS.md` uma ordem explícita de precedência para skills de arquitetura: a skill local é a fonte principal, a global complementa apenas assuntos omissos e a regra local prevalece em divergências.
+- 2026-08-15: O MCP remoto oficial do GitHub foi configurado no Codex com os toolsets `default,projects`, preservando as operações padrão e habilitando leitura e escrita em GitHub Projects. A autenticação permanece externa ao arquivo por meio de `GITHUB_PAT_TOKEN`.
+- 2026-08-15: Foi criada a skill local `.github/skills/manage-sextou-tasks` para padronizar a gestão das Issues de `tiagocasemiro/Sextou` e do GitHub Project nº 4. A skill separa estado da Issue de status do board, exige busca de duplicatas e verificação pós-mudança, e inclui transporte MCP de fallback sem persistir o token.

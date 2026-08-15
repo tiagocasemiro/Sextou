@@ -1,0 +1,13 @@
+interface:
+  display_name: "Gerenciar tasks do Sextou"
+  short_description: "Gerencie issues e o board do projeto Sextou"
+  default_prompt: "Use $manage-sextou-tasks para criar, consultar ou atualizar uma task no board Sextou."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "github"
+      description: "GitHub MCP server"
+      transport: "streamable_http"
+      url: "https://api.githubcopilot.com/mcp/"
+policy:
+  allow_implicit_invocation: true
