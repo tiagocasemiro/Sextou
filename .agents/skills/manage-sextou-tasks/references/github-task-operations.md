@@ -46,25 +46,32 @@ Consultar novamente com `projects_list/list_project_fields` antes de depender de
 
 ## Estrutura e vocabulário do board
 
-O fluxo canônico é:
+O fluxo canônico, na ordem das colunas do board, é:
 
 ```text
-Todo -> In Progress -> Done
+Backlog -> Read to work -> In Progress -> Validation -> Wait publish -> Done
 ```
 
-| Nome canônico | Sinônimos aceitos na solicitação | Option ID | Significado | Efeito confirmado na Issue |
-| --- | --- | --- | --- | --- |
-| Todo | `to do`, `a fazer`, `não iniciada` | `f75ad846` | Trabalho ainda não iniciado | Nenhum efeito automático confirmado |
-| In Progress | `do`, `doing`, `em andamento`, `em execução` | `47fc9ee4` | Trabalho sendo executado | Nenhum efeito automático confirmado |
-| Done | `conclusão`, `concluída`, `finalizada` | `98236657` | Trabalho concluído | Fecha como `completed` |
+| Nome canônico | Sinônimos aceitos na solicitação | Option ID | Descrição do board | Uso no fluxo | Efeito confirmado na Issue |
+| --- | --- | --- | --- | --- | --- |
+| Backlog | `backlog`, `a analisar`, `não refinada` | `ca840eda` | Tarefa antes da analise de negócio e técnica. | Entrada; aguarda análise e refinamento | Nenhum efeito automático confirmado |
+| Read to work | `pronta para trabalhar`, `pronto para iniciar`, `refinada` | `f75ad846` | tarefas já refinadas e prontas para iniciar o trabalho. | Task refinada e pronta para execução | Nenhum efeito automático confirmado |
+| In Progress | `em andamento`, `em execução`, `doing` | `47fc9ee4` | Tarefas em progresso | Trabalho direto da task em execução | Nenhum efeito automático confirmado |
+| Validation | `validação`, `validar`, `em validação` | `97cf6f22` | Validação do trabalho feito na tarefa | Implementação concluída, aguardando conferência | Nenhum efeito automático confirmado |
+| Wait publish | `aguardando publicação`, `aguardando playstore`, `aguardando conclusão externa` | `cdead2a3` | Aguardando publicação na playstore ou qualquer conclusão que não envolva o trabalho direto no app. | Validação concluída; aguarda publicação ou conclusão externa ao desenvolvimento | Nenhum efeito automático confirmado |
+| Done | `conclusão`, `concluída`, `finalizada`, `concluído` | `98236657` | Tarefa concluida | Task completamente concluída | Fecha como `completed` |
 
-Normalizar sinônimos para o nome canônico antes de chamar `projects_write`. O GitHub não possui uma opção literal `Do`; usar `In Progress`.
+Normalizar sinônimos para o nome canônico antes de chamar `projects_write`. Usar os nomes exatamente como retornados por `list_project_fields`; em particular, preservar `Read to work` e `Wait publish`.
 
 Regras de transição:
 
-- Ao criar e vincular uma task sem status solicitado, aceitar o padrão atual do Project, normalmente `Todo`, e confirmar por leitura.
-- Mover de `Todo` para `In Progress` quando o trabalho começar.
-- Mover de `In Progress` para `Done` quando o trabalho terminar; esperar o fechamento automático da Issue.
+- Ao criar e vincular uma task sem status solicitado, aceitar o padrão atual do Project, normalmente `Backlog`, e confirmar por leitura.
+- Mover de `Backlog` para `Read to work` quando a análise de negócio e técnica terminar e a task estiver refinada.
+- Mover de `Read to work` para `In Progress` quando o trabalho começar.
+- Mover de `In Progress` para `Validation` quando o trabalho direto terminar e estiver pronto para conferência.
+- Mover de `Validation` para `In Progress` quando a validação solicitar ajustes; registrar a necessidade de retorno antes de fazer a transição.
+- Mover de `Validation` para `Wait publish` quando a validação terminar e restar publicação na Play Store ou outra conclusão externa ao trabalho direto no app.
+- Mover de `Wait publish` para `Done` quando a publicação ou a conclusão externa terminar; esperar o fechamento automático da Issue.
 - Permitir saltos ou movimentos regressivos somente quando solicitados explicitamente.
 - Ao sair de `Done`, não presumir reabertura automática da Issue; ler a Issue e informar o resultado.
 
@@ -257,11 +264,11 @@ Preferir localizar o item por Issue, sem depender do `item_id` armazenado:
 }
 ```
 
-Valores válidos atuais: `Todo`, `In Progress`, `Done`. Após atualizar, reler o item incluindo `field_names: ["Status"]`.
+Valores válidos atuais: `Backlog`, `Read to work`, `In Progress`, `Validation`, `Wait publish` e `Done`. Após atualizar, reler o item incluindo `field_names: ["Status"]`.
 
 Ao mover para `Done`, esperar também `issue_read/get` retornar `state: closed` e `state_reason: completed`, devido à automação atual do Project. Não confiar apenas no objeto retornado pela mutação: ele pode representar o estado da Issue antes da automação. Se a Issue não aparecer fechada na primeira leitura, consultar novamente antes de declarar falha ou sucesso parcial.
 
-Ao mover para `Todo` ou `In Progress`, reler a Issue e informar se ela permaneceu fechada. Não reabrir automaticamente sem solicitação explícita até que a regra de automação inversa seja conhecida.
+Ao mover para `Backlog`, `Read to work`, `In Progress`, `Validation` ou `Wait publish`, reler a Issue e informar se ela permaneceu fechada. Não reabrir automaticamente sem solicitação explícita até que a regra de automação inversa seja conhecida.
 
 Para várias tasks com o mesmo status, preferir `update_project_items` com até 50 entradas em `items` e um único `updated_field` no topo.
 
