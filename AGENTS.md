@@ -3,13 +3,13 @@
 ## Regras obrigatórias
 
 Antes de planejar, implementar ou revisar uma mudança não trivial, leia as
-regras aplicáveis em `.github/rule/`:
+regras aplicáveis em `.codex/rule/`:
 
-- `.github/rule/rule-general.md` para convenções gerais do projeto;
-- `.github/rule/rule-architecture.md` para mudanças de arquitetura ou código;
-- `.github/rule/rule-git.md` para operações Git.
+- `.codex/rule/rule-general.md` para convenções gerais do projeto;
+- `.codex/rule/rule-architecture.md` para mudanças de arquitetura ou código;
+- `.codex/rule/rule-git.md` para operações Git.
 
-Use os documentos de produto em `.github/` somente quando forem relevantes ao
+Use os documentos de produto em `.codex/` somente quando forem relevantes ao
 escopo da tarefa. Não trate documentos de planejamento como autorização para
 implementar trabalho fora do pedido do usuário.
 
