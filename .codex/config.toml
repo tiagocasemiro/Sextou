@@ -1,0 +1,6 @@
+# Nomes alternativos consultados somente quando AGENTS.md não existir no
+# diretório avaliado. Mantenha instruções principais em AGENTS.md.
+project_doc_fallback_filenames = ["CODEX.md", "AI_INSTRUCTIONS.md", ".agents.md"]
+
+# Limite combinado para a cadeia de instruções do projeto.
+project_doc_max_bytes = 65536
