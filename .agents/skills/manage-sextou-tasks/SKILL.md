@@ -1,6 +1,6 @@
 ---
 name: manage-sextou-tasks
-description: Gerenciar as tasks do projeto Sextou no GitHub usando Issues e o GitHub Project correspondente. Usar ao listar, pesquisar, criar, comentar, editar, atribuir, rotular, fechar ou reabrir issues; adicionar issues ao board; consultar campos do board; ou mover cards entre Todo, In Progress e Done.
+description: Gerenciar as tasks do projeto Sextou no GitHub usando Issues e o GitHub Project correspondente. Usar ao listar, pesquisar, criar, comentar, editar, atribuir, rotular, fechar ou reabrir issues; adicionar issues ao board; consultar campos do board; ou mover cards entre Backlog, Read to work, In Progress, Validation, Wait publish e Done.
 ---
 
 # Gerenciar tasks do Sextou
@@ -11,13 +11,22 @@ Antes de qualquer operação, ler [references/github-task-operations.md](referen
 
 ## Estrutura do board
 
-Usar o fluxo `Todo → In Progress → Done`:
+Usar o fluxo canônico:
 
-- `Todo`: task ainda não iniciada. Interpretar também “to do” e “a fazer”.
-- `In Progress`: task em execução. Interpretar também “Do”, “Doing” e “em andamento”.
-- `Done`: task concluída. Interpretar também “conclusão”, “concluída” e “finalizada”; neste Project, essa mudança fecha a Issue como `completed` por automação.
+```text
+Backlog → Read to work → In Progress → Validation → Wait publish → Done
+```
 
-Usar sempre os nomes canônicos `Todo`, `In Progress` e `Done` nas chamadas MCP. Fazer transições regressivas somente quando forem pedidas explicitamente e verificar separadamente se o estado aberto/fechado da Issue mudou.
+As descrições configuradas no board definem o significado de cada coluna:
+
+- `Backlog`: “Tarefa antes da analise de negócio e técnica.” É o ponto de entrada para uma task que ainda precisa ser analisada e refinada.
+- `Read to work`: “tarefas já refinadas e prontas para iniciar o trabalho.” Mover para cá somente quando as análises necessárias terminarem e a execução estiver clara.
+- `In Progress`: “Tarefas em progresso”. Usar enquanto o trabalho direto da task estiver sendo executado.
+- `Validation`: “Validação do trabalho feito na tarefa”. Usar quando a implementação terminou e precisa ser conferida.
+- `Wait publish`: “Aguardando publicação na playstore ou qualquer conclusão que não envolva o trabalho direto no app.” Usar depois da validação, quando restar publicação ou uma conclusão externa ao desenvolvimento.
+- `Done`: “Tarefa concluida”. Usar somente quando a task estiver completamente concluída; neste Project, essa mudança fecha a Issue como `completed` por automação.
+
+Usar sempre os nomes canônicos acima nas chamadas MCP. Interpretar solicitações equivalentes em português e normalizá-las para esses nomes, sem inventar opções alternativas. Fazer transições regressivas ou saltos somente quando forem pedidos explicitamente; se a validação exigir ajustes, retornar a `In Progress` e verificar o estado da Issue separadamente.
 
 ## Escolher o acesso
 
@@ -43,10 +52,10 @@ Usar sempre os nomes canônicos `Todo`, `In Progress` e `Done` nas chamadas MCP.
 - Não criar outra Issue quando uma etapa posterior falhar. Localizar a Issue já criada e retomar a vinculação/edição.
 - Tratar o status do board e o estado da Issue como campos distintos, considerando a automação existente:
   - mover para `Done` fecha automaticamente a Issue como `completed` neste Project;
-  - não presumir que mover para `Todo` ou `In Progress` reabra a Issue, pois esse comportamento ainda não foi confirmado;
+  - não presumir que mover para `Backlog`, `Read to work`, `In Progress`, `Validation` ou `Wait publish` reabra a Issue, pois esse comportamento ainda não foi confirmado;
   - não presumir que fechar a Issue mova o card para `Done`; verificar ambos os estados e informar todas as mudanças observadas.
 - Interpretar “mover para conclusão/concluído” como `Status: Done`; avisar que isso também fechará a Issue pela automação atual.
-- Interpretar “mover para Do/Doing” como `Status: In Progress`, nunca como um valor literal inexistente no GitHub.
+- Interpretar “pronto para trabalhar” como `Status: Read to work`, “em andamento” como `Status: In Progress`, “validar” como `Status: Validation` e “aguardando publicação” como `Status: Wait publish`.
 - Ao fechar uma Issue, enviar `state_reason`: usar `completed` para trabalho concluído, `not_planned` para cancelamento e `duplicate` apenas com a Issue original identificada.
 - Pedir confirmação antes de excluir uma Issue do Project ou realizar outra ação destrutiva que não esteja explícita no pedido.
 - Paginar completamente listagens quando o usuário pedir todos os itens.
