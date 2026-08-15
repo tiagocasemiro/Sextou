@@ -15,9 +15,35 @@ implementar trabalho fora do pedido do usuário.
 
 ## Skills locais
 
-As skills deste repositório ficam em `.agents/skills/`. Quando uma tarefa
-corresponder à descrição de uma skill, leia integralmente o respectivo
-`SKILL.md` antes de agir e siga suas instruções.
+As skills deste repositório ficam em `.agents/skills/`. Consulte a descrição
+do `SKILL.md` para escolher a skill que corresponde à tarefa:
+
+- [architecture](.agents/skills/architecture/SKILL.md): criar e manter o app
+  Android usando MVVM, Clean Architecture e Jetpack Compose;
+- [manage-sextou-tasks](.agents/skills/manage-sextou-tasks/SKILL.md): gerenciar
+  Issues e o board do GitHub Project do Sextou.
+
+### Como usar uma skill local
+
+1. Identifique a skill pela descrição e pelo escopo da tarefa. Se o usuário
+   mencionar uma skill explicitamente, ela deve ser usada.
+2. Leia integralmente o `SKILL.md` antes de planejar, implementar ou revisar a
+   mudança. Não aplique uma skill apenas com base no nome ou no resumo.
+3. Resolva referências relativas a partir da pasta da skill. Leia os arquivos
+   em `references/` somente quando forem necessários para a tarefa e prefira
+   executar ou adaptar scripts fornecidos em `scripts/` em vez de reescrever
+   procedimentos determinísticos.
+4. Quando mais de uma skill se aplicar, use somente o conjunto mínimo
+   necessário, informe a ordem de uso e resolva eventuais conflitos pela
+   especificidade da skill local e pelas instruções do usuário.
+5. A skill orienta o trabalho dentro do escopo pedido; não autoriza mudanças
+   adicionais. Preserve arquivos e alterações existentes que não pertençam à
+   tarefa.
+6. Se uma skill necessária estiver ausente, incompleta ou não puder ser lida,
+   registre o bloqueio brevemente e continue com a alternativa mais segura.
+7. Se a aplicação da skill produzir uma decisão relevante ou uma alteração
+   material, registre a decisão em `assets/agent-decision.md` conforme a regra
+   geral do projeto.
 
 ### Precedência da skill de arquitetura
 
