@@ -9,6 +9,16 @@ Tratar cada task como uma Issue de `tiagocasemiro/Sextou` vinculada ao GitHub Pr
 
 Antes de qualquer operação, ler [references/github-task-operations.md](references/github-task-operations.md). Usar os identificadores registrados ali como ponto de partida, mas consultar o GitHub novamente se uma operação falhar ou se campos/opções puderem ter mudado.
 
+## Estrutura do board
+
+Usar o fluxo `Todo → In Progress → Done`:
+
+- `Todo`: task ainda não iniciada. Interpretar também “to do” e “a fazer”.
+- `In Progress`: task em execução. Interpretar também “Do”, “Doing” e “em andamento”.
+- `Done`: task concluída. Interpretar também “conclusão”, “concluída” e “finalizada”; neste Project, essa mudança fecha a Issue como `completed` por automação.
+
+Usar sempre os nomes canônicos `Todo`, `In Progress` e `Done` nas chamadas MCP. Fazer transições regressivas somente quando forem pedidas explicitamente e verificar separadamente se o estado aberto/fechado da Issue mudou.
+
 ## Escolher o acesso
 
 1. Preferir as ferramentas nativas do MCP GitHub quando estiverem registradas na sessão.
@@ -24,16 +34,19 @@ Antes de qualquer operação, ler [references/github-task-operations.md](referen
 4. Criar a Issue com `issue_write` e capturar seu número.
 5. Adicionar a Issue ao Project nº 4 com `projects_write/add_project_item`.
 6. Se o usuário especificar uma coluna, consultar `list_project_fields` e alterar o campo `Status`. Se não especificar, manter o padrão do board.
-7. Verificar o resultado lendo novamente a Issue ou filtrando `list_project_items`. Entregar os links e o estado final.
+7. Após mudar o status, aguardar a mutação responder e fazer leituras independentes com `list_project_items` e `issue_read/get`; automações do Project podem alterar a Issue depois da resposta inicial.
+8. Entregar os links, o status do board e o estado final da Issue.
 
 ## Regras de mutação
 
 - Preservar exatamente título e descrição fornecidos, salvo pedido de revisão textual.
 - Não criar outra Issue quando uma etapa posterior falhar. Localizar a Issue já criada e retomar a vinculação/edição.
-- Tratar o status do board e o estado da Issue separadamente:
-  - mover para `Done` não fecha automaticamente a Issue;
-  - fechar a Issue não move automaticamente o card para `Done`;
-  - realizar ambas somente quando o usuário pedir ou quando a intenção for inequívoca, informando as duas mudanças.
+- Tratar o status do board e o estado da Issue como campos distintos, considerando a automação existente:
+  - mover para `Done` fecha automaticamente a Issue como `completed` neste Project;
+  - não presumir que mover para `Todo` ou `In Progress` reabra a Issue, pois esse comportamento ainda não foi confirmado;
+  - não presumir que fechar a Issue mova o card para `Done`; verificar ambos os estados e informar todas as mudanças observadas.
+- Interpretar “mover para conclusão/concluído” como `Status: Done`; avisar que isso também fechará a Issue pela automação atual.
+- Interpretar “mover para Do/Doing” como `Status: In Progress`, nunca como um valor literal inexistente no GitHub.
 - Ao fechar uma Issue, enviar `state_reason`: usar `completed` para trabalho concluído, `not_planned` para cancelamento e `duplicate` apenas com a Issue original identificada.
 - Pedir confirmação antes de excluir uma Issue do Project ou realizar outra ação destrutiva que não esteja explícita no pedido.
 - Paginar completamente listagens quando o usuário pedir todos os itens.

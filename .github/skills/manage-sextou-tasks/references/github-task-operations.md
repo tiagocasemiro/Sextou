@@ -25,6 +25,8 @@ Uma task é uma Issue de `tiagocasemiro/Sextou`. O card do board é um item do P
 - coluna/status pertence ao campo `Status` do item no Project;
 - o identificador da Issue (`issue_number`) difere do identificador do item (`item_id`/`node_id`).
 
+Apesar dessa separação, o Project possui uma automação confirmada em 2026-08-15: mover um card para `Done` fecha a Issue vinculada com `state: closed` e `state_reason: completed`. A resposta imediata de `projects_write/update_project_item` pode ainda mostrar `state: open`; verificar depois com chamadas independentes. Não foi confirmado se mover de `Done` para outro status reabre a Issue.
+
 ## Campos atuais do Project
 
 Consultar novamente com `projects_list/list_project_fields` antes de depender de IDs em mutações importantes.
@@ -42,13 +44,29 @@ Consultar novamente com `projects_list/list_project_fields` antes de depender de
 | Parent issue | `378388638` | parent_issue |
 | Sub-issues progress | `378388639` | sub_issues_progress |
 
-Opções atuais de `Status`:
+## Estrutura e vocabulário do board
 
-| Nome | Option ID | Significado |
-| --- | --- | --- |
-| Todo | `f75ad846` | Ainda não iniciada |
-| In Progress | `47fc9ee4` | Em execução |
-| Done | `98236657` | Concluída no board |
+O fluxo canônico é:
+
+```text
+Todo -> In Progress -> Done
+```
+
+| Nome canônico | Sinônimos aceitos na solicitação | Option ID | Significado | Efeito confirmado na Issue |
+| --- | --- | --- | --- | --- |
+| Todo | `to do`, `a fazer`, `não iniciada` | `f75ad846` | Trabalho ainda não iniciado | Nenhum efeito automático confirmado |
+| In Progress | `do`, `doing`, `em andamento`, `em execução` | `47fc9ee4` | Trabalho sendo executado | Nenhum efeito automático confirmado |
+| Done | `conclusão`, `concluída`, `finalizada` | `98236657` | Trabalho concluído | Fecha como `completed` |
+
+Normalizar sinônimos para o nome canônico antes de chamar `projects_write`. O GitHub não possui uma opção literal `Do`; usar `In Progress`.
+
+Regras de transição:
+
+- Ao criar e vincular uma task sem status solicitado, aceitar o padrão atual do Project, normalmente `Todo`, e confirmar por leitura.
+- Mover de `Todo` para `In Progress` quando o trabalho começar.
+- Mover de `In Progress` para `Done` quando o trabalho terminar; esperar o fechamento automático da Issue.
+- Permitir saltos ou movimentos regressivos somente quando solicitados explicitamente.
+- Ao sair de `Done`, não presumir reabertura automática da Issue; ler a Issue e informar o resultado.
 
 ## Transporte MCP de fallback
 
@@ -85,7 +103,30 @@ Pesquisar possíveis duplicatas antes de criar:
 
 Usar com `search_issues`. Comparar título e intenção; não confiar apenas em `total_count`.
 
-Ler uma Issue e seus comentários com `issue_read`, fornecendo `owner`, `repo`, `issue_number` e o `method` apropriado oferecido pelo schema atual da ferramenta. Inspecionar `tools/list` se o MCP renomear métodos.
+Ler uma Issue com `issue_read/get`:
+
+```json
+{
+  "method": "get",
+  "owner": "tiagocasemiro",
+  "repo": "Sextou",
+  "issue_number": 123
+}
+```
+
+Ler comentários com `issue_read/get_comments`:
+
+```json
+{
+  "method": "get_comments",
+  "owner": "tiagocasemiro",
+  "repo": "Sextou",
+  "issue_number": 123,
+  "perPage": 100
+}
+```
+
+Inspecionar `tools/list` se o MCP renomear métodos.
 
 Listar cards e seus status:
 
@@ -150,6 +191,7 @@ Usar `add_issue_comment` com:
 ```
 
 Preservar Markdown. Não editar ou apagar comentários existentes por inferência.
+Verificar o comentário com `issue_read/get_comments` e comparar o corpo e a URL retornados.
 
 ## Editar uma task
 
@@ -217,6 +259,10 @@ Preferir localizar o item por Issue, sem depender do `item_id` armazenado:
 
 Valores válidos atuais: `Todo`, `In Progress`, `Done`. Após atualizar, reler o item incluindo `field_names: ["Status"]`.
 
+Ao mover para `Done`, esperar também `issue_read/get` retornar `state: closed` e `state_reason: completed`, devido à automação atual do Project. Não confiar apenas no objeto retornado pela mutação: ele pode representar o estado da Issue antes da automação. Se a Issue não aparecer fechada na primeira leitura, consultar novamente antes de declarar falha ou sucesso parcial.
+
+Ao mover para `Todo` ou `In Progress`, reler a Issue e informar se ela permaneceu fechada. Não reabrir automaticamente sem solicitação explícita até que a regra de automação inversa seja conhecida.
+
 Para várias tasks com o mesmo status, preferir `update_project_items` com até 50 entradas em `items` e um único `updated_field` no topo.
 
 ## Remover do board
@@ -241,4 +287,4 @@ Esta ação não exclui a Issue, apenas o item do Project. Confirmar intenção 
 - Item já existe no board: listar itens e atualizar o existente; não duplicar.
 - Campo/opção inválido: executar `list_project_fields` e usar o nome/ID retornado.
 - Resposta MCP inesperada: inspecionar `tools/list` e o `inputSchema` da ferramenta, sem adivinhar parâmetros.
-- Resultado mutável: verificar sempre com uma chamada de leitura antes de declarar sucesso.
+- Resultado mutável: verificar sempre com chamadas de leitura independentes antes de declarar sucesso; após `Done`, conferir tanto o Project quanto a Issue por causa da automação e da possível consistência eventual.
