@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="15dp"
+    android:height="15dp"
+    android:viewportWidth="15"
+    android:viewportHeight="15">
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FFFE9A00"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="1.25"
+        android:pathData="M10.625,6.875H11.25C11.7473,6.875 12.2242,7.07254 12.5758,7.42417C12.9275,7.77581 13.125,8.25272 13.125,8.75C13.125,9.24728 12.9275,9.72419 12.5758,10.0758C12.2242,10.4275 11.7473,10.625 11.25,10.625H10.625" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FFFE9A00"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="1.25"
+        android:pathData="M5.625,7.5V11.25" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FFFE9A00"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="1.25"
+        android:pathData="M8.125,7.5V11.25" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FFFE9A00"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="1.25"
+        android:pathData="M8.75,4.6875C8.125,4.6875 7.85,5 6.875,5C5.9,5 5.625,4.6875 5,4.6875C4.375,4.6875 3.925,5 3.4375,5C3.0231,5 2.62567,4.83538 2.33265,4.54235C2.03962,4.24933 1.875,3.8519 1.875,3.4375C1.875,3.0231 2.03962,2.62567 2.33265,2.33265C2.62567,2.03962 3.0231,1.875 3.4375,1.875C3.925,1.875 4.41875,2.1875 5,2.1875C5.58125,2.1875 5.9,1.25 6.875,1.25C7.85,1.25 8.125,2.1875 8.75,2.1875C9.375,2.1875 9.825,1.875 10.3125,1.875C10.7269,1.875 11.1243,2.03962 11.4174,2.33265C11.7104,2.62567 11.875,3.0231 11.875,3.4375C11.875,3.8519 11.7104,4.24933 11.4174,4.54235C11.1243,4.83538 10.7269,5 10.3125,5C9.825,5 9.375,4.6875 8.75,4.6875Z" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FFFE9A00"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="1.25"
+        android:pathData="M3.125,5V12.5C3.125,12.8315 3.2567,13.1495 3.49112,13.3839C3.72554,13.6183 4.04348,13.75 4.375,13.75H9.375C9.70652,13.75 10.0245,13.6183 10.2589,13.3839C10.4933,13.1495 10.625,12.8315 10.625,12.5V5" />
+</vector>

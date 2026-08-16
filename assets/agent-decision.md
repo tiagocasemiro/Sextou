@@ -1,5 +1,13 @@
 # Decisões do agente
 
+## 2026-08-16 — Botão de mais resultados do Figma (node 2:1960)
+
+Foi criado `SextouMoreButton` com texto variável, callback `onClick` e estado
+`enabled`, usando `OutlinedButton` do Material 3 para preservar semântica,
+foco, ripple e estado desabilitado. O botão mantém borda, raio, espaçamentos,
+tipografia e ícone de chope do Figma; o SVG exportado foi convertido para
+VectorDrawable e o texto permanece sob responsabilidade do consumidor.
+
 ## 2026-08-16 — Badge de status do Figma (nodes 2:1834 e 2:1902)
 
 Foi criado `SextouStatusBadge` com os estados `SextouStatus.OPEN` e

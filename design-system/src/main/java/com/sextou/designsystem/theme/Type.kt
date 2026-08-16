@@ -8,6 +8,13 @@ import androidx.compose.ui.unit.sp
 
 private val SextouBodyFont = FontFamily.SansSerif
 private val SextouDisplayFont = FontFamily.SansSerif
+private val SextouCompactActionText = TextStyle(
+    fontFamily = SextouBodyFont,
+    fontWeight = FontWeight.Bold,
+    fontSize = 14.sp,
+    lineHeight = 20.sp,
+    letterSpacing = (-0.15).sp,
+)
 
 object SextouTextStyles {
     val Brand = TextStyle(
@@ -69,13 +76,8 @@ object SextouTextStyles {
         lineHeight = 20.sp,
     )
 
-    val Status = TextStyle(
-        fontFamily = SextouBodyFont,
-        fontWeight = FontWeight.Bold,
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
-        letterSpacing = (-0.15).sp,
-    )
+    val Status = SextouCompactActionText
+    val ActionButton = SextouCompactActionText
 }
 
 val SextouTypography = Typography(

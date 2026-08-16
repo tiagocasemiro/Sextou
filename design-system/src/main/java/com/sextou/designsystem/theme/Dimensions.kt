@@ -18,6 +18,9 @@ object SextouDimensions {
     val StatusBadgeHorizontalPadding = 10.dp
     val StatusBadgeVerticalPadding = 4.dp
     val StatusBadgeIndicator = 6.dp
+    val MoreButtonIcon = 15.dp
+    val MoreButtonHorizontalPadding = 0.dp
+    val MoreButtonVerticalPadding = 14.dp
     val ProfileButton = 40.dp
     val ProfileIcon = 18.dp
     val ProfileBadge = 14.dp
