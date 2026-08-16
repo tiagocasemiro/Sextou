@@ -75,6 +75,15 @@ Essa classificação segue as definições de work types do Jira documentadas pe
 Atlassian: [tipos de work item](https://support.atlassian.com/jira-software-cloud/docs/set-up-issue-types-in-team-managed-projects/),
 [work types e hierarquia](https://support.atlassian.com/jira-cloud-administration/docs/what-are-issue-types/).
 
+## Entrada padrão no board
+
+Toda Issue adicionada ao Project sem uma coluna explicitamente informada deve
+entrar em `Backlog`. Depois de `add_project_item`, definir explicitamente
+`Status: Backlog` e confirmar o resultado com `list_project_items` e
+`issue_read/get`. Não confiar no status padrão automático do GitHub Project.
+Uma coluna diferente só pode ser usada quando tiver sido indicada na
+solicitação.
+
 Apesar dessa separação, o Project possui uma automação confirmada em 2026-08-15: mover um card para `Done` fecha a Issue vinculada com `state: closed` e `state_reason: completed`. A resposta imediata de `projects_write/update_project_item` pode ainda mostrar `state: open`; verificar depois com chamadas independentes. Não foi confirmado se mover de `Done` para outro status reabre a Issue.
 
 ## Campos atuais do Project
@@ -115,7 +124,7 @@ Normalizar sinônimos para o nome canônico antes de chamar `projects_write`. Us
 
 Regras de transição:
 
-- Ao criar e vincular uma task sem status solicitado, aceitar o padrão atual do Project, normalmente `Backlog`, e confirmar por leitura.
+- Ao criar e vincular uma task sem coluna solicitada, definir explicitamente `Status: Backlog` e confirmar por leitura; não depender do padrão automático do Project.
 - Mover de `Backlog` para `Read to work` quando a análise de negócio e técnica terminar e a task estiver refinada.
 - Mover de `Read to work` para `In Progress` quando o trabalho começar.
 - Mover de `In Progress` para `Validation` quando o trabalho direto terminar e estiver pronto para conferência.

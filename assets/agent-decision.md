@@ -1,5 +1,13 @@
 # Decisões do agente
 
+## 2026-08-15 — Entrada padrão das Issues no board
+
+* A skill `manage-sextou-tasks` passou a definir `Backlog` como ponto de
+  entrada obrigatório para toda Issue adicionada ao Project sem coluna
+  explicitamente informada.
+* O status deve ser definido explicitamente após a vinculação e confirmado por
+  leitura independente, sem depender do padrão automático do GitHub Project.
+
 ## 2026-08-15 — Semântica Jira para tipos de task
 
 * A skill `manage-sextou-tasks` passou a orientar a escolha de `Épico`,

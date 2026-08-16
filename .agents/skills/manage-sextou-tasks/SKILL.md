@@ -50,6 +50,14 @@ solicitar essa informação antes da criação. Se o título já tiver um prefix
 canônico, não duplicá-lo; ao editar o título, preservar o prefixo atual salvo
 quando o usuário pedir explicitamente a mudança de tipo.
 
+## Entrada padrão no board
+
+`Backlog` é o ponto de entrada de toda Issue no board. Ao adicionar uma Issue
+ao Project sem uma instrução explícita de coluna, definir `Status: Backlog` e
+confirmar a mudança por leitura independente. Nunca depender somente do padrão
+automático do GitHub Project. Usar outra coluna apenas quando o usuário
+informar explicitamente a coluna de entrada.
+
 ## Estrutura do board
 
 Usar o fluxo canônico:
@@ -83,7 +91,7 @@ Usar sempre os nomes canônicos acima nas chamadas MCP. Interpretar solicitaçõ
 3. Para criação, pesquisar primeiro por título/termos equivalentes com `search_issues` e evitar duplicatas exatas ou semanticamente óbvias.
 4. Criar a Issue com `issue_write` e capturar seu número.
 5. Adicionar a Issue ao Project nº 4 com `projects_write/add_project_item`.
-6. Se o usuário especificar uma coluna, consultar `list_project_fields` e alterar o campo `Status`. Se não especificar, manter o padrão do board.
+6. Se o usuário especificar uma coluna, consultar `list_project_fields` e alterar o campo `Status`. Se não especificar, alterar explicitamente para `Backlog`, o ponto de entrada padrão do board.
 7. Após mudar o status, aguardar a mutação responder e fazer leituras independentes com `list_project_items` e `issue_read/get`; automações do Project podem alterar a Issue depois da resposta inicial.
 8. Entregar os links, o status do board e o estado final da Issue.
 
