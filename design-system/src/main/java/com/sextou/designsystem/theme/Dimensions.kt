@@ -15,6 +15,9 @@ object SextouDimensions {
     val SearchFilterTouchTarget = 48.dp
     val SectionHeaderIcon = 14.dp
     val SectionDividerThickness = 1.dp
+    val StatusBadgeHorizontalPadding = 10.dp
+    val StatusBadgeVerticalPadding = 4.dp
+    val StatusBadgeIndicator = 6.dp
     val ProfileButton = 40.dp
     val ProfileIcon = 18.dp
     val ProfileBadge = 14.dp

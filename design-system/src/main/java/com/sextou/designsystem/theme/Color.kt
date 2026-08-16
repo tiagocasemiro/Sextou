@@ -22,6 +22,12 @@ object SextouColors {
 
     val Positive = Color(0xFF00D492)
     val PositiveStrong = Color(0xFF00BC7D)
+    val StatusOpenContainer = PositiveStrong.copy(alpha = 0.9f)
+    val StatusOpenIndicator = Color.White.copy(alpha = 0.5f)
+    val StatusOpenContent = Color.White
+    val StatusClosedContainer = Color(0xE63F3F47)
+    val StatusClosedIndicator = Color(0xFF9F9FA9)
+    val StatusClosedContent = Color(0xFFD4D4D8)
     val Accent = Color(0xFFFFD230)
     val Error = Color(0xFFFF5722)
 

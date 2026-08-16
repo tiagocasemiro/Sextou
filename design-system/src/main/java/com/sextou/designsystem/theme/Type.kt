@@ -68,6 +68,14 @@ object SextouTextStyles {
         fontSize = 14.sp,
         lineHeight = 20.sp,
     )
+
+    val Status = TextStyle(
+        fontFamily = SextouBodyFont,
+        fontWeight = FontWeight.Bold,
+        fontSize = 14.sp,
+        lineHeight = 20.sp,
+        letterSpacing = (-0.15).sp,
+    )
 }
 
 val SextouTypography = Typography(

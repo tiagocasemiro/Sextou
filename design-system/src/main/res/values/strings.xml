@@ -16,4 +16,6 @@
     <string name="design_system_preview_search_filter_content_description">Abrir filtros</string>
     <string name="design_system_preview_section_header">MAIS BOMBADOS AGORA</string>
     <string name="design_system_preview_section_header_variable">LUGARES PERTO DE VOCÊ</string>
+    <string name="design_system_status_open">Aberto agora</string>
+    <string name="design_system_status_closed">Fechado</string>
 </resources>

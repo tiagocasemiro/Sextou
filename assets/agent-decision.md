@@ -1,5 +1,13 @@
 # Decisões do agente
 
+## 2026-08-16 — Badge de status do Figma (nodes 2:1834 e 2:1902)
+
+Foi criado `SextouStatusBadge` com os estados `SextouStatus.OPEN` e
+`SextouStatus.CLOSED`. O componente é deliberadamente não clicável e não
+recebe callbacks. Os dois estados compartilham a estrutura de pill com ponto
+indicador e variam apenas nas cores e no texto localizado; dimensões, cores e
+tipografia foram centralizadas nos tokens do `design-system`.
+
 ## 2026-08-16 — Cabeçalho de seção do Figma (node 1:694)
 
 Foi criado `SextouSectionHeader` com texto variável para representar o divisor
