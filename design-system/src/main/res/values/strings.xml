@@ -6,4 +6,5 @@
     <string name="design_system_preview_card_metadata">Aberto agora · 680 m · $$</string>
     <string name="design_system_preview_theme_title">SEXTOU</string>
     <string name="design_system_preview_theme_subtitle">O guia do povão</string>
+    <string name="design_system_preview_profile_button_content_description">Perfil</string>
 </resources>

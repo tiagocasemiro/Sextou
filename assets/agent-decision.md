@@ -1,5 +1,24 @@
 # Decisões do agente
 
+## 2026-08-16 — Foto opcional no botão de perfil
+
+* `SextouProfileButton` passou a aceitar `avatarPainter` opcional. Quando
+  informado, ele substitui o ícone do Figma por uma foto circular de 18 dp;
+  quando ausente, o ícone original permanece como fallback.
+* A API usa `Painter` em vez de receber URL ou introduzir Coil no
+  `design-system`, mantendo o carregamento de imagens sob responsabilidade do
+  módulo consumidor.
+
+## 2026-08-16 — Botão de perfil do design-system
+
+* O node `1:663` do Figma foi implementado como `SextouProfileButton`, com
+  tamanho visual de 40 dp, ícone de perfil de 18 dp e indicador opcional de
+  14 dp no canto superior direito.
+* Os valores visuais foram ligados aos tokens existentes do design-system:
+  `SurfaceImage`, `Border`, `TextSecondary`, `Error` e `Background`.
+* O SVG exportado do Figma foi convertido para um VectorDrawable Android para
+  preservar o traçado original sem introduzir uma biblioteca de ícones.
+
 ## 2026-08-16 — Preview co-localizado ao tema
 
 * O preview composto do tema foi movido de `ThemePreview.kt` para `Theme.kt`,
