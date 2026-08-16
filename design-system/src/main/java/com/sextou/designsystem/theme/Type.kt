@@ -18,6 +18,14 @@ object SextouTextStyles {
         letterSpacing = (-0.75).sp,
     )
 
+    val BrandSubtitle = TextStyle(
+        fontFamily = SextouBodyFont,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 9.sp,
+        lineHeight = 13.5.sp,
+        letterSpacing = 1.067.sp,
+    )
+
     val SectionTitle = TextStyle(
         fontFamily = SextouDisplayFont,
         fontWeight = FontWeight.ExtraBold,

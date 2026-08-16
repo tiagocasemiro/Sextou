@@ -4,6 +4,8 @@ import androidx.compose.ui.unit.dp
 
 /** Component dimensions that do not belong to the general spacing scale. */
 object SextouDimensions {
+    val BrandIcon = 36.dp
+    val BrandTextGap = (-2).dp
     val ProfileButton = 40.dp
     val ProfileIcon = 18.dp
     val ProfileBadge = 14.dp

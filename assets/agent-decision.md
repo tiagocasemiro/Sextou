@@ -1,5 +1,18 @@
 # Decisões do agente
 
+## 2026-08-16 — Componente de marca do Figma (node 1:652)
+
+Foi criado `SextouBrand` em `design-system` a partir do node `1:652` do
+Figma. O componente é stateless e não clicável: recebe `Painter` para o ícone,
+`String` para título e subtítulo, `Modifier` opcional e uma descrição de
+acessibilidade opcional. O layout reutiliza os tokens existentes de cor,
+espaçamento e forma, com novos tokens apenas para dimensões do ícone e para o
+estilo tipográfico do subtítulo que não existiam no tema.
+
+O asset visual do ícone foi exportado do Figma e salvo como
+`design-system/src/main/res/drawable/ic_sextou_chopp.png` somente para o
+preview; a API do componente permanece dinâmica para os consumidores.
+
 ## 2026-08-16 — Aplicação das regras de tokens, estado e previews
 
 O módulo `design-system` foi ajustado para remover dimensões hardcoded dos

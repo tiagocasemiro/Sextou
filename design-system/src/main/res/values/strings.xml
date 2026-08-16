@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="design_system_preview_brand_title">SEXTOU</string>
+    <string name="design_system_preview_brand_subtitle">O GUIA DO POVÃO</string>
+    <string name="design_system_preview_brand_icon_content_description">Ícone de chope</string>
     <string name="design_system_preview_primary_button">Ver lugares</string>
     <string name="design_system_preview_outlined_button">Ver no mapa</string>
     <string name="design_system_preview_card_title">Ao Ponto Bar &amp; Restaurante</string>
