@@ -1,5 +1,44 @@
 # Decisões do agente
 
+## 2026-08-16 — Aplicação das regras de tokens, estado e previews
+
+O módulo `design-system` foi ajustado para remover dimensões hardcoded dos
+componentes. Os valores de botão de perfil, badge, bordas, offset e elevação
+foram centralizados em `theme/Dimensions.kt`; as cores específicas do esquema
+claro foram centralizadas em `theme/Color.kt`, e o background dos previews usa
+o token ARGB compartilhado. A revisão confirmou que os componentes atuais já
+são stateless e que cada componente possui preview no próprio arquivo.
+
+`design-system:assembleDebug` passou. `design-system:testDebugUnitTest` não
+possui fontes de teste (`NO-SOURCE`). A compilação de `app` foi tentada, mas o
+ambiente falhou no `androidJdkImage` ao executar `jlink` do JDK 22.3 contra o
+SDK Android 34; não houve erro de Kotlin ou de integração do design-system.
+
+## 2026-08-16 — Regras de tokens, estado e previews do design-system
+
+A skill `.agents/skills/design-system` passou a exigir que componentes nunca
+usem valores visuais hardcoded: cores, espaçamentos, dimensões, corner radius e
+tipografia devem reutilizar tokens existentes ou receber um novo token
+semântico centralizado. Também foi definido que componentes são stateless por
+padrão, com exceções mínimas para estados transitórios de inputs, e que todo
+componente deve ter um preview privado no próprio arquivo.
+
+## 2026-08-16 — Metadata da skill de arquitetura
+
+Foi adicionado `.agents/skills/architecture/agents/openai.yaml` com nome,
+descrição curta e prompt padrão coerentes com a skill `architecture`. A skill
+não declara dependências externas e permanece elegível para invocação implícita.
+
+## 2026-08-16 — Skill local para o módulo design-system
+
+Foi criada a skill `.agents/skills/design-system` para concentrar o fluxo e as
+regras específicas do módulo visual compartilhado: limites arquiteturais,
+tokens semânticos, tema Material 3, componentes Compose, acessibilidade,
+previews, dependências e validação. A skill foi mantida sem scripts ou
+referências auxiliares porque o conhecimento necessário é pequeno e estável,
+enquanto os arquivos do módulo permanecem a fonte de verdade para a
+implementação.
+
 ## 2026-08-16 — Foto opcional no botão de perfil
 
 * `SextouProfileButton` passou a aceitar `avatarPainter` opcional. Quando

@@ -63,7 +63,7 @@ fun SextouOutlinedButton(
 @Preview(
     name = "Sextou button",
     showBackground = true,
-    backgroundColor = 0xFF111111,
+    backgroundColor = SextouColors.BackgroundArgb,
 )
 @Composable
 private fun SextouButtonPreview() {
@@ -77,7 +77,7 @@ private fun SextouButtonPreview() {
 @Preview(
     name = "Sextou outlined button",
     showBackground = true,
-    backgroundColor = 0xFF111111,
+    backgroundColor = SextouColors.BackgroundArgb,
 )
 @Composable
 private fun SextouOutlinedButtonPreview() {

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Trabalhar no design system"
+  short_description: "Evolua tokens e componentes Compose do Sextou"
+  default_prompt: "Use $design-system para criar, revisar ou evoluir o módulo design-system do Sextou."

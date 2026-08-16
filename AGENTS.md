@@ -22,6 +22,8 @@ do `SKILL.md` para escolher a skill que corresponde à tarefa:
   Android usando MVVM, Clean Architecture e Jetpack Compose;
 - [manage-sextou-tasks](.agents/skills/manage-sextou-tasks/SKILL.md): gerenciar
   Issues e o board do GitHub Project do Sextou.
+- [design-system](.agents/skills/design-system/SKILL.md): criar e manter o
+  módulo compartilhado de tokens, tema e componentes Jetpack Compose.
 
 ### Como usar uma skill local
 

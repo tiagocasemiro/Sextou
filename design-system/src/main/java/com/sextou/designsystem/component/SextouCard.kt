@@ -12,9 +12,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import com.sextou.designsystem.R
 import com.sextou.designsystem.theme.SextouColors
+import com.sextou.designsystem.theme.SextouDimensions
 import com.sextou.designsystem.theme.SextouShapes
 import com.sextou.designsystem.theme.SextouSpacing
 import com.sextou.designsystem.theme.SextouTheme
@@ -27,8 +27,8 @@ fun SextouCard(
 ) {
     val shape = SextouShapes.medium
     val colors = CardDefaults.cardColors(containerColor = SextouColors.Surface)
-    val elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    val border = BorderStroke(1.dp, SextouColors.Border)
+    val elevation = CardDefaults.cardElevation(defaultElevation = SextouDimensions.CardElevation)
+    val border = BorderStroke(SextouDimensions.Border, SextouColors.Border)
 
     if (onClick == null) {
         Card(
@@ -55,7 +55,7 @@ fun SextouCard(
 @Preview(
     name = "Sextou card",
     showBackground = true,
-    backgroundColor = 0xFF111111,
+    backgroundColor = SextouColors.BackgroundArgb,
 )
 @Composable
 private fun SextouCardPreview() {
@@ -79,7 +79,7 @@ private fun SextouCardPreview() {
 @Preview(
     name = "Sextou clickable card",
     showBackground = true,
-    backgroundColor = 0xFF111111,
+    backgroundColor = SextouColors.BackgroundArgb,
 )
 @Composable
 private fun SextouClickableCardPreview() {

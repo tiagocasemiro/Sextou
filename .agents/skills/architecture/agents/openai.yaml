@@ -1,0 +1,7 @@
+interface:
+  display_name: "Arquitetura Android do Sextou"
+  short_description: "Aplique MVVM, Clean Architecture e Compose"
+  default_prompt: "Use $architecture para criar ou revisar uma camada Android do Sextou."
+
+policy:
+  allow_implicit_invocation: true
