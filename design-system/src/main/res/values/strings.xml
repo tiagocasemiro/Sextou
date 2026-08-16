@@ -10,4 +10,5 @@
     <string name="design_system_preview_theme_title">SEXTOU</string>
     <string name="design_system_preview_theme_subtitle">O guia do povão</string>
     <string name="design_system_preview_profile_button_content_description">Perfil</string>
+    <string name="design_system_preview_icon_button_content_description">Filtrar</string>
 </resources>

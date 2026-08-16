@@ -6,6 +6,9 @@ import androidx.compose.ui.unit.dp
 object SextouDimensions {
     val BrandIcon = 36.dp
     val BrandTextGap = (-2).dp
+    val CompactIconButton = 28.dp
+    val CompactIconButtonTouchTarget = 48.dp
+    val CompactIcon = 13.dp
     val ProfileButton = 40.dp
     val ProfileIcon = 18.dp
     val ProfileBadge = 14.dp

@@ -1,5 +1,17 @@
 # Decisões do agente
 
+## 2026-08-16 — Botão de ícone clicável do Figma (node 1:675)
+
+Foi criado `SextouIconButton` no `design-system` para representar o botão
+compacto de 28 dp do Figma. A API recebe um `Painter`, permitindo trocar o
+ícone sem acoplar o componente a uma feature, além de descrição de
+acessibilidade, callback `onClick` e `enabled`. O bloco visual mantém 28 dp,
+envolvido pelo alvo mínimo de toque do Compose. A interação usa `Surface` do
+Material 3 para preservar a semântica de botão e a indicação/ripple padrão ao
+pressionar. O ícone do node `1:676` foi exportado do Figma e convertido para
+VectorDrawable apenas no preview; consumidores continuam fornecendo o ícone
+por parâmetro.
+
 ## 2026-08-16 — Componente de marca do Figma (node 1:652)
 
 Foi criado `SextouBrand` em `design-system` a partir do node `1:652` do
