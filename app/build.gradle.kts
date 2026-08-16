@@ -48,6 +48,7 @@ kotlin {
 }
 
 dependencies {
+    implementation(project(":design-system"))
     implementation(project(":domain"))
     implementation(project(":networking"))
     implementation("androidx.activity:activity-compose:1.9.0")

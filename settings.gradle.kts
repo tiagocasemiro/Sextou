@@ -18,3 +18,4 @@ rootProject.name = "Sextou"
 include(":app")
 include(":domain")
 include(":networking")
+include(":design-system")
