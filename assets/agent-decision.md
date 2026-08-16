@@ -1,5 +1,15 @@
 # Decisões do agente
 
+## 2026-08-16 — Épicos das funcionalidades do features.md
+
+* Foram criadas 13 Issues correspondentes às funcionalidades de
+  `.codex/features.md`, numeradas de #2 a #14, usando o prefixo `Épico -` no
+  título porque o repositório não possui tipos nativos de Issue habilitados.
+* Cada Issue recebeu somente o briefing da funcionalidade correspondente no
+  próprio `.codex/features.md`, sem adicionar conteúdo de outras fontes.
+* Todas as Issues foram vinculadas ao Project nº 4, definidas explicitamente
+  como `Status: Backlog` e verificadas por leituras independentes.
+
 ## 2026-08-15 — Entrada padrão das Issues no board
 
 * A skill `manage-sextou-tasks` passou a definir `Backlog` como ponto de
