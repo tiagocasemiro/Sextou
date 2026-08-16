@@ -1,5 +1,16 @@
 # Decisões do agente
 
+## 2026-08-16 — Barra de busca do Figma (node 1:669)
+
+Foi criado `SextouSearchBar` no `design-system` como componente stateless, com
+valor editável, placeholder e ação de filtro separados. A superfície, borda,
+tipografia e cores reutilizam os tokens existentes; foram adicionados apenas
+tokens dimensionais para o ícone, altura do campo e área de toque do filtro.
+O ícone de busca foi exportado do Figma e convertido para VectorDrawable. O
+ícone de filtro já existente no módulo foi reutilizado. A área de toque do
+filtro mede 48 dp e mantém o visual laranja de 28 dp alinhado à direita para
+preservar acessibilidade sem alterar a composição visual do node.
+
 ## 2026-08-16 — Botão de ícone clicável do Figma (node 1:675)
 
 Foi criado `SextouIconButton` no `design-system` para representar o botão

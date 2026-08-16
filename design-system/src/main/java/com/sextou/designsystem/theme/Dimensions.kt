@@ -9,6 +9,10 @@ object SextouDimensions {
     val CompactIconButton = 28.dp
     val CompactIconButtonTouchTarget = 48.dp
     val CompactIcon = 13.dp
+    val SearchIcon = 18.dp
+    val SearchInputHeight = 20.dp
+    val SearchBarVerticalPadding = 2.dp
+    val SearchFilterTouchTarget = 48.dp
     val ProfileButton = 40.dp
     val ProfileIcon = 18.dp
     val ProfileBadge = 14.dp
