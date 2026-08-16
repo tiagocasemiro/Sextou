@@ -1,5 +1,15 @@
 # Decisões do agente
 
+## 2026-08-16 — Cabeçalho de seção do Figma (node 1:694)
+
+Foi criado `SextouSectionHeader` com texto variável para representar o divisor
+de seção com chamas laterais. O `padding-top` de 16 dp e o `padding-horizontal`
+de 20 dp presentes no node foram deliberadamente removidos; o container não
+aplica espaçamento vertical ou lateral, preservando a solicitação de ausência
+de margens superior, inferior, esquerda e direita. As linhas ocupam o espaço
+restante com o token de divisor existente, e o ícone de chama foi exportado do
+Figma e convertido para VectorDrawable.
+
 ## 2026-08-16 — Barra de busca do Figma (node 1:669)
 
 Foi criado `SextouSearchBar` no `design-system` como componente stateless, com
