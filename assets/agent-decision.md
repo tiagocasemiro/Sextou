@@ -1,5 +1,50 @@
 # Decisões do agente
 
+## 2026-08-16 — Preview co-localizado ao tema
+
+* O preview composto do tema foi movido de `ThemePreview.kt` para `Theme.kt`,
+  mantendo a visualização da composição no mesmo arquivo da API `SextouTheme`.
+
+## 2026-08-16 — Runtime do renderer de previews
+
+* O `design-system` passou a declarar `ui-tooling` em `debugImplementation`,
+  além de `ui-tooling-preview`, porque a anotação sozinha permite compilar os
+  previews, mas não fornece o runtime usado pelo renderer do Android Studio.
+
+## 2026-08-16 — Previews do design-system
+
+* Foram adicionados previews privados para `SextouButton`,
+  `SextouOutlinedButton`, `SextouCard` (estático e clicável) e uma composição
+  do `SextouTheme`, todos isolados de ViewModel, Koin e navegação.
+* Os textos usados exclusivamente nos previews foram colocados em
+  `design-system/src/main/res/values/strings.xml`, mantendo a regra de não
+  hardcodar strings visíveis em composables.
+
+## 2026-08-16 — Tokens visuais da Home no Figma
+
+* O nó `1:632` da Home foi consultado pelo Figma MCP e os tokens foram
+  adaptados ao `design-system`: tema escuro com `#111111` como base, superfícies
+  `#1C1C1C` e `#2A2A2A`, texto `#F2EDE4`, texto secundário `#9A9080`, laranja
+  `#FE9A00`, amarelo `#FFB900`, verde `#00D492` e vermelho `#FF5722`.
+* A escala de layout foi centralizada em espaçamentos de 4, 6, 8, 12, 16, 20,
+  24 e 32 dp; os principais raios foram definidos como 10, 14, 16 e 44 dp.
+* A tipografia preserva os tamanhos, pesos, alturas de linha e espaçamentos
+  observados no Figma. Como o projeto não possui fontes embarcadas e SF Pro é
+  proprietária, `FontFamily.SansSerif` foi adotada como fallback Android para os
+  estilos equivalentes a SF Pro, Anton, Nunito e Barlow Condensed.
+
+## 2026-08-16 — Módulo compartilhado de design
+
+* Foi criado o módulo Android Library `design-system` para concentrar os
+  recursos visuais agnósticos de negócio: tema Compose Material 3, esquemas de
+  cores claro/escuro, tipografia, formas e componentes base de botão e card.
+* O módulo usa `dynamicColor` somente quando solicitado explicitamente; o
+  padrão permanece no esquema visual do Sextou para manter consistência entre
+  dispositivos.
+* Apenas o `app` foi conectado ao módulo porque é o único módulo atual com
+  interface. `domain` e `networking` continuam sem dependência de Compose ou
+  Android, preservando a direção das dependências da arquitetura.
+
 ## 2026-08-16 — Épicos das funcionalidades do features.md
 
 * Foram criadas 13 Issues correspondentes às funcionalidades de
