@@ -9,11 +9,17 @@ documentação, código ou outras entradas. O contrato de saída foi fixado em
 componente normalizado em `kebab-case`; o template também passou a registrar o
 tipo e a referência da fonte, em vez de assumir somente uma URL do Figma.
 
+A skill `design-system` passou a documentar a composição das skills
+`handoff-ui-component` e `create-ui-component`: o handoff é extraído primeiro,
+o componente é planejado e implementado a partir dele, e as regras específicas
+de tokens, tema e organização do módulo Sextou continuam sob responsabilidade
+da skill `design-system`.
+
 ## 2026-08-17 — Referência da skill de componentes visuais
 
 O `AGENTS.md` passou a referenciar a skill local
 `.agents/skills/create-ui-component/SKILL.md` como
-`android-design-system-components`, responsável por planejar e implementar
+`create-ui-component`, responsável por planejar e implementar
 componentes visuais em Jetpack Compose. As referências internas da skill foram
 ajustadas para os caminhos reais em `references/`, mantendo a skill
 `design-system` separada para regras específicas do módulo compartilhado.
@@ -21,6 +27,11 @@ ajustadas para os caminhos reais em `references/`, mantendo a skill
 O arquivo de desenvolvimento da skill foi renomeado para
 `.agents/skills/create-ui-component/references/developer.md`, e o frontmatter
 e os links relativos foram atualizados para usar a extensão `.md`.
+
+A skill `create-ui-component` passou a exigir a leitura integral do arquivo
+`.handoff/handoff-<nome-do-componente>.md` na raiz do projeto antes do
+planejamento ou da implementação, eliminando a referência ao diretório antigo
+`./handoff`.
 
 ## 2026-08-17 — Auditoria das skills e compatibilidade do board
 

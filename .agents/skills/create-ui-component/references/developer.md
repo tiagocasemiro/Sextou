@@ -1,6 +1,8 @@
 # Android Design System — Developer
 
-Capacidade de **implementação** de componentes do Design System. Transforma o handoff MD produzido pela capacidade [`architecture`](./architecture.md) em código Kotlin + Jetpack Compose.
+Capacidade de **implementação** de componentes do Design System. Transforma o
+handoff `.handoff/handoff-<nome-do-componente>.md`, localizado na raiz do
+projeto, em código Kotlin + Jetpack Compose.
 
 > Os contratos, estrutura de pacotes e convenções de planejamento estão em [`architecture.md`](./architecture.md). Este documento foca em **regras de código e exemplos**.
 

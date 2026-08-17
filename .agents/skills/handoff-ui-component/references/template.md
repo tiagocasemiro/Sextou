@@ -2,7 +2,7 @@
 component: {{ nome do componente }}
 stage: plan
 created_at: {{ data de criação }}
-next_agent: android-design-system-components
+next_agent: create-ui-component
 source_type: {{ tipo da fonte }}
 source_reference: {{ caminho, URL, identificador MCP ou descrição da fonte }}
 ---

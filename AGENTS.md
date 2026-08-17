@@ -22,7 +22,7 @@ do `SKILL.md` para escolher a skill que corresponde à tarefa:
   Android usando MVVM, Clean Architecture e Jetpack Compose;
 - [manage-sextou-tasks](.agents/skills/manage-sextou-tasks/SKILL.md): gerenciar
   Issues e o board do GitHub Project do Sextou.
-- [android-design-system-components](.agents/skills/create-ui-component/SKILL.md):
+- [create-ui-component](.agents/skills/create-ui-component/SKILL.md):
   planejar e implementar componentes visuais reutilizáveis em Kotlin com
   Jetpack Compose, incluindo arquitetura do componente, defaults, estados,
   acessibilidade e previews.

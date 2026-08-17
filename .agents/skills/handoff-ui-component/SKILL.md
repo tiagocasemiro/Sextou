@@ -66,7 +66,7 @@ específica em Kotlin, Swift, React Native ou outra tecnologia.
 ## Integração com a implementação
 
 Entregar o handoff para a skill de componentes visuais
-[`android-design-system-components`](../create-ui-component/SKILL.md) quando a
+[`create-ui-component`](../create-ui-component/SKILL.md) quando a
 próxima etapa for planejar ou implementar o componente Android. O handoff não
 autoriza mudanças fora do componente solicitado e não substitui as regras
 específicas do módulo `design-system`.

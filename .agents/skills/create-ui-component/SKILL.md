@@ -1,5 +1,5 @@
 ---
-name: android-design-system-components
+name: create-ui-component
 description: >
   Skill para criar componentes de uma biblioteca de design system para Android,
   cobrindo desde o planejamento arquitetural até a implementação em Kotlin com Jetpack Compose.
@@ -23,7 +23,7 @@ metadata:
     - architecture
 ---
 
-# Android Design System — Skill
+# Create UI Component — Skill
 
 Skill responsável por habilitar a criação de componentes no padrão de uma biblioteca de design system para Android. Combina duas capacidades complementares — **arquitetura** e **desenvolvimento** — para entregar componentes consistentes, testáveis e aderentes às convenções da biblioteca, desde o planejamento até a implementação final em Jetpack Compose.
 
@@ -33,6 +33,22 @@ A skill garante que todo componente:
 - Centralize estilos, estados e behaviors em `*Defaults`.
 - Reutilize tokens do `MaterialTheme` e componentes existentes da biblioteca.
 - Possua previews funcionais cobrindo behaviors e estados principais.
+
+## Handoff obrigatório
+
+Antes de iniciar o planejamento arquitetural ou a implementação, localizar na
+raiz do projeto o arquivo `.handoff/handoff-<nome-do-componente>.md` referente
+ao componente solicitado e lê-lo integralmente.
+
+Tratar o handoff como contrato de entrada para o componente: preservar suas
+properties, styles, layouts, states, constraints, anatomy, acessibilidade,
+animações e critérios de build. Não inventar informações ausentes nem
+substituir decisões do handoff por convenções próprias sem registrar o desvio.
+
+Se o handoff correspondente não existir, interromper a implementação e usar a
+skill `handoff-ui-component` para criá-lo na raiz do projeto, ou solicitar ao
+usuário a fonte necessária. Não procurar o arquivo dentro da pasta da skill e
+não usar arquivos de handoff com o padrão antigo `./handoff`.
 
 ## Capacidades
 
@@ -46,13 +62,16 @@ Planeja a estrutura do componente antes da implementação, analisando premissas
 - Especificar os arquivos mínimos do componente (`ExampleComponent.kt` e `ExampleComponentDefaults.kt`) e suas responsabilidades.
 - Modelar **behaviors**, **estados** e **styles** do componente, garantindo que toda combinação `behavior × estado × style` seja suportada.
 - Definir o contrato do composable público: kdoc, ordenação de parâmetros, implementação direta e uso de tipos do `*Defaults`.
-- Produzir um **handoff MD** detalhado em `./handoff/{component}-handoff.md` com tarefas, evidências e tudo que o Developer precisa para implementar.
+- Usar o handoff existente em `.handoff/handoff-<nome-do-componente>.md` como
+  entrada do planejamento e registrar nele, quando solicitado, as decisões
+  necessárias para a implementação.
 
 ### 2. developer — Desenvolvimento de componente
 
 Arquivo: [`references/developer.md`](./references/developer.md)
 
-Implementa o componente em Kotlin + Jetpack Compose a partir do handoff produzido pela capacidade de arquitetura. Esta capacidade é responsável por:
+Implementa o componente em Kotlin + Jetpack Compose a partir do handoff lido
+na raiz do projeto. Esta capacidade é responsável por:
 
 - Transformar o handoff MD em código funcional, executando fielmente a especificação e documentando desvios em `known_deviations` quando necessário.
 - Aplicar os imports e convenções padrão do Compose Material (`MaterialTheme`).

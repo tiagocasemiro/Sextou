@@ -16,6 +16,33 @@ para decisões específicas do módulo visual. Em caso de conflito, preservar as
 regras mais específicas desta skill sem violar a direção de dependências do
 projeto.
 
+## Uso conjunto das skills de componentes
+
+Compor as skills abaixo quando a tarefa envolver a criação ou alteração de um
+componente visual do `design-system`:
+
+1. Usar [`handoff-ui-component`](../handoff-ui-component/SKILL.md) primeiro
+   quando houver uma fonte visual ou funcional externa, como Figma MCP, XML,
+   screenshot, documentação ou código existente. Essa skill extrai o contrato
+   visual e salva o handoff em `.handoff/handoff-<nome-do-componente>.md` na
+   raiz do projeto.
+2. Usar [`create-ui-component`](../create-ui-component/SKILL.md) depois para
+   ler integralmente o handoff na raiz, planejar a estrutura e implementar o
+   componente conforme o contrato recebido.
+3. Aplicar esta skill durante todo o trabalho no módulo para preservar o
+   namespace `com.sextou.designsystem`, a organização `component/` e `theme/`,
+   os tokens Sextou, o tema, os recursos, a acessibilidade e os previews.
+
+Não criar um novo handoff para alterações exclusivas de tokens, tema,
+dependências ou recursos do módulo quando não houver mudança no contrato
+visual de um componente. Quando já existir um handoff correspondente, usá-lo
+como entrada da `create-ui-component` e atualizar o handoff somente se a
+especificação visual também tiver sido alterada.
+
+Em caso de conflito, o handoff é a fonte do contrato visual solicitado,
+`create-ui-component` orienta a estrutura da implementação e esta skill é a
+fonte de verdade para as convenções específicas do módulo `design-system`.
+
 ## Escopo atual do módulo
 
 Antes de editar, confirmar a estrutura real no repositório. A organização
