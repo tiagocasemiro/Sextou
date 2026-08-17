@@ -1,5 +1,5 @@
 ---
-name: create-ui-component
+name: "create-ui-component"
 description: >
   Skill para criar componentes de uma biblioteca de design system para Android,
   cobrindo desde o planejamento arquitetural até a implementação em Kotlin com Jetpack Compose.
@@ -8,19 +8,9 @@ description: >
   e código alinhado ao design system.
 metadata:
   category: design-system
-  capabilities:
-    - architecture
-    - developer
-  files:
-    - references/architecture.md
-    - references/developer.md
-  tags:
-    - design-system
-    - android
-    - jetpack-compose
-    - kotlin
-    - component-development
-    - architecture
+  capabilities: "architecture, developer"
+  files: "references/architecture.md, references/developer.md"
+  tags: "design-system, android, jetpack-compose, kotlin, component-development, architecture"
 ---
 
 # Create UI Component — Skill

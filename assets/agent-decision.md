@@ -1,5 +1,12 @@
 # Decisões do agente
 
+## 2026-08-17 — Correção do frontmatter da create-ui-component
+
+O frontmatter de `.agents/skills/create-ui-component/SKILL.md` foi ajustado
+para atender ao carregador de skills: os valores de `metadata` passaram de
+listas YAML para strings e o campo `name` foi explicitamente delimitado como
+string. A validação oficial da skill passou após a correção.
+
 ## 2026-08-17 — Auditoria dos componentes do design-system
 
 Foi realizada uma validação somente de leitura dos nove componentes públicos
