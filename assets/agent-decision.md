@@ -1,5 +1,29 @@
 # Decisões do agente
 
+## 2026-08-17 — Referência da skill de componentes visuais
+
+O `AGENTS.md` passou a referenciar a skill local
+`.agents/skills/create-ui-component/SKILL.md` como
+`android-design-system-components`, responsável por planejar e implementar
+componentes visuais em Jetpack Compose. As referências internas da skill foram
+ajustadas para os caminhos reais em `references/`, mantendo a skill
+`design-system` separada para regras específicas do módulo compartilhado.
+
+O arquivo de desenvolvimento da skill foi renomeado para
+`.agents/skills/create-ui-component/references/developer.md`, e o frontmatter
+e os links relativos foram atualizados para usar a extensão `.md`.
+
+## 2026-08-17 — Auditoria das skills e compatibilidade do board
+
+A auditoria confirmou que o GitHub Project `Sextou` nº 4 continua compatível
+com a skill `manage-sextou-tasks`: repositório, proprietário, campo `Status`,
+seis opções de status e os 13 cards atuais foram conferidos remotamente. As
+inconsistências encontradas ficaram registradas no retorno da auditoria: a
+skill visual ainda usa exemplos genéricos e convenções de pacote diferentes
+do módulo real do Sextou, e o contrato de título em
+`.codex/feature-description/README.md` não menciona o prefixo obrigatório de
+tipo usado pela skill de tasks.
+
 ## 2026-08-16 — Botão de mais resultados do Figma (node 2:1960)
 
 Foi criado `SextouMoreButton` com texto variável, callback `onClick` e estado
