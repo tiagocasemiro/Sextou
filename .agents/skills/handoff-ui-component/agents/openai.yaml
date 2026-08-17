@@ -1,0 +1,6 @@
+interface:
+  display_name: "Criar handoff de componente visual"
+  short_description: "Gere handoffs visuais a partir de qualquer fonte"
+  default_prompt: "Use $handoff-ui-component para extrair uma fonte visual e criar o handoff do componente em .handoff."
+policy:
+  allow_implicit_invocation: true

@@ -1,5 +1,14 @@
 # Decisões do agente
 
+## 2026-08-17 — Skill de handoff de componentes visuais
+
+Foi preenchida a skill `.agents/skills/handoff-ui-component` com um fluxo
+agnóstico de fonte para extrair dados de Figma MCP, XML, screenshots,
+documentação, código ou outras entradas. O contrato de saída foi fixado em
+`.handoff/handoff-<nome-do-componente>.md` na raiz do projeto, usando o nome do
+componente normalizado em `kebab-case`; o template também passou a registrar o
+tipo e a referência da fonte, em vez de assumir somente uma URL do Figma.
+
 ## 2026-08-17 — Referência da skill de componentes visuais
 
 O `AGENTS.md` passou a referenciar a skill local

@@ -26,6 +26,9 @@ do `SKILL.md` para escolher a skill que corresponde à tarefa:
   planejar e implementar componentes visuais reutilizáveis em Kotlin com
   Jetpack Compose, incluindo arquitetura do componente, defaults, estados,
   acessibilidade e previews.
+- [handoff-ui-component](.agents/skills/handoff-ui-component/SKILL.md): extrair
+  informações de fontes visuais ou técnicas e produzir handoffs de componentes
+  no formato padronizado em `.handoff/`.
 - [design-system](.agents/skills/design-system/SKILL.md): criar e manter o
   módulo compartilhado de tokens, tema e componentes Jetpack Compose; use-a
   junto da skill de componentes quando a mudança também afetar o módulo
