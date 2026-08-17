@@ -27,6 +27,13 @@ metadata:
 
 Skill responsável por habilitar a criação de componentes no padrão de uma biblioteca de design system para Android. Combina duas capacidades complementares — **arquitetura** e **desenvolvimento** — para entregar componentes consistentes, testáveis e aderentes às convenções da biblioteca, desde o planejamento até a implementação final em Jetpack Compose.
 
+## Módulo obrigatório
+
+Todo componente criado com esta skill deve ser implementado no módulo
+`design-system`. O componente não deve ser criado em `app`, `domain`,
+`networking` ou em módulos de feature; esses módulos podem apenas consumir a
+API pública disponibilizada pelo `design-system`.
+
 A skill garante que todo componente:
 - Respeite a estrutura de pacotes sob `components` e mantenha a API pública organizada por componente.
 - Tenha API pública estável, previsível e desacoplada da implementação.

@@ -1,5 +1,22 @@
 # Decisões do agente
 
+## 2026-08-17 — Auditoria dos componentes do design-system
+
+Foi realizada uma validação somente de leitura dos nove componentes públicos
+do módulo `design-system` usando as skills `create-ui-component` e
+`design-system`. O módulo compila e o lint termina com sucesso, mas os
+componentes ainda não atendem integralmente ao contrato da skill: faltam
+`*Defaults`/`Style` por componente e KDoc nas APIs públicas, e há ajustes de
+interação e acessibilidade pendentes nos controles customizados. A auditoria
+não alterou os componentes.
+
+## 2026-08-17 — Módulo obrigatório para componentes visuais
+
+A skill `.agents/skills/create-ui-component` passou a determinar que todo
+componente criado por ela deve ser implementado no módulo `design-system`.
+Módulos como `app`, `domain`, `networking` e módulos de feature devem apenas
+consumir a API pública do componente.
+
 ## 2026-08-17 — Skill de handoff de componentes visuais
 
 Foi preenchida a skill `.agents/skills/handoff-ui-component` com um fluxo
