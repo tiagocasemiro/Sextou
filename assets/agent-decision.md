@@ -1,5 +1,42 @@
 # Decisões do agente
 
+## 2026-08-23 — Organização do fluxograma completo
+
+O frame `42:2` foi reorganizado em três níveis de leitura: `Feed` e `Detalhe
+do estabelecimento` formam o fluxo principal no topo; abaixo, os acessos
+foram separados em dois grupos visuais, `Acessos a partir do Feed` e `Ações a
+partir do Detalhe`. Os conectores secundários desalinhados foram removidos,
+mantendo somente o conector principal e trilhos verticais que ligam cada tela
+de origem ao seu grupo. Os cartões e suas descrições foram preservados.
+
+## 2026-08-23 — Novo frame com fluxo de navegação completo
+
+Foi criado o frame `42:2` (`Complete Navigation Flow`) na página `Navigation`,
+ao lado do diagrama anterior. O novo frame usa cartões abstratos, sem
+miniaturas das interfaces, para atender ao pedido de registrar apenas o nome
+da tela e uma descrição curta de sua responsabilidade.
+
+O fluxo inclui `Feed`, `Detalhe do estabelecimento`, `Busca e filtros`, `Mapa`,
+`Locais`, `Perfil`, `Cardápio completo`, `Favoritos e visitas` e `Como chegar e
+contato`. `Contato` foi mantido junto de `Como chegar` porque ambas as ações
+partem do detalhe do estabelecimento e representam o mesmo caminho
+complementar no mapa.
+
+## 2026-08-23 — Diagrama de navegação do Sextou no Figma
+
+Foi preenchido o frame `32:1605` da página `Navigation` com um diagrama de
+navegação. As telas `1:632` (Feed) e `17:577` (Detalhe do estabelecimento)
+foram clonadas como o fluxo principal, preservando a referência visual já
+criada no arquivo.
+
+As telas complementares foram inferidas somente a partir das interações
+visíveis nas duas referências: `Mapa` e `Locais` da navegação inferior,
+`Busca e filtros` do cabeçalho do feed, `Cardápio completo` da ação “ver
+completo”, `Favoritos e visitas` das ações de salvar/visitar e `Como chegar e
+contato` das ações de localização e contato do detalhe. O fluxo principal foi
+destacado em laranja; as telas derivadas usam cartões claros com acento laranja
+e conectores horizontais alinhados aos destinos para manter a leitura do mapa.
+
 ## 2026-08-17 — Correção do frontmatter da create-ui-component
 
 O frontmatter de `.agents/skills/create-ui-component/SKILL.md` foi ajustado
@@ -355,3 +392,34 @@ implementação.
   autorização universal de armazenamento.
 * Não foi adicionada nova tecnologia ao projeto; portanto, não houve débito de
   skill para registrar em `skill-debts.md`.
+
+## 2026-08-23 — Validação dos tipos de estabelecimento da Places API
+
+* A validação de `.codex/sextou/tipos-de-estabelecimento.md` foi feita contra
+  a lista oficial atual de Place Types (New), sem alterar o arquivo solicitado.
+* A recomendação separa tipos genéricos (`bar`, `restaurant`) de tipos
+  específicos (`bar_and_grill`, `barbecue_restaurant`, `brewery` e
+  `brewpub`), e trata `warehouse_store`/`wholesaler` como alternativas amplas,
+  não como equivalentes de `liquor_store`.
+* As sugestões de novas categorias usam somente identificadores presentes na
+  Places API (New); não foram inferidos tipos proprietários ou categorias fora
+  da API.
+
+## 2026-08-23 — Inclusão das categorias da Places API
+
+* `.codex/sextou/tipos-de-estabelecimento.md` foi atualizado com as correções
+  de mapeamento e todas as categorias sugeridas na validação.
+* Categorias ambíguas foram separadas em rótulos específicos, como adega,
+  depósito de bebidas, cervejaria e brewpub, para evitar tratar tipos amplos
+  como equivalentes exatos.
+
+## 2026-08-23 — Identificação de categorias mescláveis
+
+* O subtítulo `## Categorias adicionais` foi removido para manter todas as
+  categorias no mesmo nível documental.
+* Foram identificados agrupamentos de produto para bares, restaurantes,
+  bebidas, cafés e sobremesas, entretenimento noturno e cervejas.
+* As mesclas foram tratadas como agrupamentos de interface, preservando os
+  identificadores específicos da Places API (New) para filtragem e mantendo
+  separados os casos em que produtor e local de consumo têm significados
+  diferentes.
