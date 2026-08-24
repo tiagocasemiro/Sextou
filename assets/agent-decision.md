@@ -1,5 +1,17 @@
 # Decisões do agente
 
+## 2026-08-24 — Substituição do mapa da localização no Figma
+
+O preenchimento de imagem do node `17:727`, dentro do container `17:726`, foi
+substituído por um tile real do Google Maps centrado em `Rua Visconde de Pirajá,
+550 - Ipanema, RJ`. O pin existente (`17:728`) foi preservado. Para aproximar
+o mapa da linguagem visual do Sextou, foram adicionadas as camadas `61:2` e
+`61:3` com scrim `#111111` e acento `#FE9A00`, tokens equivalentes a
+`SextouColors.Background` e `SextouColors.Primary`. O texto de endereço
+(`17:733`) foi atualizado para permanecer coerente com a localização mostrada.
+As três camadas do mapa foram configuradas como posicionamento absoluto para
+não sofrerem redistribuição pelo auto-layout horizontal do background.
+
 ## 2026-08-23 — Organização do fluxograma completo
 
 O frame `42:2` foi reorganizado em três níveis de leitura: `Feed` e `Detalhe
