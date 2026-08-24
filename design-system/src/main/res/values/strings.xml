@@ -28,6 +28,7 @@
     <string name="design_system_preview_section_header_variable">LUGARES PERTO DE VOCÊ</string>
     <string name="design_system_status_open">Aberto agora</string>
     <string name="design_system_status_closed">Fechado</string>
+    <string name="design_system_status_unavailable">Indisponível</string>
     <string name="design_system_preview_more_button">Ver mais botecos</string>
     <string name="design_system_preview_more_button_variable">Ver mais lugares</string>
 </resources>

@@ -134,6 +134,9 @@ object SextouPrimitiveAlpha {
     const val Strong = 0.32f
     const val High = 0.64f
     const val NearOpaque = 0.85f
+    const val StatusContainer = 0.9f
+    const val StatusIndicator = 0.59f
+    const val StatusUnavailable = 0.3f
     const val TextMuted = 0.4f
     const val ButtonDisabled = 0.5f
     const val ButtonDisabledContent = 0.3f
@@ -204,6 +207,7 @@ object SextouPrimitiveTypography {
     val HeadlineMediumLineHeight = 36.sp
     val LabelSmallLineHeight = 16.sp
     val InputLineHeight = 15.sp
+    val StatusBadgeLineHeight = 18.sp
 }
 
 object SextouPrimitiveElevation {

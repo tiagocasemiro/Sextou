@@ -28,12 +28,15 @@ object SextouColors {
 
     val Positive = SextouPrimitiveColors.ProductSuccess
     val PositiveStrong = SextouPrimitiveColors.ProductSuccessStrong
-    val StatusOpenContainer = PositiveStrong.copy(alpha = SextouPrimitiveAlpha.NearOpaque)
-    val StatusOpenIndicator = SextouPrimitiveColors.White.copy(alpha = SextouPrimitiveAlpha.High)
+    val StatusOpenContainer = PositiveStrong.copy(alpha = SextouPrimitiveAlpha.StatusContainer)
+    val StatusOpenIndicator = SextouPrimitiveColors.White.copy(alpha = SextouPrimitiveAlpha.StatusIndicator)
     val StatusOpenContent = SextouPrimitiveColors.White
-    val StatusClosedContainer = SextouPrimitiveColors.ProductClosedContainer.copy(alpha = SextouPrimitiveAlpha.NearOpaque)
+    val StatusClosedContainer = SextouPrimitiveColors.ProductClosedContainer.copy(alpha = SextouPrimitiveAlpha.StatusContainer)
     val StatusClosedIndicator = SextouPrimitiveColors.ProductClosedIndicator
     val StatusClosedContent = SextouPrimitiveColors.ProductClosedContent
+    val StatusUnavailableContainer = SurfaceImage.copy(alpha = SextouPrimitiveAlpha.StatusUnavailable)
+    val StatusUnavailableIndicator = TextSecondary
+    val StatusUnavailableContent = TextSecondary
     val Accent = SextouPrimitiveColors.BrandAccent
     val Error = SextouPrimitiveColors.ProductError
 

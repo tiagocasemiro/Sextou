@@ -132,6 +132,12 @@ object SextouTextStyles {
     )
 
     val Status = SextouCompactActionText
+    val StatusBadge = TextStyle(
+        fontFamily = SextouBodyFont,
+        fontWeight = SextouPrimitiveFontWeights.Bold,
+        fontSize = SextouPrimitiveTypography.Xs,
+        lineHeight = SextouPrimitiveTypography.StatusBadgeLineHeight,
+    )
     val ActionButton = SextouCompactActionText
 
     val ButtonSmall = TextStyle(

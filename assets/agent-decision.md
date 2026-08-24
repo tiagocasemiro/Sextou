@@ -519,3 +519,18 @@ porque o módulo não embarca as fontes do arquivo de design.
 * As cores recorrentes do arquivo foram usadas como tokens visuais para os
   acentos dos grupos, com grafite e creme para o contraste dos cards e dos
   ícones.
+
+## 2026-08-24 — Atualização do Status Badge a partir do Figma (node 56:766)
+
+* O handoff completo foi extraído para `.handoff/handoff-status-badge.md`,
+  usando os exemplos específicos dos nodes `56:883`, `56:888` e `56:893`.
+* O componente permanece estático e não clicável, preservando a API existente
+  baseada em `SextouStatus.OPEN` e `SextouStatus.CLOSED`; o status
+  `UNAVAILABLE` foi adicionado para cobrir a terceira variação documentada.
+* As dimensões específicas do Status Badge foram priorizadas sobre o exemplo
+  genérico de pill da página: altura 28 dp, padding 10/4 dp, gap 4 dp e
+  indicador 6 dp. A largura continua intrínseca ao conteúdo.
+* Foram adicionados ao tema somente os tokens ausentes: tipografia semântica
+  Bold 12/18, opacidade do container de status, opacidade do indicador aberto,
+  opacidade de indisponibilidade e altura do badge. As cores existentes de
+  status fechado e superfície de imagem foram reutilizadas.
