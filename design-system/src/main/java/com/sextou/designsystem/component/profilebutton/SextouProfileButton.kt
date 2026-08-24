@@ -1,4 +1,4 @@
-package com.sextou.designsystem.component
+package com.sextou.designsystem.component.profilebutton
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background

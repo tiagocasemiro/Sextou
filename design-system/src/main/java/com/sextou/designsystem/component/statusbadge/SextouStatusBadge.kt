@@ -1,4 +1,4 @@
-package com.sextou.designsystem.component
+package com.sextou.designsystem.component.statusbadge
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement

@@ -1,4 +1,4 @@
-package com.sextou.designsystem.component
+package com.sextou.designsystem.component.button
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope

@@ -181,6 +181,7 @@ object SextouPrimitiveTypography {
     val DisplayLarge = 57.sp
     val HeadlineMedium = 28.sp
     val LabelSmall = 11.sp
+    val Input = 10.sp
 
     val MicroLineHeight = 13.5.sp
     val XsLineHeight = 16.sp
@@ -194,6 +195,7 @@ object SextouPrimitiveTypography {
     val DisplayLargeLineHeight = 64.sp
     val HeadlineMediumLineHeight = 36.sp
     val LabelSmallLineHeight = 16.sp
+    val InputLineHeight = 15.sp
 }
 
 object SextouPrimitiveElevation {

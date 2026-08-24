@@ -1,4 +1,4 @@
-package com.sextou.designsystem.component
+package com.sextou.designsystem.component.brand
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background

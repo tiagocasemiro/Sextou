@@ -1,4 +1,4 @@
-package com.sextou.designsystem.component
+package com.sextou.designsystem.component.iconbutton
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box

@@ -13,6 +13,12 @@ object SextouDimensions {
     val SearchInputHeight = 20.dp
     val SearchBarVerticalPadding = 2.dp
     val SearchFilterTouchTarget = 48.dp
+    val InputHeight = 48.dp
+    val SearchBarHeight = 56.dp
+    val InputFocusBorder = 2.dp
+    val InputIcon = 18.dp
+    val InputActionButton = 28.dp
+    val InputActionTouchTarget = 48.dp
     val SectionHeaderIcon = 14.dp
     val SectionDividerThickness = 1.dp
     val StatusBadgeHorizontalPadding = 10.dp

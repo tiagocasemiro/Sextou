@@ -14,6 +14,11 @@
     <string name="design_system_preview_search_placeholder">Buscar litrão, espetinho, trailers…</string>
     <string name="design_system_preview_search_value">Bar do Zé</string>
     <string name="design_system_preview_search_filter_content_description">Abrir filtros</string>
+    <string name="design_system_preview_input_placeholder">Digite aqui...</string>
+    <string name="design_system_preview_input_value">Cerveja artesanal</string>
+    <string name="design_system_preview_input_label">Nome do lugar</string>
+    <string name="design_system_preview_input_helper">Informe o nome como aparece no cadastro.</string>
+    <string name="design_system_preview_input_error">E-mail inválido</string>
     <string name="design_system_preview_section_header">MAIS BOMBADOS AGORA</string>
     <string name="design_system_preview_section_header_variable">LUGARES PERTO DE VOCÊ</string>
     <string name="design_system_status_open">Aberto agora</string>

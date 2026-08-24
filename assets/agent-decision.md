@@ -1,5 +1,31 @@
 # Decisões do agente
 
+## 2026-08-24 — Pacotes dedicados para componentes do design-system
+
+Cada componente visual foi isolado em um pacote próprio sob
+`com.sextou.designsystem.component`, mantendo arquivos de implementação,
+defaults e previews juntos. `SextouInput` e `SextouInputDefaults` permanecem no
+pacote `input`; `SextouSearchBar` fica no pacote `searchbar` por possuir API
+pública própria e depende explicitamente do pacote `input`. A mudança é
+organizacional e não altera assinaturas nem comportamento dos composables.
+
+## 2026-08-24 — Handoff e atualização do Input / Search Bar
+
+O node `56:502` do Figma foi usado como fonte do handoff completo salvo em
+`.handoff/handoff-input-search-bar.md`. O contrato foi modelado como dois
+layouts (`Text Input` e `Search Bar`) com os estados `Default`, `Focused /
+Active`, `Error / Invalid` e `Disabled`, mantendo `value`, callbacks e
+validação sob responsabilidade do consumidor.
+
+O tema já possuía os tokens semânticos para superfície, texto, foco, erro,
+espaçamentos e opacidade. Como a fonte exige raios específicos de 14 px para
+Text Input, 16 px para Search Bar e 10 px para o botão de ação, foram criados
+tokens centrais em `SextouCornerRadius`; as alturas de 48/56 px, borda de foco
+de 2 px e alvos/ícones também foram centralizadas em `SextouDimensions`. A
+diferença entre a matriz (54 px em alguns exemplos de Search Bar) e a seção de
+dimensões (56 px) foi resolvida adotando 56 px como altura externa fixa, sem
+alterar o layout ao aplicar a borda de foco.
+
 ## 2026-08-24 — Substituição do mapa da localização no Figma
 
 O preenchimento de imagem do node `17:727`, dentro do container `17:726`, foi
@@ -453,3 +479,17 @@ porque o módulo não embarca as fontes do arquivo de design.
   identificadores específicos da Places API (New) para filtragem e mantendo
   separados os casos em que produtor e local de consumo têm significados
   diferentes.
+
+## 2026-08-24 — Iconografia dos tipos de estabelecimento no Figma
+
+* O frame `69:3878` foi preenchido via MCP do Figma com 22 tiles, um para cada
+  rótulo humano listado em `.codex/assets/sextou/tipos-de-estabelecimento.md`.
+* Os códigos alternativos da Places API não foram transformados em tiles
+  adicionais; eles continuam sendo mapeamentos de dados para o mesmo rótulo
+  de produto.
+* A composição usa auto-layout em cinco linhas, reutiliza os ícones Flat Icon
+  existentes de cerveja, espeto, microfone e vinho, e completa a coleção com
+  ícones vetoriais semânticos no mesmo tratamento visual.
+* As cores recorrentes do arquivo foram usadas como tokens visuais para os
+  acentos dos grupos, com grafite e creme para o contraste dos cards e dos
+  ícones.

@@ -89,6 +89,26 @@ object SextouTextStyles {
         lineHeight = SextouPrimitiveTypography.SmLineHeight,
     )
 
+    val InputLabel = TextStyle(
+        fontFamily = SextouBodyFont,
+        fontWeight = SextouPrimitiveFontWeights.Bold,
+        fontSize = SextouPrimitiveTypography.Input,
+        lineHeight = SextouPrimitiveTypography.InputLineHeight,
+    )
+
+    val InputSupporting = TextStyle(
+        fontFamily = SextouBodyFont,
+        fontWeight = SextouPrimitiveFontWeights.Regular,
+        fontSize = SextouPrimitiveTypography.Input,
+        lineHeight = SextouPrimitiveTypography.InputLineHeight,
+        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+    )
+
+    val InputError = InputSupporting.copy(
+        fontWeight = SextouPrimitiveFontWeights.Bold,
+        fontStyle = androidx.compose.ui.text.font.FontStyle.Normal,
+    )
+
     val Category = TextStyle(
         fontFamily = SextouBodyFont,
         fontWeight = SextouPrimitiveFontWeights.SemiBold,

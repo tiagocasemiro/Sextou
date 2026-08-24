@@ -1,4 +1,4 @@
-package com.sextou.designsystem.component
+package com.sextou.designsystem.component.card
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column

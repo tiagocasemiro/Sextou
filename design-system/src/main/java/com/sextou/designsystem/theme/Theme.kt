@@ -19,9 +19,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import com.sextou.designsystem.R
-import com.sextou.designsystem.component.SextouButton
-import com.sextou.designsystem.component.SextouCard
-import com.sextou.designsystem.component.SextouOutlinedButton
+import com.sextou.designsystem.component.button.SextouButton
+import com.sextou.designsystem.component.button.SextouOutlinedButton
+import com.sextou.designsystem.component.card.SextouCard
 
 private val SextouDarkColorScheme = darkColorScheme(
     primary = SextouColors.Primary,
