@@ -50,5 +50,5 @@ publicação de notas.
 ## Referências
 
 - [Room](https://developer.android.com/training/data-storage/room?utm_campaign=gmp_git_agentskills_v1)
-- [Arquitetura do projeto](../../features.md)
+- [Arquitetura do projeto](../features.md)
 
