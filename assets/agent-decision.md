@@ -1,5 +1,31 @@
 # Decisões do agente
 
+## 2026-08-24 — Atualização do Button a partir do Figma (node 56:294)
+
+O handoff completo do Button foi extraído do Figma MCP e salvo em
+`.handoff/handoff-button.md`. O componente foi ampliado para suportar as
+variantes `Primary`, `Secondary`, `Outline` e `Ghost`, os tamanhos `Large`,
+`Medium` e `Small`, ícones opcionais à esquerda/direita e os estados
+`Default`, `Hover / Pressed` e `Disabled`. A largura continua flexível; as
+alturas 48/40/32 px, paddings horizontais 24/20/16 px, raios 16/12/8 px e
+ícone de 20 px foram centralizados em tokens do tema conforme a matriz do
+Figma.
+
+Como o Material Button existente não oferece diretamente a troca de cor e a
+escala 1,05 do estado `Hover / Pressed` mantendo os três tamanhos da matriz,
+o componente usa uma superfície Compose clicável com semântica de Button,
+ripple, foco e estado desabilitado. A escala é animada em 200 ms com easing
+`ease-in-out`, aplicada apenas ao conteúdo visual para não provocar mudança
+de layout. A API anterior baseada em slot e `SextouOutlinedButton` foi
+preservada como sobrecarga/ponte, enquanto a nova API baseada em `label`
+expõe o contrato completo do handoff.
+
+Foram adicionados ao tema somente tokens ausentes na fonte existente: cor
+secundária de hover, bordas de Outline, superfícies/opacidades de interação,
+métricas do Button, raio Large e tipografia Small. Não foram criados testes
+unitários porque a alteração é exclusivamente visual; a compilação do módulo
+e os previews cobrem a verificação aplicável.
+
 ## 2026-08-24 — Pacotes dedicados para componentes do design-system
 
 Cada componente visual foi isolado em um pacote próprio sob

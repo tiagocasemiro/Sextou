@@ -17,6 +17,14 @@ object SextouColors {
     val Primary = SextouPrimitiveColors.BrandOrange
     val PrimaryStrong = SextouPrimitiveColors.BrandOrangeStrong
     val OnPrimary = SextouPrimitiveColors.Black
+    val Secondary = SextouPrimitiveColors.ProductError
+    val SecondaryHover = SextouPrimitiveColors.ProductSecondaryHover
+    val ButtonDisabledContainer = SurfaceElevated.copy(alpha = SextouPrimitiveAlpha.ButtonDisabled)
+    val ButtonDisabledContent = TextSecondary.copy(alpha = SextouPrimitiveAlpha.ButtonDisabledContent)
+    val ButtonOutlineBorder = SextouPrimitiveColors.White.copy(alpha = SextouPrimitiveAlpha.ButtonBorder)
+    val ButtonOutlineBorderHover = SextouPrimitiveColors.White.copy(alpha = SextouPrimitiveAlpha.ButtonBorderHover)
+    val ButtonOutlineBorderDisabled = SextouPrimitiveColors.White.copy(alpha = SextouPrimitiveAlpha.ButtonBorderDisabled)
+    val ButtonHoverSurface = SextouPrimitiveColors.White.copy(alpha = SextouPrimitiveAlpha.ButtonHoverSurface)
 
     val Positive = SextouPrimitiveColors.ProductSuccess
     val PositiveStrong = SextouPrimitiveColors.ProductSuccessStrong

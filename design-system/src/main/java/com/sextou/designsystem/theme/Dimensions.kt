@@ -27,6 +27,13 @@ object SextouDimensions {
     val MoreButtonIcon = 15.dp
     val MoreButtonHorizontalPadding = 0.dp
     val MoreButtonVerticalPadding = 14.dp
+    val ButtonLargeHeight = 48.dp
+    val ButtonMediumHeight = 40.dp
+    val ButtonSmallHeight = 32.dp
+    val ButtonLargeHorizontalPadding = 24.dp
+    val ButtonMediumHorizontalPadding = 20.dp
+    val ButtonSmallHorizontalPadding = 16.dp
+    val ButtonIcon = 20.dp
     val ProfileButton = 40.dp
     val ProfileIcon = 18.dp
     val ProfileBadge = 14.dp

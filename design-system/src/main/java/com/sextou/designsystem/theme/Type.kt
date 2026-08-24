@@ -133,6 +133,13 @@ object SextouTextStyles {
 
     val Status = SextouCompactActionText
     val ActionButton = SextouCompactActionText
+
+    val ButtonSmall = TextStyle(
+        fontFamily = SextouBodyFont,
+        fontWeight = SextouPrimitiveFontWeights.Bold,
+        fontSize = SextouPrimitiveTypography.Xs,
+        lineHeight = SextouPrimitiveTypography.XsLineHeight,
+    )
 }
 
 val SextouTypography = Typography(

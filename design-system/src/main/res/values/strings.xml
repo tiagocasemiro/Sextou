@@ -5,6 +5,11 @@
     <string name="design_system_preview_brand_icon_content_description">Ícone de chope</string>
     <string name="design_system_preview_primary_button">Ver lugares</string>
     <string name="design_system_preview_outlined_button">Ver no mapa</string>
+    <string name="design_system_preview_secondary_button">Favorito</string>
+    <string name="design_system_preview_ghost_button">Cancelar</string>
+    <string name="design_system_preview_button_large">Large</string>
+    <string name="design_system_preview_button_medium">Medium</string>
+    <string name="design_system_preview_button_small">Small</string>
     <string name="design_system_preview_card_title">Ao Ponto Bar &amp; Restaurante</string>
     <string name="design_system_preview_card_metadata">Aberto agora · 680 m · $$</string>
     <string name="design_system_preview_theme_title">SEXTOU</string>

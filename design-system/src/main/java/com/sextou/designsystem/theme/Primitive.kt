@@ -61,6 +61,7 @@ object SextouPrimitiveColors {
     const val ProductSuccessArgb: Long = 0xFF00D492L
     const val ProductSuccessStrongArgb: Long = 0xFF00BC7DL
     const val ProductErrorArgb: Long = 0xFFFF5722L
+    const val ProductSecondaryHoverArgb: Long = 0xFFFF7043L
     const val ProductClosedContainerArgb: Long = 0xFF3F3F47L
     const val ProductClosedIndicatorArgb: Long = 0xFF9F9FA9L
     const val ProductClosedContentArgb: Long = 0xFFD4D4D8L
@@ -118,6 +119,7 @@ object SextouPrimitiveColors {
     val ProductSuccess = color(ProductSuccessArgb)
     val ProductSuccessStrong = color(ProductSuccessStrongArgb)
     val ProductError = color(ProductErrorArgb)
+    val ProductSecondaryHover = color(ProductSecondaryHoverArgb)
     val ProductClosedContainer = color(ProductClosedContainerArgb)
     val ProductClosedIndicator = color(ProductClosedIndicatorArgb)
     val ProductClosedContent = color(ProductClosedContentArgb)
@@ -133,6 +135,12 @@ object SextouPrimitiveAlpha {
     const val High = 0.64f
     const val NearOpaque = 0.85f
     const val TextMuted = 0.4f
+    const val ButtonDisabled = 0.5f
+    const val ButtonDisabledContent = 0.3f
+    const val ButtonBorder = 0.2f
+    const val ButtonBorderHover = 0.4f
+    const val ButtonBorderDisabled = 0.1f
+    const val ButtonHoverSurface = 0.05f
     const val Scrim = 0.6f
 }
 

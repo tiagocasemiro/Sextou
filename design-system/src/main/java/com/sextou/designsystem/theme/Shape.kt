@@ -20,6 +20,7 @@ object SextouCornerRadius {
     val Input = 14.dp
     val SearchBar = 16.dp
     val InputAction = 10.dp
+    val ButtonLarge = 16.dp
 }
 
 val SextouShapes = Shapes(
