@@ -2,13 +2,20 @@ package com.sextou.designsystem.theme
 
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Shapes
-import androidx.compose.ui.unit.dp
 
+/** Semantic corner-radius roles from the Figma semantic sheet (node 19:785). */
 object SextouCornerRadius {
-    val Control = 10.dp
-    val Chip = 14.dp
-    val Surface = 16.dp
-    val AppShell = 44.dp
+    val None = SextouPrimitiveCornerRadius.None
+    val Small = SextouPrimitiveCornerRadius.Small
+    val Base = SextouPrimitiveCornerRadius.Base
+    val Medium = SextouPrimitiveCornerRadius.Medium
+    val Large = SextouPrimitiveCornerRadius.Large
+    val Full = SextouPrimitiveCornerRadius.Full
+
+    val Control = Medium
+    val Chip = Full
+    val Surface = Large
+    val AppShell = Large
 }
 
 val SextouShapes = Shapes(

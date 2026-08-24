@@ -1,16 +1,17 @@
 package com.sextou.designsystem.theme
 
-import androidx.compose.ui.unit.dp
-
+/** Semantic spacing roles from the Figma semantic sheet (node 19:785). */
 object SextouSpacing {
-    val Xxs = 4.dp
-    val Xs = 6.dp
-    val Sm = 8.dp
-    val Md = 12.dp
-    val Lg = 16.dp
-    val Xl = 20.dp
-    val Xxl = 24.dp
-    val Xxxl = 32.dp
+    val Xxs = SextouPrimitiveSpacing.Xxs
+    val Xs = SextouPrimitiveSpacing.Xs
+    val Sm = SextouPrimitiveSpacing.Sm
+    val Md = SextouPrimitiveSpacing.Md
+    val Lg = SextouPrimitiveSpacing.Base
+    val Xl = SextouPrimitiveSpacing.Lg
+    val Xxl = SextouPrimitiveSpacing.Xl
+    val Xxxl = SextouPrimitiveSpacing.Xxl
+    val Xxxxl = SextouPrimitiveSpacing.Xxxl
+    val Huge = SextouPrimitiveSpacing.Huge
 
     val ContentHorizontal = Xl
     val CardContent = Lg

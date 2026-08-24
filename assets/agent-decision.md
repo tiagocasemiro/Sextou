@@ -258,6 +258,24 @@ implementação.
   proprietária, `FontFamily.SansSerif` foi adotada como fallback Android para os
   estilos equivalentes a SF Pro, Anton, Nunito e Barlow Condensed.
 
+## 2026-08-24 — Camadas de tokens primitivos e semânticos do Figma
+
+Os nós `19:1195` (Primitive Tokens - Granular Scale) e `19:785` (MD3
+Semantic Architecture) foram consultados antes da implementação, usando as
+skills `design-system` e `mobile-android-design`. Os valores crus foram
+centralizados em `theme/Primitive.kt`: paletas Orange/Slate/Emerald/Rose,
+alpha, espaçamento de 2 a 128 dp, raios de 0 a full, pesos/tamanhos
+tipográficos e seis níveis de elevação. Os papéis de produto passaram a
+referenciar esses primitivos em `Color.kt`, `Spacing.kt`, `Shape.kt`,
+`Type.kt` e `Elevation.kt`.
+
+`SextouColors` foi preservado como API semântica pública para não quebrar os
+componentes existentes. O fallback claro foi remapeado para as mesmas paletas
+primitivas, e `SextouTypography` passou a expor os papéis do Figma (`Display
+Large`, `Headline Medium`, `Title Medium`, `Body Large` e `Label Small`) no
+tema Material 3. A família `FontFamily.SansSerif` foi mantida como fallback
+porque o módulo não embarca as fontes do arquivo de design.
+
 ## 2026-08-16 — Módulo compartilhado de design
 
 * Foi criado o módulo Android Library `design-system` para concentrar os
