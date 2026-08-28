@@ -1,5 +1,37 @@
 # Decisões do agente
 
+## 2026-08-28 — Ícones de estabelecimentos do Figma (frame 71:4)
+
+Os 22 subframes de ícones do frame `71:4` (`Establishment Iconography Board`)
+foram exportados individualmente como SVG pelo Figma MCP e convertidos para
+`VectorDrawable` Android em `design-system/src/main/res/drawable`, mantendo
+48 × 48 px, `viewBox` 48 × 48, paths, cor `#F2EDE4` e opacidades observadas.
+Os nomes usam o prefixo `ic_sextou_establishment_` e a normalização ASCII dos
+rótulos para permitir o uso por `painterResource`. A alteração é restrita a
+recursos compartilhados: não foi criada API Kotlin, componente ou handoff
+novo, porque o pedido não solicitou comportamento de UI.
+
+## 2026-08-28 — Handoff do Menu Item a partir dos nós 153:17 e 153:18
+
+Foi criado `.handoff/handoff-menu-item.md` a partir do Figma e da
+especificação textual do usuário. O componente foi normalizado como `Menu
+Item`, com `title`, `supportingText` opcional, `highlightText` opcional e tile
+configurável por imagem ou por duas letras. A imagem versus abreviação foi
+documentada como variação de layout; a ausência dos textos não foi modelada
+como estado. O componente permanece informativo e não clicável, sem callback,
+foco, ripple ou estados de interação.
+
+O Figma define a referência de 342 × 84 px, tile de 56 × 56 px, padding de
+12 px, gaps de 12/2 px, raio de 12 px, borda de 1 px e os tokens de cor
+observados no arquivo. Como o Figma mostra somente o acento
+`#7F2D12`, mas o pedido exige uma cor aleatória, o handoff registra a paleta,
+seed e ciclo de vida da escolha como lacunas do produto e recomenda manter a
+cor estável por identidade do item. Para os campos opcionais, foi adotada a
+decisão documental de preservar a altura externa e o tile, remover campos
+ausentes sem placeholders e permitir que a área central aproveite o espaço
+quando o texto de ênfase não existir; a validação visual dessa combinação
+continua pendente antes da implementação.
+
 ## 2026-08-24 — Atualização do Button a partir do Figma (node 56:294)
 
 O handoff completo do Button foi extraído do Figma MCP e salvo em
