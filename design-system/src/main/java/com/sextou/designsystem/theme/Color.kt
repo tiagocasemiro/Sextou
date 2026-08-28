@@ -9,6 +9,8 @@ object SextouColors {
     val Surface = SextouPrimitiveColors.ProductSurface
     val SurfaceElevated = SextouPrimitiveColors.ProductSurfaceElevated
     val SurfaceImage = SextouPrimitiveColors.ProductSurfaceImage
+    val SurfaceContainer = SextouPrimitiveColors.ProductSurfaceContainer
+    val OutlineVariant = SextouPrimitiveColors.ProductOutlineVariant
 
     val TextPrimary = SextouPrimitiveColors.ProductTextPrimary
     val TextSecondary = SextouPrimitiveColors.ProductTextSecondary

@@ -534,3 +534,90 @@ porque o módulo não embarca as fontes do arquivo de design.
   Bold 12/18, opacidade do container de status, opacidade do indicador aberto,
   opacidade de indisponibilidade e altura do badge. As cores existentes de
   status fechado e superfície de imagem foram reutilizadas.
+
+## 2026-08-28 — Handoff do Quick Action a partir dos nós 146:8, 146:15 e 146:22
+
+* O handoff foi salvo em `.handoff/handoff-quick-action.md`, consolidando os
+  três componentes independentes `Favoritar`, `Visitar` e `Ignorar` em uma
+  especificação reutilizável com a propriedade semântica `action`.
+* A consolidação foi registrada como decisão documental porque o Figma não
+  apresenta `COMPONENT_SET`, propriedades de componente ou reações; a
+  semelhança de nome, anatomia, dimensões e descrições sustenta a modelagem,
+  mas não comprova uma API publicada no arquivo.
+* O handoff preserva os tokens Figma vinculados (`surface_container`,
+  `outline_variant` e `shape_medium`), registra as cores literais dos vetores
+  e deixa explícitos como lacunas os estados de interação, o alvo de toque, o
+  papel de acessibilidade e o feedback após as ações.
+
+## 2026-08-28 — Implementação do Quick Action
+
+* `SextouQuickAction` foi implementado no módulo `design-system` como um
+  componente stateless sem callback ou semântica de botão, preservando as
+  lacunas de interação explicitamente deixadas pelo handoff para o contexto
+  consumidor.
+* A propriedade pública `action` foi modelada como
+  `SextouQuickActionDefaults.Action`, com as três ações do handoff; o estilo
+  compartilhado ficou em `SextouQuickActionDefaults.Style`.
+* Foram adicionados tokens centrais para os valores exatos de superfície,
+  borda, tipografia e dimensões que não existiam no tema. Os três ícones foram
+  exportados dos nós Figma e convertidos para VectorDrawable, mantendo o path
+  fornecido pela fonte e aplicando a cor por tint do estilo.
+
+## 2026-08-28 — Validação do Quick Action no device via ADB
+
+* A execução do harness temporário no aparelho revelou que o helper de cores
+  passava valores ARGB como `ULong` empacotado, fazendo o Compose interpretar
+  os bits inferiores como um índice inválido de `ColorSpace`.
+* A conversão foi corrigida para usar o construtor ARGB de `Color(Long)`, sem
+  alterar os valores dos tokens, para permitir a renderização real do tema e
+  do Quick Action no device.
+
+## 2026-08-28 — Interação e seleção do Quick Action
+
+* A confirmação funcional do produto estendeu o contrato do handoff: o
+  componente agora recebe `onClick`, `selected` e `enabled`, usando state
+  hoisting para que a regra de cada ação permaneça fora do design system.
+* Foi usada a primitiva `selectable` com papel de botão, foco e ripple
+  delimitado pelo shape do tile; o ícone é decorativo porque o rótulo já
+  fornece a descrição acessível da ação.
+* Foram adicionadas variantes VectorDrawable preenchidas para os três glifos;
+  o estado `selected` escolhe essas variantes sem alterar as cores semânticas
+  definidas para cada ação.
+
+## 2026-08-28 — Opacidade do preenchimento selecionado
+
+* Para destacar melhor a borda do tile, a confirmação visual do produto aplica
+  30% de transparência (alpha `0.7`) somente à cor do ícone preenchido no
+  estado selecionado.
+* A mesma regra é compartilhada por `FAVORITAR`, `VISITAR` e `IGNORAR`, usando
+  o token central `SextouPrimitiveAlpha.QuickActionSelectedIconAlpha`.
+
+## 2026-08-28 — Ajuste da opacidade do preenchimento selecionado
+
+* A opacidade do preenchimento dos ícones selecionados foi reduzida de 70%
+  para 50% conforme solicitado, mantendo a regra aplicada igualmente às três
+  ações para preservar o destaque da borda.
+
+## 2026-08-28 — Contorno preservado no Quick Action Ignorar
+
+* O estado selecionado de `IGNORAR` não substitui mais o glifo original por
+  uma forma diferente: mantém o círculo e a diagonal na cor integral do
+  contorno e desenha apenas um preenchimento circular interno da mesma cor
+  com alpha `0.5` por baixo.
+
+## 2026-08-28 — Contorno opaco dos Quick Actions selecionados
+
+* O estado selecionado de `FAVORITAR` e `VISITAR` passou a compor o
+  preenchimento com alpha `0.5` sob o vetor de contorno original, mantendo a
+  borda na mesma cor e com 100% de opacidade.
+* A composição foi unificada com `IGNORAR` em duas camadas: preenchimento
+  translúcido abaixo e contorno original opaco acima.
+
+## 2026-08-28 — Auditoria de paridade do handoff do Quick Action
+
+* O handoff foi completado para refletir o contrato implementado: cor do
+  ripple, estados `selected` e `enabled`, defaults, semântica de botão, foco,
+  ausência de variante visual desabilitada e dimensões invariáveis entre os
+  estados.
+* A seção de animação foi alinhada ao template, distinguindo o ripple
+  transitório da troca imediata das camadas de preenchimento e contorno.

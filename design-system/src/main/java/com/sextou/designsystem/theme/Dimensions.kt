@@ -38,6 +38,13 @@ object SextouDimensions {
     val ProfileButton = 40.dp
     val ProfileIcon = 18.dp
     val ProfileBadge = 14.dp
+    val QuickActionWidth = 102.dp
+    val QuickActionHeight = 80.dp
+    val QuickActionIconContainerHeight = 28.dp
+    val QuickActionIcon = 18.dp
+    val QuickActionVisitIconWidth = 13.5.dp
+    val QuickActionIconPaddingTop = 4.25.dp
+    val QuickActionIconPaddingBottom = 5.75.dp
 
     val Border = 1.dp
     val BadgeBorder = 2.dp

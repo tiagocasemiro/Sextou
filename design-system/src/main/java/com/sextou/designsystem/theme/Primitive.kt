@@ -56,6 +56,8 @@ object SextouPrimitiveColors {
     const val ProductSurfaceArgb: Long = 0xFF1C1C1CL
     const val ProductSurfaceElevatedArgb: Long = 0xFF2A2A2AL
     const val ProductSurfaceImageArgb: Long = 0xFF262626L
+    const val ProductSurfaceContainerArgb: Long = 0xFF1E1E1EL
+    const val ProductOutlineVariantArgb: Long = 0xFF4D463CL
     const val ProductTextPrimaryArgb: Long = 0xFFF2EDE4L
     const val ProductTextSecondaryArgb: Long = 0xFF9A9080L
     const val ProductSuccessArgb: Long = 0xFF00D492L
@@ -69,7 +71,7 @@ object SextouPrimitiveColors {
     const val WhiteArgb: Long = 0xFFFFFFFFL
     const val BlackArgb: Long = 0xFF000000L
 
-    private fun color(argb: Long): Color = Color(argb.toULong())
+    private fun color(argb: Long): Color = Color(argb)
 
     val Orange50 = color(Orange50Argb)
     val Orange100 = color(Orange100Argb)
@@ -114,6 +116,8 @@ object SextouPrimitiveColors {
     val ProductSurface = color(ProductSurfaceArgb)
     val ProductSurfaceElevated = color(ProductSurfaceElevatedArgb)
     val ProductSurfaceImage = color(ProductSurfaceImageArgb)
+    val ProductSurfaceContainer = color(ProductSurfaceContainerArgb)
+    val ProductOutlineVariant = color(ProductOutlineVariantArgb)
     val ProductTextPrimary = color(ProductTextPrimaryArgb)
     val ProductTextSecondary = color(ProductTextSecondaryArgb)
     val ProductSuccess = color(ProductSuccessArgb)
@@ -138,6 +142,7 @@ object SextouPrimitiveAlpha {
     const val StatusIndicator = 0.59f
     const val StatusUnavailable = 0.3f
     const val TextMuted = 0.4f
+    const val QuickActionSelectedIconAlpha = 0.5f
     const val ButtonDisabled = 0.5f
     const val ButtonDisabledContent = 0.3f
     const val ButtonBorder = 0.2f
@@ -208,6 +213,8 @@ object SextouPrimitiveTypography {
     val LabelSmallLineHeight = 16.sp
     val InputLineHeight = 15.sp
     val StatusBadgeLineHeight = 18.sp
+    val QuickActionLineHeight = 16.5.sp
+    val QuickActionLetterSpacing = (-0.275).sp
 }
 
 object SextouPrimitiveElevation {

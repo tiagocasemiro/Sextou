@@ -52,6 +52,14 @@ object SextouTextStyles {
         lineHeight = SextouPrimitiveTypography.LabelSmallLineHeight,
     )
 
+    val QuickAction = TextStyle(
+        fontFamily = SextouBodyFont,
+        fontWeight = SextouPrimitiveFontWeights.Bold,
+        fontSize = SextouPrimitiveTypography.LabelSmall,
+        lineHeight = SextouPrimitiveTypography.QuickActionLineHeight,
+        letterSpacing = SextouPrimitiveTypography.QuickActionLetterSpacing,
+    )
+
     val Brand = TextStyle(
         fontFamily = SextouDisplayFont,
         fontWeight = SextouPrimitiveFontWeights.Bold,
