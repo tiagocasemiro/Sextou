@@ -793,3 +793,11 @@ porque o módulo não embarca as fontes do arquivo de design.
 * A validação incluiu testes de domínio, persistência local, ViewModel e
   compilação/lint do app, além da instalação e inicialização em dispositivo
   Android conectado.
+
+## 2026-08-28 — Fundo escuro da splash screen
+
+* O fundo nativo de inicialização passou a reutilizar o mesmo valor semântico
+  do feed (`#111111`) por meio de `@color/sextou_background`.
+* A variante `values-v31` define explicitamente
+  `android:windowSplashScreenBackground`; o tema base mantém o fallback de
+  `windowBackground`, status bar e navigation bar para versões anteriores.
