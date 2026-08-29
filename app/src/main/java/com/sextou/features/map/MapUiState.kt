@@ -8,8 +8,14 @@ data class MapPlaceUiModel(
     val rating: Double?,
 )
 
+data class MapUserLocationUiModel(
+    val latitude: Double,
+    val longitude: Double,
+)
+
 data class MapUiState(
     val places: List<MapPlaceUiModel> = emptyList(),
+    val userLocation: MapUserLocationUiModel? = null,
     val isLoading: Boolean = false,
     val isError: Boolean = false,
 )

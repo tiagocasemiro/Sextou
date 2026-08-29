@@ -9,10 +9,16 @@ import com.sextou.domain.visits.usecase.ToggleVisitedPlaceUseCase
 import com.sextou.features.details.PlaceDetailsViewModel
 import com.sextou.features.feed.FeedViewModel
 import com.sextou.features.map.MapViewModel
+import com.sextou.location.AndroidLocationProvider
+import com.sextou.location.LocationProvider
+import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 val appModule = module {
+    single<LocationProvider> {
+        AndroidLocationProvider(context = androidContext())
+    }
     factory { SearchPlacesUseCase(repository = get()) }
     factory { GetPlaceDetailsUseCase(repository = get()) }
     factory { ObserveFavoritesUseCase(repository = get()) }

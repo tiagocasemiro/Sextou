@@ -22,6 +22,7 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.Circle
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
@@ -41,16 +42,24 @@ fun MapScreen(
     modifier: Modifier = Modifier,
 ) {
     val firstPlace = uiState.places.firstOrNull()
+    val initialCameraTarget = uiState.userLocation?.let { location ->
+        LatLng(location.latitude, location.longitude)
+    } ?: firstPlace?.let { place ->
+        LatLng(place.latitude, place.longitude)
+    }
     val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(CampoGrandeRioDeJaneiro, 12f)
+        position = CameraPosition.fromLatLngZoom(
+            initialCameraTarget ?: CampoGrandeRioDeJaneiro,
+            if (uiState.userLocation != null) 14f else 12f,
+        )
     }
 
-    LaunchedEffect(firstPlace?.id) {
-        firstPlace?.let { place ->
+    LaunchedEffect(uiState.userLocation, firstPlace?.id) {
+        initialCameraTarget?.let { target ->
             cameraPositionState.animate(
                 CameraUpdateFactory.newLatLngZoom(
-                    LatLng(place.latitude, place.longitude),
-                    14f,
+                    target,
+                    if (uiState.userLocation != null) 14f else 13f,
                 ),
             )
         }
@@ -79,6 +88,15 @@ fun MapScreen(
                 modifier = Modifier.fillMaxSize(),
                 cameraPositionState = cameraPositionState,
             ) {
+                uiState.userLocation?.let { location ->
+                    Circle(
+                        center = LatLng(location.latitude, location.longitude),
+                        radius = 50.0,
+                        fillColor = SextouColors.Primary.copy(alpha = 0.16f),
+                        strokeColor = SextouColors.Primary,
+                        strokeWidth = 2f,
+                    )
+                }
                 uiState.places.forEach { place ->
                     val markerState = remember(place.id) {
                         MarkerState(position = LatLng(place.latitude, place.longitude))

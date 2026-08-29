@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="sextou_map_marker_listados">#FE9A00</color>
+    <color name="sextou_map_marker_favoritos">#FF5722</color>
+    <color name="sextou_map_marker_quero_visitar">#00D492</color>
+    <color name="sextou_map_marker_ignorar">#9A9080</color>
+    <color name="sextou_map_marker_bombando">#FFB900</color>
+    <color name="sextou_map_marker_pin_surface">#F2EDE4</color>
+    <color name="sextou_map_marker_pin_content">#000000</color>
+    <color name="sextou_map_marker_bombando_content">#FF5722</color>
+</resources>

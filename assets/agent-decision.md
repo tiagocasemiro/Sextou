@@ -1,5 +1,28 @@
 # Decisões do agente
 
+## 2026-08-29 — Pins vetoriais de estabelecimentos no mapa
+
+Foram adicionados cinco `VectorDrawable`s compartilhados em
+`design-system/src/main/res/drawable`, todos com 32 × 40 px e a mesma silhueta
+de pin/âncora inferior inspirada no marcador padrão do Google Maps. A fonte de
+referência para a geometria e o uso futuro como ícone de mapa é a API oficial
+[`BitmapDescriptorFactory.defaultMarker`](https://developers.google.com/maps/documentation/android-sdk/reference/com/google/android/libraries/maps/model/BitmapDescriptorFactory);
+nenhum asset proprietário foi copiado.
+
+As variações foram nomeadas `listados`, `favoritos`, `quero_visitar`, `ignorar`
+e `bombando`. O preenchimento usa, respectivamente, os papéis Sextou
+`Primary`, `Secondary`, `Positive`, `TextSecondary` e `PrimaryStrong`; o
+círculo interno usa `TextPrimary`, o conteúdo usa `OnPrimary` e a chama de
+`bombando` usa `Secondary`. Esses valores foram centralizados em
+`design-system/src/main/res/values/colors.xml` com nomes semânticos, porque
+`VectorDrawable` não consegue consumir diretamente os objetos `Color` do
+Compose.
+
+A alteração permanece restrita a recursos visuais: não foi criada API Kotlin,
+handoff ou integração na tela do mapa. O `MapUiState` atual não distingue os
+cinco estados, e introduzir essa regra exigiria ampliar o contrato da feature;
+os recursos ficam prontos para o consumidor quando esse contrato existir.
+
 ## 2026-08-28 — DESIGN.md do sistema visual do Sextou
 
 Foi criado `DESIGN.md` na raiz seguindo a especificação atual do Stitch: front
@@ -801,3 +824,17 @@ porque o módulo não embarca as fontes do arquivo de design.
 * A variante `values-v31` define explicitamente
   `android:windowSplashScreenBackground`; o tema base mantém o fallback de
   `windowBackground`, status bar e navigation bar para versões anteriores.
+
+## 2026-08-29 — Localização do usuário no feed e no mapa
+
+* A posição do usuário é obtida na borda Android por um `LocationProvider`
+  baseado no Fused Location Provider com prioridade de alta precisão e fallback
+  para a última localização conhecida. O acesso é protegido por
+  `ACCESS_FINE_LOCATION`/`ACCESS_COARSE_LOCATION` e pela permissão de runtime;
+  a coordenada não é persistida.
+* A Activity publica a mesma coordenada em `FeedViewModel` e `MapViewModel`.
+  O primeiro usa o contrato de busca Nearby já existente, e o segundo passa a
+  usar a posição também, recarregando a consulta ativa quando ela muda.
+* O mapa mantém seu centro legado apenas como fallback visual quando ainda não
+  há localização ou resultados; quando há GPS, centraliza na posição recebida
+  e desenha uma área de referência para o usuário.
