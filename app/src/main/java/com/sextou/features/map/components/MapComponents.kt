@@ -148,6 +148,41 @@ internal fun MapTopChrome(
 }
 
 @Composable
+internal fun MapSearchAreaButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val contentDescription = stringResource(R.string.map_search_area_content_description)
+    Surface(
+        modifier = modifier
+            .height(48.dp)
+            .shadow(
+                elevation = 6.dp,
+                shape = RoundedCornerShape(SextouCornerRadius.Control),
+            )
+            .semantics {
+                this.contentDescription = contentDescription
+                role = Role.Button
+            },
+        onClick = onClick,
+        shape = RoundedCornerShape(SextouCornerRadius.Control),
+        color = SextouColors.Primary,
+    ) {
+        Box(
+            modifier = Modifier.padding(horizontal = SextouSpacing.Lg),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = stringResource(R.string.map_search_area_button),
+                style = SextouTextStyles.ActionButton,
+                color = SextouColors.OnPrimary,
+                maxLines = 1,
+            )
+        }
+    }
+}
+
+@Composable
 private fun MapLocationChip(
     modifier: Modifier = Modifier,
 ) {

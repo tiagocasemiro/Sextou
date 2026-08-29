@@ -948,3 +948,62 @@ porque o módulo não embarca as fontes do arquivo de design.
 * O mapa mantém seu centro legado apenas como fallback visual quando ainda não
   há localização ou resultados; quando há GPS, centraliza na posição recebida
   e desenha uma área de referência para o usuário.
+
+## 2026-08-29 — Buscas concêntricas de estabelecimentos
+
+* A consulta Nearby do `SearchPlacesUseCase` passou a executar uma chamada para
+  cada raio configurado: 5 metros, 1 km, 2 km, 3 km, 4 km, 5 km, 10 km e 20 km.
+  Cada requisição mantém `PlaceRankPreference.POPULARITY`, limite de 20 itens,
+  tipos do produto, região `BR` e a opção de carregar metadados de fotos.
+* Os resultados das chamadas são consolidados em ordem de raio e deduplicados
+  pelo `placeId`; falhas ou estado `Loading` de uma etapa são preservados e
+  interrompem as etapas seguintes para não reportar um sucesso parcial como
+  completo.
+* O raio de 5 metros foi interpretado literalmente, conforme solicitado. A
+  busca textual permanece com uma única chamada e conserva seu viés de 5 km.
+
+## 2026-08-29 — Repetições por distância nas buscas Nearby
+
+* A configuração anterior foi substituída por nove chamadas: três em 500 m e
+  duas em cada distância de 1 km, 1,5 km e 2 km.
+* Todas as chamadas continuam usando `PlaceRankPreference.POPULARITY`; a
+  consolidação e a deduplicação por `placeId` foram mantidas.
+* A interpretação adotada para “até 2 km” foi usar incrementos de 500 m,
+  incluindo 500 m, 1 km, 1,5 km e 2 km. Os raios de 5 m e acima de 2 km foram
+  removidos da busca Nearby.
+
+## 2026-08-29 — Fallback de fotos nos cards do mapa
+
+* A reprodução em dispositivo confirmou que as respostas de Nearby Search
+  chegavam com estabelecimentos, mas sem `PHOTO_METADATAS`; como o mapa só
+  tentava resolver referências já presentes no resumo, todos os cards usavam o
+  ícone de tipo.
+* O mapa agora solicita a primeira foto de cada estabelecimento mesmo quando a
+  busca próxima não trouxe metadados. O gateway resolve a referência pelo
+  `Place Details` com `PHOTO_METADATAS` antes de pedir a URI da foto, seguindo o
+  fluxo exigido pelo Places SDK.
+* Metadados vazios não são mais armazenados como cache válido; isso permite o
+  fallback de detalhe. Se o detalhe confirmar que o local não possui foto, a
+  falha permanece isolada e o card continua usando o ícone específico do tipo.
+
+## 2026-08-29 — Revisão do uso do Google Maps Platform para fotos
+
+* Foi revisado o fluxo oficial do Places SDK for Android: obter
+  `PHOTO_METADATAS` via Place Details e só então resolver a URI da foto. A
+  implementação não persiste conteúdo do Google Maps e não usa esses dados
+  para treinamento ou decisão automatizada.
+* A solução mantém a atribuição do Google Maps já exibida na tela. O uso das
+  buscas Nearby, Place Details e Place Photos pode consumir a cota e gerar
+  cobrança no projeto Google Cloud; as chaves devem permanecer restritas por
+  aplicativo e API.
+
+## 2026-08-29 — Busca por área do mapa
+
+* A busca Nearby foi restringida a três chamadas de 800 m; a busca textual com
+  localização também usa viés máximo de 800 m. A consolidação continua
+  deduplicando os resultados por `placeId`.
+* O mapa monitora apenas movimentos iniciados por gesto. Depois que o usuário
+  desloca a câmera para outra área, exibe “Buscar nesta área”; o clique usa o
+  centro da câmera como nova origem e mantém o mapa nessa posição.
+* A chegada de resultados não reposiciona mais automaticamente a câmera para o
+  GPS quando a busca foi feita em uma área escolhida manualmente.

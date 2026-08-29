@@ -31,4 +31,5 @@ data class MapUiState(
     val userLocation: MapUserLocationUiModel? = null,
     val isLoading: Boolean = false,
     val isError: Boolean = false,
+    val isSearchAreaButtonVisible: Boolean = false,
 )

@@ -22,23 +22,16 @@ open class SearchPlacesUseCase(
         location?.validate()
 
         val result = if (query.isBlank() && location != null) {
-            repository.searchNearby(
-                NearbySearchRequest(
-                    center = location,
-                    radiusMeters = FEED_RADIUS_METERS,
-                    includedTypes = FEED_PLACE_TYPES,
-                    maxResults = MAX_RESULTS,
-                    rankPreference = PlaceRankPreference.POPULARITY,
-                    regionCode = REGION_CODE,
-                    includePhotos = includePhotos,
-                ),
+            searchNearbyAtConfiguredRadii(
+                center = location,
+                includePhotos = includePhotos,
             )
         } else {
             repository.searchByText(
                 PlaceTextSearchRequest(
                     query = query.trim().ifBlank { DEFAULT_QUERY },
                     locationBiasCenter = location,
-                    locationBiasRadiusMeters = location?.let { FEED_RADIUS_METERS },
+                    locationBiasRadiusMeters = location?.let { TEXT_SEARCH_RADIUS_METERS },
                     maxResults = MAX_RESULTS,
                     regionCode = REGION_CODE,
                     includePhotos = includePhotos,
@@ -47,6 +40,35 @@ open class SearchPlacesUseCase(
         }
 
         return result.sanitize()
+    }
+
+    private suspend fun searchNearbyAtConfiguredRadii(
+        center: GeoPoint,
+        includePhotos: Boolean,
+    ): Result<List<PlaceSummary>> {
+        val places = mutableListOf<PlaceSummary>()
+
+        for (radiusMeters in NEARBY_SEARCH_RADII_METERS) {
+            when (
+                val result = repository.searchNearby(
+                    NearbySearchRequest(
+                        center = center,
+                        radiusMeters = radiusMeters,
+                        includedTypes = FEED_PLACE_TYPES,
+                        maxResults = MAX_RESULTS,
+                        rankPreference = PlaceRankPreference.POPULARITY,
+                        regionCode = REGION_CODE,
+                        includePhotos = includePhotos,
+                    ),
+                )
+            ) {
+                is Success -> places += result.data
+                is Failure -> return result
+                is Loading<*> -> return result
+            }
+        }
+
+        return Success(places)
     }
 
     private fun GeoPoint.validate() {
@@ -67,9 +89,15 @@ open class SearchPlacesUseCase(
 
     private companion object {
         const val DEFAULT_QUERY = "bares, botecos e restaurantes"
-        const val FEED_RADIUS_METERS = 5_000.0
+        const val TEXT_SEARCH_RADIUS_METERS = 800.0
         const val MAX_RESULTS = 20
         const val REGION_CODE = "BR"
+
+        val NEARBY_SEARCH_RADII_METERS = listOf(
+            800.0,
+            800.0,
+            800.0,
+        )
 
         val FEED_PLACE_TYPES = setOf(
             "bar",

@@ -22,6 +22,8 @@ fun MapDestination(
     MapScreen(
         uiState = uiState,
         onQueryChanged = viewModel::onQueryChanged,
+        onMapCenterChanged = viewModel::onMapCenterChanged,
+        onSearchAreaClicked = viewModel::onSearchAreaClicked,
         onPlaceClicked = onPlaceClicked,
         onTabSelected = onTabSelected,
     )

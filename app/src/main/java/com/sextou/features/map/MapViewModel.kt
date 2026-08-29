@@ -35,6 +35,7 @@ class MapViewModel(
     private var loadedQuery: String? = null
     private var loadedLocation: GeoPoint? = null
     private var activeQuery = ""
+    private var pendingSearchLocation: GeoPoint? = null
     private var searchJob: Job? = null
     private var photoJob: Job? = null
     private var photoLoadGeneration = 0L
@@ -43,8 +44,12 @@ class MapViewModel(
 
     fun load(query: String) {
         activeQuery = query
+        pendingSearchLocation = null
         mutableUiState.update { state ->
-            if (state.query == query) state else state.copy(query = query)
+            state.copy(
+                query = query,
+                isSearchAreaButtonVisible = false,
+            )
         }
         if (loadedQuery == query &&
             loadedLocation == searchLocation &&
@@ -85,7 +90,8 @@ class MapViewModel(
                                         primaryType = place.primaryType,
                                         placeTypes = place.types,
                                     ),
-                                    photoReference = place.photos.firstOrNull(),
+                                    photoReference = place.photos.firstOrNull()
+                                        ?: firstPhotoReference(place.id),
                                 )
                             }
                         }
@@ -119,12 +125,11 @@ class MapViewModel(
     }
 
     private fun loadPhotoUris(places: List<MapPlaceMapping>, generation: Long) {
-        val placesWithPhotos = places.filter { it.photoReference != null }
-        if (placesWithPhotos.isEmpty()) return
+        if (places.isEmpty()) return
 
         photoJob = viewModelScope.launch {
-            placesWithPhotos.forEach { place ->
-                val reference = place.photoReference ?: return@forEach
+            places.forEach { place ->
+                val reference = place.photoReference
                 if (!isActive || generation != photoLoadGeneration) return@launch
 
                 when (val result = getPlacePhotoUseCase(reference)) {
@@ -148,7 +153,7 @@ class MapViewModel(
                         }
                     }
 
-                    is Failure,
+                    is Failure -> Unit
                     is Loading<*>,
                     -> Unit
                 }
@@ -162,16 +167,48 @@ class MapViewModel(
 
     private data class MapPlaceMapping(
         val place: MapPlaceUiModel,
-        val photoReference: PlacePhotoReference?,
+        val photoReference: PlacePhotoReference,
+    )
+
+    private fun firstPhotoReference(placeId: String) = PlacePhotoReference(
+        placeId = placeId,
+        index = 0,
+        width = 0,
+        height = 0,
+        attributionHtml = null,
+        authors = emptyList(),
+        googleMapsUri = null,
+        flagContentUri = null,
     )
 
     fun onQueryChanged(query: String) {
         load(query)
     }
 
+    fun onMapCenterChanged(center: GeoPoint) {
+        val referenceLocation = loadedLocation ?: searchLocation
+        val movedToAnotherArea = referenceLocation == null ||
+            referenceLocation.distanceTo(center) > SEARCH_AREA_CHANGE_THRESHOLD_METERS
+
+        pendingSearchLocation = center.takeIf { movedToAnotherArea }
+        mutableUiState.update {
+            it.copy(isSearchAreaButtonVisible = movedToAnotherArea)
+        }
+    }
+
+    fun onSearchAreaClicked() {
+        val center = pendingSearchLocation ?: return
+
+        pendingSearchLocation = null
+        searchLocation = center
+        mutableUiState.update { it.copy(isSearchAreaButtonVisible = false) }
+        load(activeQuery)
+    }
+
     fun onLocationChanged(location: GeoPoint?) {
         if (location == searchLocation) return
 
+        pendingSearchLocation = null
         searchLocation = location
         mutableUiState.update { it.copy(userLocation = location?.toUiModel()) }
         loadedQuery?.let { load(activeQuery) }
@@ -196,5 +233,6 @@ class MapViewModel(
 
     private companion object {
         const val EARTH_RADIUS_METERS = 6_371_000.0
+        const val SEARCH_AREA_CHANGE_THRESHOLD_METERS = 50.0
     }
 }

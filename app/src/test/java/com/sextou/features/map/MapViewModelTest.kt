@@ -22,6 +22,9 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TestWatcher
@@ -77,6 +80,44 @@ class MapViewModelTest {
     }
 
     @Test
+    fun `shows the search area action after the map moves to another area`() {
+        val location = GeoPoint(latitude = -22.9, longitude = -43.2)
+        val viewModel = MapViewModel(
+            searchPlacesUseCase = RecordingSearchPlacesUseCase(),
+            getPlacePhotoUseCase = GetPlacePhotoUseCase(NoOpPlacesRepository()),
+            initialLocation = location,
+        )
+
+        viewModel.onMapCenterChanged(GeoPoint(latitude = -22.901, longitude = -43.201))
+
+        assertTrue(viewModel.uiState.value.isSearchAreaButtonVisible)
+    }
+
+    @Test
+    fun `searches the new map center when the search area action is clicked`() {
+        val initialLocation = GeoPoint(latitude = -22.9, longitude = -43.2)
+        val mapCenter = GeoPoint(latitude = -22.91, longitude = -43.21)
+        val searchPlacesUseCase = RecordingSearchPlacesUseCase(
+            result = Success(listOf(place(id = "place-1", location = mapCenter))),
+        )
+        val viewModel = MapViewModel(
+            searchPlacesUseCase = searchPlacesUseCase,
+            getPlacePhotoUseCase = GetPlacePhotoUseCase(NoOpPlacesRepository()),
+            initialLocation = initialLocation,
+        )
+
+        viewModel.load(query = "")
+        viewModel.onMapCenterChanged(mapCenter)
+        viewModel.onSearchAreaClicked()
+
+        assertEquals(
+            listOf(initialLocation, mapCenter),
+            searchPlacesUseCase.calls.map(LocationSearchCall::location),
+        )
+        assertFalse(viewModel.uiState.value.isSearchAreaButtonVisible)
+    }
+
+    @Test
     fun `loads the resolved photo uri for a place returned with photo metadata`() {
         val reference = PlacePhotoReference(
             placeId = "place-1",
@@ -128,6 +169,65 @@ class MapViewModelTest {
             PlacePhotoRequest(reference = reference, maxWidth = 640, maxHeight = 320),
             photoRepository.lastPhotoRequest,
         )
+    }
+
+    @Test
+    fun `loads the first photo when nearby result has no photo metadata`() {
+        val expectedReference = PlacePhotoReference(
+            placeId = "place-1",
+            index = 0,
+            width = 0,
+            height = 0,
+            attributionHtml = null,
+            authors = emptyList(),
+            googleMapsUri = null,
+            flagContentUri = null,
+        )
+        val photoRepository = NoOpPlacesRepository().apply {
+            photoResult = Success(
+                PlacePhoto(
+                    uri = "https://example.invalid/place-1.jpg",
+                    attributionHtml = null,
+                    authors = emptyList(),
+                    providerAttribution = "Google Maps",
+                ),
+            )
+        }
+        val viewModel = MapViewModel(
+            searchPlacesUseCase = RecordingSearchPlacesUseCase(
+                result = Success(
+                    listOf(place(id = "place-1", location = GeoPoint(-22.91, -43.21))),
+                ),
+            ),
+            getPlacePhotoUseCase = GetPlacePhotoUseCase(photoRepository),
+        )
+
+        viewModel.load(query = "")
+
+        assertEquals(
+            "https://example.invalid/place-1.jpg",
+            viewModel.uiState.value.places.single().photoUri,
+        )
+        assertEquals(
+            PlacePhotoRequest(reference = expectedReference, maxWidth = 640, maxHeight = 320),
+            photoRepository.lastPhotoRequest,
+        )
+    }
+
+    @Test
+    fun `keeps photo uri empty when place has no available photo`() {
+        val viewModel = MapViewModel(
+            searchPlacesUseCase = RecordingSearchPlacesUseCase(
+                result = Success(
+                    listOf(place(id = "place-1", location = GeoPoint(-22.91, -43.21))),
+                ),
+            ),
+            getPlacePhotoUseCase = GetPlacePhotoUseCase(NoOpPlacesRepository()),
+        )
+
+        viewModel.load(query = "")
+
+        assertNull(viewModel.uiState.value.places.single().photoUri)
     }
 }
 

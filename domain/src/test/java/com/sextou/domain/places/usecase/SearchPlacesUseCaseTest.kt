@@ -2,6 +2,7 @@ package com.sextou.domain.places.usecase
 
 import com.sextou.domain.Error
 import com.sextou.domain.Failure
+import com.sextou.domain.Loading
 import com.sextou.domain.Result
 import com.sextou.domain.Success
 import com.sextou.domain.places.model.BusinessStatus
@@ -11,6 +12,7 @@ import com.sextou.domain.places.model.PlaceDetails
 import com.sextou.domain.places.model.PlaceDetailsRequest
 import com.sextou.domain.places.model.PlacePhoto
 import com.sextou.domain.places.model.PlacePhotoRequest
+import com.sextou.domain.places.model.PlaceRankPreference
 import com.sextou.domain.places.model.PlaceSummary
 import com.sextou.domain.places.model.PlaceTextSearchRequest
 import com.sextou.domain.places.repository.PlacesRepository
@@ -33,20 +35,29 @@ class SearchPlacesUseCaseTest {
     }
 
     @Test
-    fun `uses nearby search and feed criteria when query is blank and location exists`() = runTest {
+    fun `uses every configured radius with popularity when query is blank and location exists`() = runTest {
         useCase(
             query = "   ",
             location = GeoPoint(latitude = -22.9, longitude = -43.2),
         )
 
-        val request = repository.nearbyRequest
-        assertNotNull(request)
-        assertEquals(5_000.0, request?.radiusMeters)
-        assertEquals(20, request?.maxResults)
-        assertEquals("BR", request?.regionCode)
-        assertEquals(false, request?.includePhotos)
-        assertTrue("bar" in request!!.includedTypes)
-        assertTrue("restaurant" in request.includedTypes)
+        assertEquals(
+            listOf(
+                800.0,
+                800.0,
+                800.0,
+            ),
+            repository.nearbyRequests.map(NearbySearchRequest::radiusMeters),
+        )
+        repository.nearbyRequests.forEach { request ->
+            assertEquals(GeoPoint(latitude = -22.9, longitude = -43.2), request.center)
+            assertEquals(20, request.maxResults)
+            assertEquals(PlaceRankPreference.POPULARITY, request.rankPreference)
+            assertEquals("BR", request.regionCode)
+            assertEquals(false, request.includePhotos)
+            assertTrue("bar" in request.includedTypes)
+            assertTrue("restaurant" in request.includedTypes)
+        }
         assertNull(repository.textRequest)
     }
 
@@ -61,9 +72,9 @@ class SearchPlacesUseCaseTest {
         assertNotNull(request)
         assertEquals("espetinho", request?.query)
         assertEquals(GeoPoint(-22.9, -43.2), request?.locationBiasCenter)
-        assertEquals(5_000.0, request?.locationBiasRadiusMeters)
+        assertEquals(800.0, request?.locationBiasRadiusMeters)
         assertEquals(false, request?.includePhotos)
-        assertNull(repository.nearbyRequest)
+        assertTrue(repository.nearbyRequests.isEmpty())
     }
 
     @Test
@@ -74,7 +85,60 @@ class SearchPlacesUseCaseTest {
             includePhotos = true,
         )
 
-        assertEquals(true, repository.nearbyRequest?.includePhotos)
+        assertEquals(3, repository.nearbyRequests.size)
+        assertTrue(repository.nearbyRequests.all(NearbySearchRequest::includePhotos))
+    }
+
+    @Test
+    fun `merges successful nearby searches and removes duplicated place ids`() = runTest {
+        repository.nearbyResults = listOf(
+            Success(listOf(place(id = "inner"), place(id = "duplicate"))),
+            Success(listOf(place(id = "duplicate"), place(id = "middle"))),
+            Success(listOf(place(id = "outer"))),
+        )
+
+        val result = useCase(query = "", location = GeoPoint(0.0, 0.0))
+
+        assertEquals(
+            listOf("inner", "duplicate", "middle", "outer"),
+            (result as Success).data.map(PlaceSummary::id),
+        )
+        assertEquals(3, repository.nearbyRequests.size)
+    }
+
+    @Test
+    fun `preserves a nearby search failure and does not start later radii`() = runTest {
+        val expected = Failure(
+            Error(
+                code = 503,
+                title = "Unavailable",
+                message = "Try again",
+            ),
+        )
+        repository.nearbyResults = listOf(
+            Success(emptyList()),
+            expected,
+            Success(emptyList()),
+        )
+
+        val result = useCase(query = "", location = GeoPoint(0.0, 0.0))
+
+        assertEquals(expected, result)
+        assertEquals(2, repository.nearbyRequests.size)
+    }
+
+    @Test
+    fun `preserves nearby loading state and does not start later radii`() = runTest {
+        repository.nearbyResults = listOf(
+            Success(emptyList()),
+            Loading(emptyList<PlaceSummary>()),
+            Success(emptyList()),
+        )
+
+        val result = useCase(query = "", location = GeoPoint(0.0, 0.0))
+
+        assertEquals(Loading(emptyList<PlaceSummary>()), result)
+        assertEquals(2, repository.nearbyRequests.size)
     }
 
     @Test
@@ -97,7 +161,7 @@ class SearchPlacesUseCaseTest {
         assertTrue(request!!.query.isNotBlank())
         assertNull(request.locationBiasCenter)
         assertNull(request.locationBiasRadiusMeters)
-        assertNull(repository.nearbyRequest)
+        assertTrue(repository.nearbyRequests.isEmpty())
     }
 
     @Test
@@ -144,14 +208,15 @@ class SearchPlacesUseCaseTest {
 }
 
 private class RecordingPlacesRepository : PlacesRepository.Remote {
-    var nearbyRequest: NearbySearchRequest? = null
+    val nearbyRequests = mutableListOf<NearbySearchRequest>()
     var textRequest: PlaceTextSearchRequest? = null
     var nearbyResult: Result<List<PlaceSummary>> = Success(emptyList())
+    var nearbyResults: List<Result<List<PlaceSummary>>> = emptyList()
     var textResult: Result<List<PlaceSummary>> = Success(emptyList())
 
     override suspend fun searchNearby(request: NearbySearchRequest): Result<List<PlaceSummary>> {
-        nearbyRequest = request
-        return nearbyResult
+        nearbyRequests += request
+        return nearbyResults.getOrNull(nearbyRequests.lastIndex) ?: nearbyResult
     }
 
     override suspend fun searchByText(request: PlaceTextSearchRequest): Result<List<PlaceSummary>> {

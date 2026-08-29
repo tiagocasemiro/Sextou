@@ -100,7 +100,9 @@ class GooglePlacesGateway(
             .apply { request.regionCode?.let(::setRegionCode) }
             .build()
         val place = client.fetchPlace(sdkRequest).await().place
-        photoMetadataCache[request.placeId] = place.photoMetadatas.orEmpty()
+        place.photoMetadatas
+            ?.takeIf { it.isNotEmpty() }
+            ?.let { photoMetadataCache[request.placeId] = it }
         return PlaceDetailsResponse(place)
     }
 
@@ -127,12 +129,15 @@ class GooglePlacesGateway(
 
     private suspend fun metadataFor(request: PlacePhotoRequest): PhotoMetadata {
         val reference = request.reference
-        val cached = photoMetadataCache[reference.placeId]
-        val allMetadata = cached ?: client.fetchPlace(
-            FetchPlaceRequest.newInstance(reference.placeId, listOf(Place.Field.PHOTO_METADATAS)),
-        ).await().place.photoMetadatas.orEmpty().also {
-            photoMetadataCache[reference.placeId] = it
-        }
+        val allMetadata = photoMetadataCache[reference.placeId]
+            ?.takeIf { it.isNotEmpty() }
+            ?: client.fetchPlace(
+                FetchPlaceRequest.newInstance(reference.placeId, listOf(Place.Field.PHOTO_METADATAS)),
+            ).await().place.photoMetadatas.orEmpty().also { metadata ->
+                if (metadata.isNotEmpty()) {
+                    photoMetadataCache[reference.placeId] = metadata
+                }
+            }
         return allMetadata.getOrNull(reference.index)
             ?: throw IndexOutOfBoundsException("A foto ${reference.index} não existe para o lugar informado.")
     }
@@ -140,7 +145,9 @@ class GooglePlacesGateway(
     private fun cachePhotoMetadata(places: List<Place>) {
         places.forEach { place ->
             place.id?.let { placeId ->
-                photoMetadataCache[placeId] = place.photoMetadatas.orEmpty()
+                place.photoMetadatas
+                    ?.takeIf { it.isNotEmpty() }
+                    ?.let { photoMetadataCache[placeId] = it }
             }
         }
     }
