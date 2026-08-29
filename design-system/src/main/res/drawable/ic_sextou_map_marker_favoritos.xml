@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="32dp"
+    android:height="40dp"
+    android:viewportWidth="32"
+    android:viewportHeight="40">
+    <path
+        android:fillColor="@color/sextou_map_marker_favoritos"
+        android:pathData="M16,39C16,39 2,25.5 2,15C2,7.268 8.268,1 16,1C23.732,1 30,7.268 30,15C30,25.5 16,39 16,39Z" />
+    <path
+        android:fillColor="@color/sextou_map_marker_pin_surface"
+        android:pathData="M16,7C19.866,7 23,10.134 23,14C23,17.866 19.866,21 16,21C12.134,21 9,17.866 9,14C9,10.134 12.134,7 16,7Z" />
+    <path
+        android:fillColor="@color/sextou_map_marker_pin_content"
+        android:pathData="M16,19.25L11.25,14.72C10.39,13.91 9.75,12.79 9.75,11.45C9.75,9.65 11.1,8.25 12.9,8.25C14.18,8.25 15.16,8.94 16,9.92C16.84,8.94 17.82,8.25 19.1,8.25C20.9,8.25 22.25,9.65 22.25,11.45C22.25,12.79 21.61,13.91 20.75,14.72L16,19.25Z" />
+</vector>
