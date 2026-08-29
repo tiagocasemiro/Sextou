@@ -5,9 +5,15 @@
     <application
         android:name=".SextouApplication"
         android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
         android:label="Sextou"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Sextou">
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${MAPS_API_KEY}" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true">

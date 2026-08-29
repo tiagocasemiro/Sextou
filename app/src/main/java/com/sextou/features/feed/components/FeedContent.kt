@@ -16,9 +16,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,7 +40,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sextou.R
-import com.sextou.designsystem.component.morebutton.SextouMoreButton
 import com.sextou.designsystem.component.sectionheader.SextouSectionHeader
 import com.sextou.designsystem.component.statusbadge.SextouStatus
 import com.sextou.designsystem.component.statusbadge.SextouStatusBadge
@@ -52,6 +53,7 @@ import com.sextou.features.feed.FeedPlaceStatus
 import com.sextou.features.feed.FeedPlaceUiModel
 import com.sextou.features.feed.FeedUiState
 import com.sextou.features.feed.preview
+import kotlin.math.roundToInt
 
 private val FeedCardShape = RoundedCornerShape(SextouCornerRadius.Surface)
 private val FeedImageShape = RoundedCornerShape(
@@ -70,27 +72,23 @@ internal fun FeedContent(
     places: List<FeedPlaceUiModel>,
     favoritePlaceIds: Set<String>,
     visitedPlaceIds: Set<String>,
-    onLocationClicked: () -> Unit,
+    isLoading: Boolean,
+    isError: Boolean,
+    isStale: Boolean,
+    @androidx.annotation.StringRes errorMessageResId: Int?,
+    @androidx.annotation.StringRes actionErrorMessageResId: Int?,
+    isFavoritesTab: Boolean,
+    providerAttribution: String?,
     onPlaceClicked: (String) -> Unit,
     onFavoriteClicked: (String) -> Unit,
     onVisitedClicked: (String) -> Unit,
-    onMoreClicked: () -> Unit,
+    onRetry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = 112.dp),
     ) {
-        item(key = "location") {
-            FeedLocationSelector(
-                onClick = onLocationClicked,
-                modifier = Modifier.padding(
-                    start = SextouSpacing.Md + SextouSpacing.Sm,
-                    top = SextouSpacing.Md,
-                    end = SextouSpacing.Md + SextouSpacing.Sm,
-                ),
-            )
-        }
         item(key = "section") {
             SextouSectionHeader(
                 text = stringResource(R.string.feed_section_title),
@@ -104,10 +102,98 @@ internal fun FeedContent(
                     ),
             )
         }
-        if (places.isEmpty()) {
-            item(key = "empty") {
+
+        if (isLoading && places.isNotEmpty()) {
+            item(key = "refreshing") {
+                androidx.compose.material3.LinearProgressIndicator(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = SextouSpacing.Md + SextouSpacing.Sm),
+                    color = SextouColors.Primary,
+                )
+            }
+        }
+
+        if (isStale && places.isNotEmpty()) {
+            item(key = "stale-error") {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            horizontal = SextouSpacing.Md + SextouSpacing.Sm,
+                            vertical = SextouSpacing.Md,
+                        ),
+                    horizontalAlignment = Alignment.Start,
+                ) {
+                    Text(
+                        text = stringResource(R.string.feed_stale_results),
+                        style = SextouTextStyles.Metadata,
+                        color = SextouColors.TextSecondary,
+                    )
+                    TextButton(onClick = onRetry) {
+                        Text(text = stringResource(R.string.feed_retry))
+                    }
+                }
+            }
+        }
+
+        actionErrorMessageResId?.let { errorResId ->
+            item(key = "local-error") {
                 Text(
-                    text = stringResource(R.string.feed_empty_search),
+                    text = stringResource(errorResId),
+                    modifier = Modifier.padding(
+                        horizontal = SextouSpacing.Md + SextouSpacing.Sm,
+                        vertical = SextouSpacing.Sm,
+                    ),
+                    style = SextouTextStyles.Metadata,
+                    color = SextouColors.Error,
+                )
+            }
+        }
+
+        when {
+            isLoading && places.isEmpty() -> item(key = "loading") {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = SextouSpacing.Xxl),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator(color = SextouColors.Primary)
+                }
+            }
+
+            isError && places.isEmpty() -> item(key = "error") {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            horizontal = SextouSpacing.Md + SextouSpacing.Sm,
+                            vertical = SextouSpacing.Xl,
+                        ),
+                    horizontalAlignment = Alignment.Start,
+                ) {
+                    Text(
+                        text = errorMessageResId?.let { stringResource(it) }
+                            ?: stringResource(R.string.feed_generic_error),
+                        style = SextouTextStyles.BodyLarge,
+                        color = SextouColors.TextSecondary,
+                    )
+                    TextButton(onClick = onRetry) {
+                        Text(text = stringResource(R.string.feed_retry))
+                    }
+                }
+            }
+
+            places.isEmpty() -> item(key = "empty") {
+                Text(
+                    text = stringResource(
+                        if (isFavoritesTab) {
+                            R.string.feed_empty_favorites
+                        } else {
+                            R.string.feed_empty_search
+                        },
+                    ),
                     modifier = Modifier.padding(
                         horizontal = SextouSpacing.Md + SextouSpacing.Sm,
                         vertical = SextouSpacing.Xl,
@@ -116,99 +202,44 @@ internal fun FeedContent(
                     color = SextouColors.TextSecondary,
                 )
             }
-        } else {
-            items(
-                items = places,
-                key = { place -> place.id },
-            ) { place ->
-                FeedPlaceCard(
-                    place = place,
-                    isFavorite = place.id in favoritePlaceIds,
-                    isVisited = place.id in visitedPlaceIds,
-                    onClick = { onPlaceClicked(place.id) },
-                    onFavoriteClick = { onFavoriteClicked(place.id) },
-                    onVisitedClick = { onVisitedClicked(place.id) },
-                    modifier = Modifier
-                        .padding(
-                            start = SextouSpacing.Md + SextouSpacing.Sm,
-                            top = SextouSpacing.Lg,
-                            end = SextouSpacing.Md + SextouSpacing.Sm,
-                        ),
-                )
-            }
-            item(key = "more") {
-                SextouMoreButton(
-                    text = stringResource(R.string.feed_more_places),
-                    onClick = onMoreClicked,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(
-                            start = SextouSpacing.Md + SextouSpacing.Sm,
-                            top = SextouSpacing.Lg,
-                            end = SextouSpacing.Md + SextouSpacing.Sm,
-                            bottom = SextouSpacing.Xl,
-                        ),
-                )
-            }
-        }
-    }
-}
 
-@Composable
-private fun FeedLocationSelector(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val contentDescription = stringResource(R.string.feed_location_content_description)
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(48.dp)
-            .semantics {
-                this.contentDescription = contentDescription
-                role = Role.Button
-            }
-            .clickable(
-                role = Role.Button,
-                onClick = onClick,
-            ),
-        contentAlignment = Alignment.Center,
-    ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(38.dp),
-            shape = RoundedCornerShape(SextouCornerRadius.Control),
-            color = SextouColors.SurfaceImage.copy(alpha = 0.6f),
-            border = BorderStroke(SextouDimensions.Border, SextouColors.Border),
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = SextouSpacing.Md),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_feed_location),
-                    contentDescription = null,
-                    modifier = Modifier.size(SextouDimensions.SectionHeaderIcon),
-                    tint = Color.Unspecified,
-                )
-                Text(
-                    text = stringResource(R.string.feed_location),
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = SextouSpacing.Xs),
-                    style = SextouTextStyles.SectionTitle,
-                    color = SextouColors.TextPrimary,
-                    maxLines = 1,
-                )
-                Icon(
-                    painter = painterResource(R.drawable.ic_feed_target),
-                    contentDescription = null,
-                    modifier = Modifier.size(SextouDimensions.SectionHeaderIcon + SextouSpacing.Xs),
-                    tint = Color.Unspecified,
-                )
+            else -> {
+                items(
+                    items = places,
+                    key = { place -> place.id },
+                ) { place ->
+                    FeedPlaceCard(
+                        place = place,
+                        isFavorite = place.id in favoritePlaceIds,
+                        isVisited = place.id in visitedPlaceIds,
+                        onClick = { onPlaceClicked(place.id) },
+                        onFavoriteClick = { onFavoriteClicked(place.id) },
+                        onVisitedClick = { onVisitedClicked(place.id) },
+                        modifier = Modifier
+                            .padding(
+                                start = SextouSpacing.Md + SextouSpacing.Sm,
+                                top = SextouSpacing.Lg,
+                                end = SextouSpacing.Md + SextouSpacing.Sm,
+                            ),
+                    )
+                }
+                providerAttribution?.let { attribution ->
+                    item(key = "provider-attribution") {
+                        Text(
+                            text = stringResource(
+                                R.string.feed_provider_attribution,
+                                attribution,
+                            ),
+                            modifier = Modifier.padding(
+                                start = SextouSpacing.Md + SextouSpacing.Sm,
+                                top = SextouSpacing.Md,
+                                end = SextouSpacing.Md + SextouSpacing.Sm,
+                            ),
+                            style = SextouTextStyles.Metadata,
+                            color = SextouColors.TextSecondary,
+                        )
+                    }
+                }
             }
         }
     }
@@ -224,7 +255,9 @@ private fun FeedPlaceCard(
     onVisitedClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val name = stringResource(place.nameResId)
+    val name = place.nameText
+        ?: place.nameResId.takeIf { it != 0 }?.let { stringResource(it) }
+        ?: place.id
     val cardContentDescription = stringResource(
         R.string.feed_card_content_description,
         name,
@@ -244,6 +277,7 @@ private fun FeedPlaceCard(
         Column {
             FeedPlaceArtwork(
                 place = place,
+                name = name,
                 isFavorite = isFavorite,
                 isVisited = isVisited,
                 onFavoriteClick = onFavoriteClick,
@@ -260,6 +294,7 @@ private fun FeedPlaceCard(
 @Composable
 private fun FeedPlaceArtwork(
     place: FeedPlaceUiModel,
+    name: String,
     isFavorite: Boolean,
     isVisited: Boolean,
     onFavoriteClick: () -> Unit,
@@ -280,7 +315,10 @@ private fun FeedPlaceArtwork(
                 contentScale = androidx.compose.ui.layout.ContentScale.Crop,
             )
         } else {
-            FeedPlacePlaceholder(place = place)
+            FeedPlacePlaceholder(
+                place = place,
+                name = name,
+            )
         }
 
         Box(
@@ -288,21 +326,27 @@ private fun FeedPlaceArtwork(
                 .fillMaxSize()
                 .background(FeedImageScrim),
         )
-        SextouStatusBadge(
-            status = when (place.status) {
-                FeedPlaceStatus.OPEN -> SextouStatus.OPEN
-                FeedPlaceStatus.CLOSED -> SextouStatus.CLOSED
-            },
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(SextouSpacing.Md),
-        )
-        FeedPlaceHighlight(
-            text = stringResource(place.highlightResId),
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(SextouSpacing.Md),
-        )
+        place.status?.let { status ->
+            SextouStatusBadge(
+                status = when (status) {
+                    FeedPlaceStatus.OPEN -> SextouStatus.OPEN
+                    FeedPlaceStatus.CLOSED -> SextouStatus.CLOSED
+                },
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(SextouSpacing.Md),
+            )
+        }
+        val highlight = place.highlightText
+            ?: place.highlightResId.takeIf { it != 0 }?.let { stringResource(it) }
+        highlight?.let {
+            FeedPlaceHighlight(
+                text = it,
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(SextouSpacing.Md),
+            )
+        }
         Row(
             modifier = Modifier
                 .align(Alignment.TopEnd)
@@ -317,7 +361,7 @@ private fun FeedPlaceArtwork(
                     } else {
                         R.string.feed_favorite_content_description
                     },
-                    stringResource(place.nameResId),
+                    name,
                 ),
                 selected = isFavorite,
                 onClick = onFavoriteClick,
@@ -330,7 +374,7 @@ private fun FeedPlaceArtwork(
                     } else {
                         R.string.feed_visit_content_description
                     },
-                    stringResource(place.nameResId),
+                    name,
                 ),
                 selected = isVisited,
                 onClick = onVisitedClick,
@@ -340,7 +384,10 @@ private fun FeedPlaceArtwork(
 }
 
 @Composable
-private fun FeedPlacePlaceholder(place: FeedPlaceUiModel) {
+private fun FeedPlacePlaceholder(
+    place: FeedPlaceUiModel,
+    name: String,
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -360,7 +407,7 @@ private fun FeedPlacePlaceholder(place: FeedPlaceUiModel) {
                 )
             }
             Text(
-                text = stringResource(place.nameResId),
+                text = name,
                 style = SextouTextStyles.Metadata,
                 color = SextouColors.TextSecondary.copy(alpha = 0.6f),
                 maxLines = 1,
@@ -438,6 +485,30 @@ private fun FeedPlaceDetails(
     place: FeedPlaceUiModel,
     name: String,
 ) {
+    val category = place.categoryText
+        ?: place.categoryResId.takeIf { it != 0 }?.let { stringResource(it) }
+        ?: stringResource(R.string.feed_place_category_unknown)
+    val distance = when {
+        place.distanceMeters != null && place.distanceMeters < 1_000.0 -> {
+            stringResource(
+                R.string.feed_distance_meters,
+                place.distanceMeters.roundToInt(),
+            )
+        }
+
+        place.distanceMeters != null -> {
+            stringResource(
+                R.string.feed_distance_kilometers,
+                place.distanceMeters / 1_000.0,
+            )
+        }
+
+        place.distanceResId != 0 -> stringResource(place.distanceResId)
+        else -> null
+    }
+    val hours = place.hoursText
+        ?: place.hoursResId.takeIf { it != 0 }?.let { stringResource(it) }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -454,7 +525,7 @@ private fun FeedPlaceDetails(
                 modifier = Modifier.weight(1f),
             ) {
                 Text(
-                    text = stringResource(place.categoryResId).uppercase(),
+                    text = category.uppercase(),
                     style = SextouTextStyles.Category,
                     color = SextouColors.TextSecondary,
                     maxLines = 1,
@@ -480,15 +551,21 @@ private fun FeedPlaceDetails(
             horizontalArrangement = Arrangement.spacedBy(SextouSpacing.Md),
             verticalAlignment = Alignment.Top,
         ) {
-            FeedMetadata(
-                painter = painterResource(R.drawable.ic_feed_distance),
-                text = stringResource(place.distanceResId),
-            )
-            FeedPriceMetadata(place = place)
-            FeedMetadata(
-                painter = painterResource(R.drawable.ic_feed_clock),
-                text = stringResource(R.string.feed_hours),
-            )
+            distance?.let {
+                FeedMetadata(
+                    painter = painterResource(R.drawable.ic_feed_distance),
+                    text = it,
+                )
+            }
+            place.priceLevel?.let {
+                FeedPriceMetadata(place = place)
+            }
+            hours?.let {
+                FeedMetadata(
+                    painter = painterResource(R.drawable.ic_feed_clock),
+                    text = it,
+                )
+            }
         }
     }
 }
@@ -497,16 +574,32 @@ private fun FeedPlaceDetails(
 private fun FeedRating(
     place: FeedPlaceUiModel,
 ) {
-    val ratingCount = androidx.compose.ui.res.pluralStringResource(
-        R.plurals.feed_rating_reviews_count,
-        place.ratingsCount,
-        place.ratingsCount,
-    )
-    val ratingContentDescription = stringResource(
-        R.string.feed_rating_content_description,
-        place.rating,
-        ratingCount,
-    )
+    if (place.rating == null && place.ratingsCount == null) return
+
+    val ratingCount = place.ratingsCount?.let {
+        androidx.compose.ui.res.pluralStringResource(
+            R.plurals.feed_rating_reviews_count,
+            it,
+            it,
+        )
+    }
+    val ratingContentDescription = when {
+        place.rating != null && ratingCount != null -> stringResource(
+            R.string.feed_rating_content_description,
+            place.rating,
+            ratingCount,
+        )
+
+        place.rating != null -> stringResource(
+            R.string.feed_rating_only_content_description,
+            place.rating,
+        )
+
+        else -> stringResource(
+            R.string.feed_rating_count_only_content_description,
+            ratingCount.orEmpty(),
+        )
+    }
     Row(
         modifier = Modifier.semantics {
             contentDescription = ratingContentDescription
@@ -520,23 +613,38 @@ private fun FeedRating(
             modifier = Modifier.size(SextouSpacing.Sm + SextouSpacing.Xs),
             tint = Color.Unspecified,
         )
-        Text(
-            text = stringResource(R.string.feed_rating_value, place.rating),
-            style = SextouTextStyles.ActionButton,
-            color = SextouColors.PrimaryStrong,
-            maxLines = 1,
-        )
-        Text(
-            text = stringResource(R.string.feed_rating_count, place.ratingsCount),
-            style = SextouTextStyles.Metadata,
-            color = SextouColors.TextSecondary,
-            maxLines = 1,
-        )
+        place.rating?.let {
+            Text(
+                text = stringResource(R.string.feed_rating_value, it),
+                style = SextouTextStyles.ActionButton,
+                color = SextouColors.PrimaryStrong,
+                maxLines = 1,
+            )
+        }
+        place.ratingsCount?.let {
+            Text(
+                text = stringResource(R.string.feed_rating_count, it),
+                style = SextouTextStyles.Metadata,
+                color = SextouColors.TextSecondary,
+                maxLines = 1,
+            )
+        }
     }
 }
 
 @Composable
 private fun FeedPriceMetadata(place: FeedPlaceUiModel) {
+    val priceLevel = place.priceLevel ?: return
+    val priceDescription = place.priceDescriptionResId
+        .takeIf { it != 0 }
+        ?.let { stringResource(it) }
+        ?: stringResource(R.string.feed_price_level_description)
+    val priceSymbols = if (priceLevel <= 0) {
+        stringResource(R.string.feed_price_free)
+    } else {
+        stringResource(R.string.feed_price_symbol).repeat(priceLevel.coerceAtMost(4))
+    }
+
     Row(
         horizontalArrangement = Arrangement.spacedBy(SextouSpacing.Xs),
         verticalAlignment = Alignment.CenterVertically,
@@ -548,13 +656,13 @@ private fun FeedPriceMetadata(place: FeedPlaceUiModel) {
             tint = Color.Unspecified,
         )
         Text(
-            text = stringResource(R.string.feed_price_symbol).repeat(place.priceLevel),
+            text = priceSymbols,
             style = SextouTextStyles.Metadata.copy(fontWeight = FontWeight.Bold),
             color = SextouColors.Positive,
             maxLines = 1,
         )
         Text(
-            text = stringResource(R.string.feed_price_description),
+            text = priceDescription,
             style = SextouTextStyles.Metadata,
             color = SextouColors.TextSecondary,
             maxLines = 1,

@@ -4,4 +4,8 @@
         <item quantity="one">%1$d avaliação</item>
         <item quantity="other">%1$d avaliações</item>
     </plurals>
+    <plurals name="details_rating_count">
+        <item quantity="one">(%1$d avaliação)</item>
+        <item quantity="other">(%1$d avaliações)</item>
+    </plurals>
 </resources>

@@ -6,7 +6,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -16,7 +20,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.sextou.R
 import com.sextou.designsystem.R as DesignSystemR
 import com.sextou.designsystem.component.brand.SextouBrand
-import com.sextou.designsystem.component.profilebutton.SextouProfileButton
 import com.sextou.designsystem.component.searchbar.SextouSearchBar
 import com.sextou.designsystem.theme.SextouColors
 import com.sextou.designsystem.theme.SextouSpacing
@@ -32,10 +35,10 @@ fun FeedScreen(
     onVisitedClicked: (String) -> Unit,
     onTabSelected: (FeedTab) -> Unit,
     onFilterClicked: () -> Unit,
-    onProfileClicked: () -> Unit,
-    onLocationClicked: () -> Unit,
+    onFilterDialogDismissed: () -> Unit,
+    onOpenOnlyChanged: (Boolean) -> Unit,
     onPlaceClicked: (String) -> Unit,
-    onMoreClicked: () -> Unit,
+    onRetry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(
@@ -48,17 +51,22 @@ fun FeedScreen(
                 query = uiState.query,
                 onQueryChanged = onQueryChanged,
                 onFilterClicked = onFilterClicked,
-                onProfileClicked = onProfileClicked,
             )
             FeedContent(
-                places = uiState.places,
+                places = uiState.visiblePlaces,
                 favoritePlaceIds = uiState.favoritePlaceIds,
                 visitedPlaceIds = uiState.visitedPlaceIds,
-                onLocationClicked = onLocationClicked,
+                isLoading = uiState.isLoading,
+                isError = uiState.isError,
+                isStale = uiState.isStale,
+                errorMessageResId = uiState.errorMessageResId,
+                actionErrorMessageResId = uiState.actionErrorMessageResId,
+                isFavoritesTab = uiState.selectedTab == FeedTab.FAVORITES,
+                providerAttribution = uiState.providerAttribution,
                 onPlaceClicked = onPlaceClicked,
                 onFavoriteClicked = onFavoriteClicked,
                 onVisitedClicked = onVisitedClicked,
-                onMoreClicked = onMoreClicked,
+                onRetry = onRetry,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -68,6 +76,14 @@ fun FeedScreen(
             onTabSelected = onTabSelected,
             modifier = Modifier.align(Alignment.BottomCenter),
         )
+
+        if (uiState.isFilterDialogVisible) {
+            FeedFilterDialog(
+                openOnly = uiState.openOnly,
+                onOpenOnlyChanged = onOpenOnlyChanged,
+                onDismiss = onFilterDialogDismissed,
+            )
+        }
     }
 }
 
@@ -76,7 +92,6 @@ private fun FeedHeader(
     query: String,
     onQueryChanged: (String) -> Unit,
     onFilterClicked: () -> Unit,
-    onProfileClicked: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -101,11 +116,6 @@ private fun FeedHeader(
                         R.string.feed_brand_icon_content_description,
                     ),
                 )
-                SextouProfileButton(
-                    contentDescription = stringResource(R.string.feed_profile_content_description),
-                    onClick = onProfileClicked,
-                    modifier = Modifier.align(Alignment.CenterEnd),
-                )
             }
 
             SextouSearchBar(
@@ -125,6 +135,42 @@ private fun FeedHeader(
     }
 }
 
+@Composable
+private fun FeedFilterDialog(
+    openOnly: Boolean,
+    onOpenOnlyChanged: (Boolean) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(text = stringResource(R.string.feed_filter_title))
+        },
+        text = {
+            androidx.compose.foundation.layout.Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                androidx.compose.foundation.layout.Column(
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(text = stringResource(R.string.feed_filter_open_only))
+                    Text(text = stringResource(R.string.feed_filter_open_only_description))
+                }
+                Switch(
+                    checked = openOnly,
+                    onCheckedChange = onOpenOnlyChanged,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(R.string.feed_close))
+            }
+        },
+    )
+}
+
 @Preview(
     name = "Feed screen",
     showBackground = true,
@@ -142,10 +188,10 @@ private fun FeedScreenPreview() {
             onVisitedClicked = {},
             onTabSelected = {},
             onFilterClicked = {},
-            onProfileClicked = {},
-            onLocationClicked = {},
+            onFilterDialogDismissed = {},
+            onOpenOnlyChanged = {},
             onPlaceClicked = {},
-            onMoreClicked = {},
+            onRetry = {},
         )
     }
 }

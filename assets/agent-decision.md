@@ -736,3 +736,60 @@ porque o módulo não embarca as fontes do arquivo de design.
   contêiner da navegação.
 * Os demais botões e o fundo externo da bottom navigation permaneceram
   inalterados.
+
+## 2026-08-28 — Gradiente do símbolo de fogo
+
+* O preenchimento do símbolo em `.codex/assets/sextou-fire.svg` passou a usar
+  um gradiente diagonal a aproximadamente 45 graus, partindo do amarelo na
+  região inferior esquerda e chegando ao vermelho na região superior direita.
+* As três cores originais (`#FFC400`, `#FF9100` e `#DD2C00`) foram mantidas
+  como pontos do gradiente, enquanto o canal alfa do bitmap original foi
+  reutilizado como máscara para preservar exatamente o contorno e a
+  transparência da imagem.
+
+## 2026-08-28 — Ícone adaptativo do aplicativo
+
+* O launcher usa a chama de `.codex/assets/sextou-fire.svg` como foreground
+  centralizado em um canvas de 108 dp, com a silhueta visível dentro da área
+  segura de 66 dp definida pelo Android. Uma versão monocromática derivada do
+  mesmo canal alfa habilita os ícones temáticos do sistema.
+* A escala preserva a proporção original entre os assets: o canvas de 192 px
+  da chama é mapeado sobre os 328 px úteis do card, resultando em 63,22 dp no
+  foreground adaptativo e mantendo o respiro previsto pela composição fonte.
+* Nos ícones adaptativos, a cor `#0A0A0B` de
+  `.codex/assets/sextou-background.svg` ocupa todo o background; o
+  arredondamento e a sombra do SVG não foram incorporados nessa camada porque
+  a máscara e os efeitos são aplicados pelo launcher para cada formato.
+* Os fallbacks das APIs 24 e 25 mantêm o card escuro, a borda sutil e a sombra
+  do background original, com variantes quadrada arredondada e circular em
+  todas as densidades Android.
+
+## 2026-08-28 — Integração do feed com Places e SearchPlacesUseCase
+
+* O feed passou a consultar `SearchPlacesUseCase`, que depende do contrato
+  `PlacesRepository.Remote`. A consulta vazia com localização usa Nearby Search
+  com as categorias do produto; uma consulta textual usa Text Search e mantém
+  o viés de localização quando disponível.
+* O `FeedViewModel` passou a executar a busca em `viewModelScope`, cancelar uma
+  busca substituída, expor estados de carregamento/erro e mapear os campos
+  opcionais de `PlaceSummary` para o card sem inventar nota, preço, distância,
+  horário ou status de abertura. As fixtures permanecem somente nos previews.
+* Não foi criado módulo local, cache ou filtro de lista negra nesta alteração:
+  o projeto ainda não possui infraestrutura local e o pedido foi limitado à
+  integração remota do feed. Esses comportamentos devem entrar junto de uma
+  política de persistência e dos contratos de favoritos/lista negra.
+
+## 2026-08-28 — Correção arquitetural da feature feeds
+
+* A decisão anterior sobre não criar persistência deixou de ser válida para a
+  correção solicitada: favoritos e locais visitados agora usam contratos no
+  domínio, casos de uso e Room no módulo `local`, com operações idempotentes.
+* As credenciais permanecem fora do código-fonte: `PLACES_API_KEY` é injetada
+  no módulo de networking e `MAPS_API_KEY` é usada apenas como placeholder da
+  metadata do Maps no manifesto, ambas lidas de `local.properties`.
+* A navegação de mapa e detalhes foi ligada a rotas tipadas; a aba Favoritos,
+  o filtro de locais abertos, retry e estados de erro/stale passaram a ter
+  comportamento real. Ações sem contrato implementado foram removidas da UI.
+* A validação incluiu testes de domínio, persistência local, ViewModel e
+  compilação/lint do app, além da instalação e inicialização em dispositivo
+  Android conectado.

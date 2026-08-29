@@ -7,6 +7,8 @@ import androidx.compose.runtime.getValue
 @Composable
 fun FeedDestination(
     viewModel: FeedViewModel,
+    onOpenMap: (String) -> Unit,
+    onOpenPlace: (String) -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -15,11 +17,17 @@ fun FeedDestination(
         onQueryChanged = viewModel::onQueryChanged,
         onFavoriteClicked = viewModel::onFavoriteClicked,
         onVisitedClicked = viewModel::onVisitedClicked,
-        onTabSelected = viewModel::onTabSelected,
-        onFilterClicked = {},
-        onProfileClicked = {},
-        onLocationClicked = {},
-        onPlaceClicked = {},
-        onMoreClicked = {},
+        onTabSelected = { tab ->
+            if (tab == FeedTab.MAP) {
+                onOpenMap(uiState.query)
+            } else {
+                viewModel.onTabSelected(tab)
+            }
+        },
+        onFilterClicked = viewModel::onFilterClicked,
+        onFilterDialogDismissed = viewModel::onFilterDialogDismissed,
+        onOpenOnlyChanged = viewModel::onOpenOnlyChanged,
+        onPlaceClicked = onOpenPlace,
+        onRetry = viewModel::retry,
     )
 }

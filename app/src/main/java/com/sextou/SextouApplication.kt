@@ -2,6 +2,7 @@ package com.sextou
 
 import android.app.Application
 import com.sextou.di.appModule
+import com.sextou.local.di.localModule
 import com.sextou.networking.di.networkingModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
@@ -13,6 +14,7 @@ class SextouApplication : Application() {
             androidContext(this@SextouApplication)
             modules(
                 appModule,
+                localModule(),
                 networkingModule(BuildConfig.PLACES_API_KEY),
             )
         }

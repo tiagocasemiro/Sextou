@@ -6,11 +6,21 @@
     <string name="feed_profile_content_description">Abrir perfil</string>
     <string name="feed_search_placeholder">Buscar litrão, espetinho, trailers…</string>
     <string name="feed_filter_content_description">Abrir filtros</string>
-    <string name="feed_location">Campo Grande, RJ</string>
-    <string name="feed_location_content_description">Selecionar localização</string>
     <string name="feed_section_title">MAIS BOMBADOS AGORA</string>
-    <string name="feed_more_places">Ver mais botecos</string>
     <string name="feed_empty_search">Nenhum lugar encontrado</string>
+    <string name="feed_empty_favorites">Você ainda não favoritou nenhum lugar.</string>
+    <string name="feed_generic_error">Não foi possível carregar os lugares agora.</string>
+    <string name="feed_stale_results">Não foi possível atualizar. Exibindo os últimos resultados.</string>
+    <string name="feed_local_error">Não foi possível salvar essa alteração.</string>
+    <string name="feed_retry">Tentar novamente</string>
+    <string name="feed_filter_title">Filtros</string>
+    <string name="feed_filter_open_only">Mostrar apenas lugares abertos</string>
+    <string name="feed_filter_open_only_description">Oculta estabelecimentos identificados como fechados.</string>
+    <string name="feed_close">Fechar</string>
+    <string name="feed_place_category_unknown">Estabelecimento</string>
+    <string name="feed_provider_attribution">Dados e atribuição: %1$s</string>
+    <string name="feed_distance_meters">%1$d m</string>
+    <string name="feed_distance_kilometers">%1$.1f km</string>
 
     <string name="feed_place_ao_ponto_category">Bar &amp; Restaurante</string>
     <string name="feed_place_ao_ponto_name">Ao Ponto Bar &amp; Restaurante</string>
@@ -48,6 +58,8 @@
     <string name="feed_place_adega_distance">890 m</string>
 
     <string name="feed_price_description">Baratinho</string>
+    <string name="feed_price_level_description">Nível de preço</string>
+    <string name="feed_price_free">Grátis</string>
     <string name="feed_price_symbol">$</string>
     <string name="feed_hours">Hoje até 2h</string>
     <string name="feed_emoji_beer">🍺</string>
@@ -59,6 +71,8 @@
     <string name="feed_rating_value">%1$.1f</string>
     <string name="feed_rating_count">(%1$d)</string>
     <string name="feed_rating_content_description">Avaliação %1$.1f com %2$s</string>
+    <string name="feed_rating_only_content_description">Avaliação %1$.1f</string>
+    <string name="feed_rating_count_only_content_description">%1$s</string>
     <string name="feed_favorite_content_description">Favoritar %1$s</string>
     <string name="feed_favorite_remove_content_description">Remover %1$s dos favoritos</string>
     <string name="feed_visit_content_description">Salvar %1$s para visitar</string>
@@ -70,4 +84,21 @@
     <string name="feed_navigation_map_content_description">Abrir mapa</string>
     <string name="feed_navigation_feed_content_description">Abrir feed</string>
     <string name="feed_navigation_favorites_content_description">Abrir favoritos</string>
+
+    <string name="map_title">Mapa</string>
+    <string name="map_back">Voltar</string>
+    <string name="map_rating">Avaliação %1$.1f</string>
+    <string name="map_error">Não foi possível carregar os lugares no mapa.</string>
+    <string name="map_provider_attribution">Mapa e dados: Google Maps</string>
+
+    <string name="details_title">Detalhes do lugar</string>
+    <string name="details_back">Voltar</string>
+    <string name="details_error">Não foi possível carregar os detalhes deste lugar.</string>
+    <string name="details_address">Endereço</string>
+    <string name="details_phone">Telefone</string>
+    <string name="details_website">Site</string>
+    <string name="details_rating">Avaliação</string>
+    <string name="details_rating_value">%1$.1f</string>
+    <string name="details_hours">Horários</string>
+    <string name="details_provider_attribution">Dados e atribuição: %1$s</string>
 </resources>
