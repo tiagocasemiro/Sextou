@@ -1,5 +1,37 @@
 # Decisões do agente
 
+## 2026-08-28 — DESIGN.md do sistema visual do Sextou
+
+Foi criado `DESIGN.md` na raiz seguindo a especificação atual do Stitch: front
+matter YAML com tokens e as seções canônicas `Overview`, `Colors`,
+`Typography`, `Layout`, `Elevation & Depth`, `Shapes`, `Components` e
+`Do's and Don'ts`. A caixa alta foi mantida porque é o nome definido pela
+documentação do Stitch e referenciado pelo `AGENTS.md` do projeto, embora o
+pedido tenha usado `design.md` em caixa baixa.
+
+O conteúdo foi extraído dos nós `19:785` (tema/papéis semânticos) e `19:1195`
+(escala primitiva) do arquivo Figma `pASFSURvaP2uIMXDZOFNk5`. A camada
+semântica ficou normativa para telas e componentes; as escalas Orange, Slate,
+Emerald, Rose, transparência, espaçamento, raios e tipografia foram preservadas
+como referência primitiva. O linter do formato reporta avisos de tokens
+primitivos não referenciados por componentes; isso é intencional, pois
+primitivos são a base de composição e não devem ser aplicados diretamente ao
+produto.
+
+O handoff semântico e a cobertura MD3 usam o mesmo rótulo para valores
+diferentes em alguns casos. Para não perder informação, `secondary-container`
+MD3 foi mantido como `#6F2F19` e o swatch de produto `#2A2A2A` foi nomeado
+`product-secondary-container`; `product-surface-variant` preserva `#262626`
+separado de `surface-container-high` (`#292929`). A tipografia semântica usa
+Inter, enquanto a prancha primitiva demonstra Plus Jakarta Sans; o documento
+prioriza Inter para a UI do produto e registra Plus Jakarta Sans somente como
+espécime atômico da fonte.
+
+As cores adicionais observadas no showcase semântico — dourado da marca,
+hover, sucesso forte e estados fechado — também foram preservadas como
+`product-*`, mesmo quando duplicam uma função MD3, para manter a fidelidade ao
+handoff sem criar uma segunda semântica concorrente.
+
 ## 2026-08-28 — Ícones de estabelecimentos do Figma (frame 71:4)
 
 Os 22 subframes de ícones do frame `71:4` (`Establishment Iconography Board`)
@@ -653,3 +685,54 @@ porque o módulo não embarca as fontes do arquivo de design.
   estados.
 * A seção de animação foi alinhada ao template, distinguindo o ripple
   transitório da troca imediata das camadas de preenchimento e contorno.
+
+## 2026-08-28 — Implementação da tela Feed a partir do Figma (node 65:1406)
+
+* A tela foi implementada como uma feature de apresentação em
+  `app/src/main/java/com/sextou/features/feed`, separando `FeedDestination`,
+  `FeedScreen`, componentes visuais e `FeedViewModel`. A composição reutiliza
+  `SextouBrand`, `SextouSearchBar`, `SextouProfileButton`,
+  `SextouSectionHeader`, `SextouStatusBadge` e `SextouMoreButton`, sem criar
+  APIs duplicadas no módulo `design-system`.
+* O frame Figma representa o status bar como parte do mockup; a implementação
+  deixa essa área sob responsabilidade do sistema Android e renderiza apenas
+  o conteúdo da aplicação. Os controles visuais de 36/38 dp mantêm alvo de
+  toque de pelo menos 48 dp, conforme as regras de acessibilidade do
+  `DESIGN.md`.
+* Como o domínio existente expõe apenas o contrato remoto genérico do Google
+  Places e ainda não possui um caso de uso de feed, os sete estabelecimentos
+  do frame foram modelados como fixture local em `FeedUiState`. O ViewModel
+  mantém busca, seleção de favoritos, lista de visitas e aba selecionada para
+  deixar a tela navegável; a conexão com um caso de uso/repositório real fica
+  como próximo passo quando o contrato de produto estiver definido.
+* As três imagens disponíveis na referência foram salvas em
+  `drawable-nodpi`; os quatro cards restantes usam um tratamento de
+  placeholder sem imagem, mantendo a hierarquia e as informações do layout.
+  Os ícones específicos da tela foram convertidos para VectorDrawable a
+  partir dos exports do Figma e mantidos no módulo `app` por serem parte da
+  composição do feed.
+
+## 2026-08-28 — Correção dos estados da bottom navigation a partir do Figma
+
+* O fundo externo de `FeedBottomNavigation` foi preservado; somente a anatomia
+  e os estados visuais dos três botões foram ajustados.
+* O Feed mantém o círculo laranja como ação central em todos os estados.
+  Mapas e Favoritos selecionados não recebem esse círculo: usam os glifos
+  exportados selecionados e suas cores/rótulos correspondentes.
+* Os assets selecionados/inativos foram convertidos fielmente dos exports Figma
+  para VectorDrawable. O terceiro destino permanece `Favoritos`, alinhado ao
+  contrato atual do app; o frame de Feed selecionado apresenta `Locais`, uma
+  divergência de nomenclatura da referência que não foi propagada para a
+  navegação existente.
+* O alvo interativo continua com pelo menos 48 dp, enquanto os glifos
+  preservam as dimensões visuais da referência.
+
+## 2026-08-28 — Ripple do botão Feed na bottom navigation
+
+* O `selectable` do Feed foi movido do contêiner de 56 dp para o botão laranja
+  visual de 64 dp, que fica deslocado 32 dp para cima.
+* O botão visual recebeu recorte com o mesmo raio da superfície para manter o
+  ripple dentro de toda a área laranja, incluindo a parte que ultrapassa o
+  contêiner da navegação.
+* Os demais botões e o fundo externo da bottom navigation permaneceram
+  inalterados.

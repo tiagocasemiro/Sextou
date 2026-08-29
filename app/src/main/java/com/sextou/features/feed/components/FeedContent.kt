@@ -1,0 +1,607 @@
+package com.sextou.features.feed.components
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.sextou.R
+import com.sextou.designsystem.component.morebutton.SextouMoreButton
+import com.sextou.designsystem.component.sectionheader.SextouSectionHeader
+import com.sextou.designsystem.component.statusbadge.SextouStatus
+import com.sextou.designsystem.component.statusbadge.SextouStatusBadge
+import com.sextou.designsystem.theme.SextouColors
+import com.sextou.designsystem.theme.SextouCornerRadius
+import com.sextou.designsystem.theme.SextouDimensions
+import com.sextou.designsystem.theme.SextouSpacing
+import com.sextou.designsystem.theme.SextouTextStyles
+import com.sextou.designsystem.theme.SextouTheme
+import com.sextou.features.feed.FeedPlaceStatus
+import com.sextou.features.feed.FeedPlaceUiModel
+import com.sextou.features.feed.FeedUiState
+import com.sextou.features.feed.preview
+
+private val FeedCardShape = RoundedCornerShape(SextouCornerRadius.Surface)
+private val FeedImageShape = RoundedCornerShape(
+    topStart = SextouCornerRadius.Surface,
+    topEnd = SextouCornerRadius.Surface,
+)
+private val FeedImageScrim = Brush.verticalGradient(
+    colors = listOf(
+        Color.Transparent,
+        SextouColors.Scrim,
+    ),
+)
+
+@Composable
+internal fun FeedContent(
+    places: List<FeedPlaceUiModel>,
+    favoritePlaceIds: Set<String>,
+    visitedPlaceIds: Set<String>,
+    onLocationClicked: () -> Unit,
+    onPlaceClicked: (String) -> Unit,
+    onFavoriteClicked: (String) -> Unit,
+    onVisitedClicked: (String) -> Unit,
+    onMoreClicked: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(bottom = 112.dp),
+    ) {
+        item(key = "location") {
+            FeedLocationSelector(
+                onClick = onLocationClicked,
+                modifier = Modifier.padding(
+                    start = SextouSpacing.Md + SextouSpacing.Sm,
+                    top = SextouSpacing.Md,
+                    end = SextouSpacing.Md + SextouSpacing.Sm,
+                ),
+            )
+        }
+        item(key = "section") {
+            SextouSectionHeader(
+                text = stringResource(R.string.feed_section_title),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(36.dp)
+                    .padding(
+                        start = SextouSpacing.Md + SextouSpacing.Sm,
+                        top = SextouSpacing.Md,
+                        end = SextouSpacing.Md + SextouSpacing.Sm,
+                    ),
+            )
+        }
+        if (places.isEmpty()) {
+            item(key = "empty") {
+                Text(
+                    text = stringResource(R.string.feed_empty_search),
+                    modifier = Modifier.padding(
+                        horizontal = SextouSpacing.Md + SextouSpacing.Sm,
+                        vertical = SextouSpacing.Xl,
+                    ),
+                    style = SextouTextStyles.BodyLarge,
+                    color = SextouColors.TextSecondary,
+                )
+            }
+        } else {
+            items(
+                items = places,
+                key = { place -> place.id },
+            ) { place ->
+                FeedPlaceCard(
+                    place = place,
+                    isFavorite = place.id in favoritePlaceIds,
+                    isVisited = place.id in visitedPlaceIds,
+                    onClick = { onPlaceClicked(place.id) },
+                    onFavoriteClick = { onFavoriteClicked(place.id) },
+                    onVisitedClick = { onVisitedClicked(place.id) },
+                    modifier = Modifier
+                        .padding(
+                            start = SextouSpacing.Md + SextouSpacing.Sm,
+                            top = SextouSpacing.Lg,
+                            end = SextouSpacing.Md + SextouSpacing.Sm,
+                        ),
+                )
+            }
+            item(key = "more") {
+                SextouMoreButton(
+                    text = stringResource(R.string.feed_more_places),
+                    onClick = onMoreClicked,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            start = SextouSpacing.Md + SextouSpacing.Sm,
+                            top = SextouSpacing.Lg,
+                            end = SextouSpacing.Md + SextouSpacing.Sm,
+                            bottom = SextouSpacing.Xl,
+                        ),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FeedLocationSelector(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val contentDescription = stringResource(R.string.feed_location_content_description)
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(48.dp)
+            .semantics {
+                this.contentDescription = contentDescription
+                role = Role.Button
+            }
+            .clickable(
+                role = Role.Button,
+                onClick = onClick,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(38.dp),
+            shape = RoundedCornerShape(SextouCornerRadius.Control),
+            color = SextouColors.SurfaceImage.copy(alpha = 0.6f),
+            border = BorderStroke(SextouDimensions.Border, SextouColors.Border),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = SextouSpacing.Md),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_feed_location),
+                    contentDescription = null,
+                    modifier = Modifier.size(SextouDimensions.SectionHeaderIcon),
+                    tint = Color.Unspecified,
+                )
+                Text(
+                    text = stringResource(R.string.feed_location),
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = SextouSpacing.Xs),
+                    style = SextouTextStyles.SectionTitle,
+                    color = SextouColors.TextPrimary,
+                    maxLines = 1,
+                )
+                Icon(
+                    painter = painterResource(R.drawable.ic_feed_target),
+                    contentDescription = null,
+                    modifier = Modifier.size(SextouDimensions.SectionHeaderIcon + SextouSpacing.Xs),
+                    tint = Color.Unspecified,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FeedPlaceCard(
+    place: FeedPlaceUiModel,
+    isFavorite: Boolean,
+    isVisited: Boolean,
+    onClick: () -> Unit,
+    onFavoriteClick: () -> Unit,
+    onVisitedClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val name = stringResource(place.nameResId)
+    val cardContentDescription = stringResource(
+        R.string.feed_card_content_description,
+        name,
+    )
+    Surface(
+        onClick = onClick,
+        modifier = modifier
+            .fillMaxWidth()
+            .semantics {
+                contentDescription = cardContentDescription
+            },
+        shape = FeedCardShape,
+        color = SextouColors.Surface,
+        border = BorderStroke(SextouDimensions.Border, SextouColors.Border),
+        tonalElevation = SextouDimensions.CardElevation,
+    ) {
+        Column {
+            FeedPlaceArtwork(
+                place = place,
+                isFavorite = isFavorite,
+                isVisited = isVisited,
+                onFavoriteClick = onFavoriteClick,
+                onVisitedClick = onVisitedClick,
+            )
+            FeedPlaceDetails(
+                place = place,
+                name = name,
+            )
+        }
+    }
+}
+
+@Composable
+private fun FeedPlaceArtwork(
+    place: FeedPlaceUiModel,
+    isFavorite: Boolean,
+    isVisited: Boolean,
+    onFavoriteClick: () -> Unit,
+    onVisitedClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(176.dp)
+            .clip(FeedImageShape)
+            .background(SextouColors.SurfaceImage),
+    ) {
+        if (place.imageResId != null) {
+            androidx.compose.foundation.Image(
+                painter = painterResource(place.imageResId),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+            )
+        } else {
+            FeedPlacePlaceholder(place = place)
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(FeedImageScrim),
+        )
+        SextouStatusBadge(
+            status = when (place.status) {
+                FeedPlaceStatus.OPEN -> SextouStatus.OPEN
+                FeedPlaceStatus.CLOSED -> SextouStatus.CLOSED
+            },
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(SextouSpacing.Md),
+        )
+        FeedPlaceHighlight(
+            text = stringResource(place.highlightResId),
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(SextouSpacing.Md),
+        )
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(SextouSpacing.Md),
+            horizontalArrangement = Arrangement.spacedBy(SextouSpacing.Sm),
+        ) {
+            FeedCardActionButton(
+                painter = painterResource(R.drawable.ic_feed_card_star),
+                contentDescription = stringResource(
+                    if (isFavorite) {
+                        R.string.feed_favorite_remove_content_description
+                    } else {
+                        R.string.feed_favorite_content_description
+                    },
+                    stringResource(place.nameResId),
+                ),
+                selected = isFavorite,
+                onClick = onFavoriteClick,
+            )
+            FeedCardActionButton(
+                painter = painterResource(R.drawable.ic_feed_card_bookmark),
+                contentDescription = stringResource(
+                    if (isVisited) {
+                        R.string.feed_visit_remove_content_description
+                    } else {
+                        R.string.feed_visit_content_description
+                    },
+                    stringResource(place.nameResId),
+                ),
+                selected = isVisited,
+                onClick = onVisitedClick,
+            )
+        }
+    }
+}
+
+@Composable
+private fun FeedPlacePlaceholder(place: FeedPlaceUiModel) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(SextouColors.SurfaceImage),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(SextouSpacing.Sm),
+        ) {
+            place.placeholderEmojiResId?.let { emojiResId ->
+                Text(
+                    text = stringResource(emojiResId),
+                    color = SextouColors.TextPrimary.copy(alpha = 0.3f),
+                    fontSize = 48.sp,
+                    lineHeight = 48.sp,
+                )
+            }
+            Text(
+                text = stringResource(place.nameResId),
+                style = SextouTextStyles.Metadata,
+                color = SextouColors.TextSecondary.copy(alpha = 0.6f),
+                maxLines = 1,
+            )
+        }
+    }
+}
+
+@Composable
+private fun FeedPlaceHighlight(
+    text: String,
+    modifier: Modifier = Modifier,
+) {
+    Text(
+        text = text,
+        modifier = modifier
+            .background(
+                color = SextouColors.Scrim,
+                shape = RoundedCornerShape(SextouCornerRadius.Chip),
+            )
+            .padding(horizontal = SextouSpacing.Sm, vertical = SextouSpacing.Xs),
+        style = SextouTextStyles.Metadata.copy(fontWeight = FontWeight.SemiBold),
+        color = SextouColors.Accent,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
+}
+
+@Composable
+private fun FeedCardActionButton(
+    painter: Painter,
+    contentDescription: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val shape = RoundedCornerShape(SextouCornerRadius.Full)
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .clickable(
+                role = Role.Button,
+                onClick = onClick,
+            )
+            .semantics {
+                this.contentDescription = contentDescription
+                role = Role.Button
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .background(
+                    color = if (selected) {
+                        SextouColors.Primary
+                    } else {
+                        SextouColors.Scrim.copy(alpha = 0.5f)
+                    },
+                    shape = shape,
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                painter = painter,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = Color.Unspecified,
+            )
+        }
+    }
+}
+
+@Composable
+private fun FeedPlaceDetails(
+    place: FeedPlaceUiModel,
+    name: String,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(89.dp)
+            .padding(horizontal = SextouSpacing.Lg, vertical = SextouSpacing.Md),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(39.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+            ) {
+                Text(
+                    text = stringResource(place.categoryResId).uppercase(),
+                    style = SextouTextStyles.Category,
+                    color = SextouColors.TextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = name,
+                    style = SextouTextStyles.CardTitle,
+                    color = SextouColors.TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            FeedRating(
+                place = place,
+            )
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(26.dp)
+                .padding(top = SextouSpacing.Sm + SextouSpacing.Xs),
+            horizontalArrangement = Arrangement.spacedBy(SextouSpacing.Md),
+            verticalAlignment = Alignment.Top,
+        ) {
+            FeedMetadata(
+                painter = painterResource(R.drawable.ic_feed_distance),
+                text = stringResource(place.distanceResId),
+            )
+            FeedPriceMetadata(place = place)
+            FeedMetadata(
+                painter = painterResource(R.drawable.ic_feed_clock),
+                text = stringResource(R.string.feed_hours),
+            )
+        }
+    }
+}
+
+@Composable
+private fun FeedRating(
+    place: FeedPlaceUiModel,
+) {
+    val ratingCount = androidx.compose.ui.res.pluralStringResource(
+        R.plurals.feed_rating_reviews_count,
+        place.ratingsCount,
+        place.ratingsCount,
+    )
+    val ratingContentDescription = stringResource(
+        R.string.feed_rating_content_description,
+        place.rating,
+        ratingCount,
+    )
+    Row(
+        modifier = Modifier.semantics {
+            contentDescription = ratingContentDescription
+        },
+        horizontalArrangement = Arrangement.spacedBy(SextouSpacing.Xs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.ic_feed_rating_star),
+            contentDescription = null,
+            modifier = Modifier.size(SextouSpacing.Sm + SextouSpacing.Xs),
+            tint = Color.Unspecified,
+        )
+        Text(
+            text = stringResource(R.string.feed_rating_value, place.rating),
+            style = SextouTextStyles.ActionButton,
+            color = SextouColors.PrimaryStrong,
+            maxLines = 1,
+        )
+        Text(
+            text = stringResource(R.string.feed_rating_count, place.ratingsCount),
+            style = SextouTextStyles.Metadata,
+            color = SextouColors.TextSecondary,
+            maxLines = 1,
+        )
+    }
+}
+
+@Composable
+private fun FeedPriceMetadata(place: FeedPlaceUiModel) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(SextouSpacing.Xs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.ic_feed_price),
+            contentDescription = null,
+            modifier = Modifier.size(SextouSpacing.Sm + SextouSpacing.Xs),
+            tint = Color.Unspecified,
+        )
+        Text(
+            text = stringResource(R.string.feed_price_symbol).repeat(place.priceLevel),
+            style = SextouTextStyles.Metadata.copy(fontWeight = FontWeight.Bold),
+            color = SextouColors.Positive,
+            maxLines = 1,
+        )
+        Text(
+            text = stringResource(R.string.feed_price_description),
+            style = SextouTextStyles.Metadata,
+            color = SextouColors.TextSecondary,
+            maxLines = 1,
+        )
+    }
+}
+
+@Composable
+private fun FeedMetadata(
+    painter: Painter,
+    text: String,
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(SextouSpacing.Xs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            painter = painter,
+            contentDescription = null,
+            modifier = Modifier.size(SextouSpacing.Sm + SextouSpacing.Xs),
+            tint = Color.Unspecified,
+        )
+        Text(
+            text = text,
+            style = SextouTextStyles.Metadata,
+            color = SextouColors.TextSecondary,
+            maxLines = 1,
+        )
+    }
+}
+
+@Preview(
+    name = "Feed place card",
+    showBackground = true,
+    backgroundColor = SextouColors.BackgroundArgb,
+)
+@Composable
+private fun FeedPlaceCardPreview() {
+    SextouTheme {
+        FeedPlaceCard(
+            place = FeedUiState.preview().places.first(),
+            isFavorite = false,
+            isVisited = false,
+            onClick = {},
+            onFavoriteClick = {},
+            onVisitedClick = {},
+            modifier = Modifier.padding(SextouSpacing.Lg),
+        )
+    }
+}

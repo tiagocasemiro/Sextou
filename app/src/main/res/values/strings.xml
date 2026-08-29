@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feed_brand_title">SEXTOU</string>
+    <string name="feed_brand_subtitle">O GUIA DO POVÃO</string>
+    <string name="feed_brand_icon_content_description">Ícone de chope</string>
+    <string name="feed_profile_content_description">Abrir perfil</string>
+    <string name="feed_search_placeholder">Buscar litrão, espetinho, trailers…</string>
+    <string name="feed_filter_content_description">Abrir filtros</string>
+    <string name="feed_location">Campo Grande, RJ</string>
+    <string name="feed_location_content_description">Selecionar localização</string>
+    <string name="feed_section_title">MAIS BOMBADOS AGORA</string>
+    <string name="feed_more_places">Ver mais botecos</string>
+    <string name="feed_empty_search">Nenhum lugar encontrado</string>
+
+    <string name="feed_place_ao_ponto_category">Bar &amp; Restaurante</string>
+    <string name="feed_place_ao_ponto_name">Ao Ponto Bar &amp; Restaurante</string>
+    <string name="feed_place_ao_ponto_highlight">🥩 Na medida certa</string>
+    <string name="feed_place_ao_ponto_distance">680 m</string>
+
+    <string name="feed_place_ninho_category">Boteco raiz</string>
+    <string name="feed_place_ninho_name">Bar do Ninho</string>
+    <string name="feed_place_ninho_highlight">🍗 Petisco e cerveja gelada</string>
+    <string name="feed_place_ninho_distance">1.1 km</string>
+
+    <string name="feed_place_wanderley_category">Boteco raiz</string>
+    <string name="feed_place_wanderley_name">Bar do Wanderley</string>
+    <string name="feed_place_wanderley_highlight">🍺 O clássico do bairro</string>
+    <string name="feed_place_wanderley_distance">1.4 km</string>
+
+    <string name="feed_place_jamil_category">Boteco raiz</string>
+    <string name="feed_place_jamil_name">Bar do Jamil – O Rei do Litrão</string>
+    <string name="feed_place_jamil_highlight">🍻 Litrão gelado</string>
+    <string name="feed_place_jamil_distance">280 m</string>
+
+    <string name="feed_place_tonho_category">Espetinhos &amp; Podrões</string>
+    <string name="feed_place_tonho_name">Espetaria do Tonho</string>
+    <string name="feed_place_tonho_highlight">🍢 Espetinho na brasa</string>
+    <string name="feed_place_tonho_distance">540 m</string>
+
+    <string name="feed_place_geralda_category">Karaokê &amp; Bar</string>
+    <string name="feed_place_geralda_name">Karaokê da Geralda</string>
+    <string name="feed_place_geralda_highlight">🎙️ Toda sexta até 3h</string>
+    <string name="feed_place_geralda_distance">1.2 km</string>
+
+    <string name="feed_place_adega_category">Adega &amp; Petiscos</string>
+    <string name="feed_place_adega_name">Adega São Jorge</string>
+    <string name="feed_place_adega_highlight">🍷 Vinho e caldo verde</string>
+    <string name="feed_place_adega_distance">890 m</string>
+
+    <string name="feed_price_description">Baratinho</string>
+    <string name="feed_price_symbol">$</string>
+    <string name="feed_hours">Hoje até 2h</string>
+    <string name="feed_emoji_beer">🍺</string>
+    <string name="feed_emoji_skewer">🍢</string>
+    <string name="feed_emoji_microphone">🎙️</string>
+    <string name="feed_emoji_wine">🍷</string>
+
+    <string name="feed_card_content_description">Abrir detalhes de %1$s</string>
+    <string name="feed_rating_value">%1$.1f</string>
+    <string name="feed_rating_count">(%1$d)</string>
+    <string name="feed_rating_content_description">Avaliação %1$.1f com %2$s</string>
+    <string name="feed_favorite_content_description">Favoritar %1$s</string>
+    <string name="feed_favorite_remove_content_description">Remover %1$s dos favoritos</string>
+    <string name="feed_visit_content_description">Salvar %1$s para visitar</string>
+    <string name="feed_visit_remove_content_description">Remover %1$s da lista de visitas</string>
+
+    <string name="feed_navigation_map">Mapa</string>
+    <string name="feed_navigation_feed">Feed</string>
+    <string name="feed_navigation_favorites">Favoritos</string>
+    <string name="feed_navigation_map_content_description">Abrir mapa</string>
+    <string name="feed_navigation_feed_content_description">Abrir feed</string>
+    <string name="feed_navigation_favorites_content_description">Abrir favoritos</string>
+</resources>
