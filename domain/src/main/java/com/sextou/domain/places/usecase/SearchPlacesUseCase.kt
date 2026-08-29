@@ -17,6 +17,7 @@ open class SearchPlacesUseCase(
     open suspend operator fun invoke(
         query: String,
         location: GeoPoint?,
+        includePhotos: Boolean = false,
     ): Result<List<PlaceSummary>> {
         location?.validate()
 
@@ -29,6 +30,7 @@ open class SearchPlacesUseCase(
                     maxResults = MAX_RESULTS,
                     rankPreference = PlaceRankPreference.POPULARITY,
                     regionCode = REGION_CODE,
+                    includePhotos = includePhotos,
                 ),
             )
         } else {
@@ -39,6 +41,7 @@ open class SearchPlacesUseCase(
                     locationBiasRadiusMeters = location?.let { FEED_RADIUS_METERS },
                     maxResults = MAX_RESULTS,
                     regionCode = REGION_CODE,
+                    includePhotos = includePhotos,
                 ),
             )
         }

@@ -1,5 +1,115 @@
 # Decisões do agente
 
+## 2026-08-29 — Fotos e ícones por tipo nos cards do mapa
+
+Os resultados usados pela tela de mapas passaram a solicitar `PHOTO_METADATAS`
+do Places SDK somente quando o `MapViewModel` ativa essa opção. O Feed continua
+sem esse campo para não gerar custo ou latência de fotos em uma tela que não as
+exibe. A primeira referência retornada é resolvida pela operação existente de
+fotos do Places SDK, com dimensões máximas adequadas ao card, e a URI é
+publicada no `MapUiState` de forma incremental; enquanto ela não chega, o card
+já é exibido.
+
+O carregamento usa Coil, que já faz parte da stack de referência da arquitetura,
+e volta ao ícone vetorial do design system quando o estabelecimento não tem
+metadados de foto ou quando a imagem não pode ser carregada. O mapeamento cobre
+todos os aliases oficiais documentados em
+`.codex/assets/sextou/tipos-de-estabelecimento.md`. Como a Places API usa o
+mesmo tipo `bar` para “Boteco” e “Bar”, o recurso “Bar” foi adotado como ícone
+canônico desse tipo; um resultado sem tipo reconhecido usa o ícone neutro de
+restaurante.
+
+## 2026-08-29 — Auditoria dos dados do card do mapa
+
+Os cards em runtime não usam valores fixos: `rating` e `priceLevel` são
+solicitados nos campos do Places SDK e propagados até `MapPlaceUiModel`; a
+distância é calculada pela fórmula de Haversine usando a localização atual do
+usuário e a coordenada retornada pelo Places. Os valores fixos existentes em
+`MapScreenPreview` pertencem somente ao preview. Não foi adicionada uma
+chamada de Routes API, pois distância de rota depende do modo de transporte e
+não é fornecida pela busca do Places; a UI atual representa distância
+geográfica em linha reta. O rótulo de preço é genérico para não afirmar que
+um estabelecimento é barato quando o nível retornado pelo Places é outro; o
+nível zero é exibido como `Grátis`.
+
+## 2026-08-29 — Rótulo inativo do Feed na navegação inferior
+
+O rótulo `Feed` passa a usar `SextouColors.TextSecondary` sempre que a aba
+`FeedTab.FEED` não estiver selecionada, inclusive quando o mapa estiver ativo.
+Somente o destino selecionado recebe `SextouColors.Primary`, evitando que dois
+destinos aparentem estar selecionados ao mesmo tempo.
+
+## 2026-08-29 — Evitar flash do estilo nativo no mapa
+
+O `GoogleMap` permanece montado para conservar câmera e estado, mas uma
+cobertura opaca com `SextouColors.Background` fica sobre o mapa até o callback
+`onMapLoaded`. Esse callback é usado como ponto de liberação porque indica que
+o SDK terminou a renderização; o ícone dos marcadores e a remoção da cobertura
+acontecem na mesma atualização visual. Assim o primeiro mapa visível já está
+estilizado e a superfície nativa não aparece durante a aplicação assíncrona do
+`MapStyleOptions`. O estado é local da View por ser transitório e
+exclusivamente visual.
+
+## 2026-08-29 — Snap do carrossel e sincronização da câmera do mapa
+
+O carrossel inferior agora observa o fim do gesto de rolagem. Entre os cards
+visíveis, seleciona o que possui a maior largura de exibição; em caso de
+empate, escolhe o mais próximo do centro. Quando o item ainda não está
+centralizado, o `LazyRow` faz um `animateScrollToItem` suave usando o padding
+lateral calculado para a largura disponível, garantindo um card central em
+qualquer largura suportada.
+
+A seleção centralizada é devolvida à `MapScreen`, que anima a câmera para a
+coordenada do estabelecimento e preserva o zoom atual. O estado continua na
+UI, sem alterar `MapUiState` ou domínio, porque a seleção e a posição do
+carrossel são estados transitórios de apresentação.
+
+## 2026-08-29 — Centralização do card ao selecionar marcador no mapa
+
+O toque em um marcador da tela de mapas passou a selecionar seu `place.id` e
+acionar a rolagem animada do carrossel inferior até o card correspondente. A
+seleção e a posição do carrossel permanecem como estado visual local da View,
+pois não representam regra de negócio nem precisam ser persistidas; o clique
+no card continua reservado para abrir os detalhes do estabelecimento.
+
+O carrossel usa padding lateral calculado pela largura disponível para que o
+card selecionado fique realmente no centro em diferentes larguras de tela. Um
+contador de solicitação também permite recentralizar o mesmo marcador depois
+que o usuário arrastar o carrossel.
+
+## 2026-08-29 — Inicialização segura do marcador do mapa
+
+Durante a execução da tela de mapas no aparelho Android, a criação imediata do
+`BitmapDescriptor` causava `NullPointerException` porque o
+`BitmapDescriptorFactory` ainda não havia sido inicializado pelo Google Maps.
+O ícone `ic_sextou_map_marker_listados` passou a ser rasterizado somente no
+callback `onMapLoaded` do `GoogleMap`, com fallback nulo para permitir que o
+mapa continue usando o marcador padrão caso a conversão falhe. Assim, o asset
+solicitado permanece integrado sem fazer a tela depender de uma inicialização
+prematura do SDK.
+
+## 2026-08-29 — Tela de mapas alinhada ao Figma (node 184:756)
+
+A tela foi reorganizada conforme o frame `184:756`, preservando o mapa real do
+Google Maps e adicionando a busca, localização, ações flutuantes, carrossel de
+estabelecimentos e navegação inferior observados no layout. O mapa recebeu o
+estilo escuro local de `app/src/main/res/raw/map_style.json`; a navegação
+inferior existente foi reutilizada para manter o contrato visual e de
+acessibilidade compartilhado com o Feed.
+
+Os marcadores do mapa renderizam o recurso compartilhado
+`ic_sextou_map_marker_listados`. Como o Maps SDK recebe marcadores como
+`BitmapDescriptor`, o `VectorDrawable` é rasterizado em memória antes de ser
+aplicado aos `Marker`s, sem duplicar o asset no módulo `app`.
+
+Os dados disponíveis em `PlaceSummary` não incluem fotos nem o estado de
+abertura atual. Por isso, o card usa o espaço de imagem como fallback tonal em
+tempo de execução (as imagens existentes aparecem somente no preview), e o
+badge “Aberto agora” fica condicionado ao campo explícito `isOpen`, sem inferir
+esse estado a partir de `OPERATIONAL`. Distância, categoria, avaliação e nível
+de preço são derivados dos dados disponíveis para aproximar o conteúdo do
+Figma sem inventar informação do estabelecimento.
+
 ## 2026-08-29 — Pins vetoriais de estabelecimentos no mapa
 
 Foram adicionados cinco `VectorDrawable`s compartilhados em

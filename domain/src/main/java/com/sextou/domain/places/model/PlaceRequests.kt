@@ -10,6 +10,7 @@ data class NearbySearchRequest(
     val maxResults: Int = 20,
     val rankPreference: PlaceRankPreference = PlaceRankPreference.POPULARITY,
     val regionCode: String? = null,
+    val includePhotos: Boolean = false,
 )
 
 enum class PlaceRankPreference {
@@ -27,6 +28,7 @@ data class PlaceTextSearchRequest(
     val minRating: Double? = null,
     val maxResults: Int = 20,
     val regionCode: String? = null,
+    val includePhotos: Boolean = false,
 )
 
 data class PlaceDetailsRequest(

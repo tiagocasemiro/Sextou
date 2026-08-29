@@ -44,6 +44,7 @@ class SearchPlacesUseCaseTest {
         assertEquals(5_000.0, request?.radiusMeters)
         assertEquals(20, request?.maxResults)
         assertEquals("BR", request?.regionCode)
+        assertEquals(false, request?.includePhotos)
         assertTrue("bar" in request!!.includedTypes)
         assertTrue("restaurant" in request.includedTypes)
         assertNull(repository.textRequest)
@@ -61,7 +62,30 @@ class SearchPlacesUseCaseTest {
         assertEquals("espetinho", request?.query)
         assertEquals(GeoPoint(-22.9, -43.2), request?.locationBiasCenter)
         assertEquals(5_000.0, request?.locationBiasRadiusMeters)
+        assertEquals(false, request?.includePhotos)
         assertNull(repository.nearbyRequest)
+    }
+
+    @Test
+    fun `includes photo metadata when explicitly requested for nearby search`() = runTest {
+        useCase(
+            query = "",
+            location = GeoPoint(latitude = -22.9, longitude = -43.2),
+            includePhotos = true,
+        )
+
+        assertEquals(true, repository.nearbyRequest?.includePhotos)
+    }
+
+    @Test
+    fun `includes photo metadata when explicitly requested for text search`() = runTest {
+        useCase(
+            query = "bar",
+            location = null,
+            includePhotos = true,
+        )
+
+        assertEquals(true, repository.textRequest?.includePhotos)
     }
 
     @Test

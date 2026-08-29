@@ -9,6 +9,7 @@ import androidx.navigation.navArgument
 import com.sextou.features.details.PlaceDetailsDestination
 import com.sextou.features.details.PlaceDetailsViewModel
 import com.sextou.features.feed.FeedDestination
+import com.sextou.features.feed.FeedTab
 import com.sextou.features.feed.FeedViewModel
 import com.sextou.features.map.MapDestination
 import com.sextou.features.map.MapViewModel
@@ -50,9 +51,18 @@ fun SextouNavHost(
                     ?.getString(AppRoutes.QUERY_ARGUMENT)
                     .orEmpty(),
                 viewModel = mapViewModel,
-                onBack = navController::popBackStack,
                 onPlaceClicked = { placeId ->
                     navController.navigate(AppRoutes.placeDetails(placeId))
+                },
+                onTabSelected = { tab ->
+                    when (tab) {
+                        FeedTab.MAP -> Unit
+                        FeedTab.FEED -> navController.popBackStack()
+                        FeedTab.FAVORITES -> {
+                            feedViewModel.onTabSelected(FeedTab.FAVORITES)
+                            navController.popBackStack()
+                        }
+                    }
                 },
             )
         }

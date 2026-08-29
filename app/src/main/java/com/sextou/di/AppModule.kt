@@ -3,6 +3,7 @@ package com.sextou.di
 import com.sextou.domain.favorites.usecase.ObserveFavoritesUseCase
 import com.sextou.domain.favorites.usecase.ToggleFavoriteUseCase
 import com.sextou.domain.places.usecase.GetPlaceDetailsUseCase
+import com.sextou.domain.places.usecase.GetPlacePhotoUseCase
 import com.sextou.domain.places.usecase.SearchPlacesUseCase
 import com.sextou.domain.visits.usecase.ObserveVisitedPlacesUseCase
 import com.sextou.domain.visits.usecase.ToggleVisitedPlaceUseCase
@@ -21,6 +22,7 @@ val appModule = module {
     }
     factory { SearchPlacesUseCase(repository = get()) }
     factory { GetPlaceDetailsUseCase(repository = get()) }
+    factory { GetPlacePhotoUseCase(repository = get()) }
     factory { ObserveFavoritesUseCase(repository = get()) }
     factory { ToggleFavoriteUseCase(repository = get()) }
     factory { ObserveVisitedPlacesUseCase(repository = get()) }
@@ -34,6 +36,11 @@ val appModule = module {
             toggleVisitedPlaceUseCase = get(),
         )
     }
-    viewModel { MapViewModel(searchPlacesUseCase = get()) }
+    viewModel {
+        MapViewModel(
+            searchPlacesUseCase = get(),
+            getPlacePhotoUseCase = get(),
+        )
+    }
     viewModel { PlaceDetailsViewModel(getPlaceDetailsUseCase = get()) }
 }

@@ -98,10 +98,10 @@ internal fun FeedBottomNavigation(
                 iconWidth = if (selectedTab == FeedTab.FEED) 24.dp else 20.19.dp,
                 iconHeight = if (selectedTab == FeedTab.FEED) 24.dp else 27.39.dp,
                 label = stringResource(R.string.feed_navigation_feed),
-                labelColor = when (selectedTab) {
-                    FeedTab.MAP -> SextouColors.PrimaryStrong
-                    FeedTab.FEED -> SextouColors.Primary
-                    FeedTab.FAVORITES -> SextouColors.TextSecondary
+                labelColor = if (selectedTab == FeedTab.FEED) {
+                    SextouColors.Primary
+                } else {
+                    SextouColors.TextSecondary
                 },
                 contentDescription = stringResource(
                     R.string.feed_navigation_feed_content_description,

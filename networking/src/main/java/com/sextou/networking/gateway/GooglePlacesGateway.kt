@@ -45,7 +45,7 @@ class GooglePlacesGateway(
             LatLng(request.center.latitude, request.center.longitude),
             request.radiusMeters,
         )
-        val sdkRequest = SearchNearbyRequest.builder(bounds, nearbyFields)
+        val sdkRequest = SearchNearbyRequest.builder(bounds, searchFields(request.includePhotos))
             .setIncludedTypes(request.includedTypes.toList())
             .setExcludedTypes(request.excludedTypes.toList())
             .setIncludedPrimaryTypes(request.includedPrimaryTypes.toList())
@@ -55,14 +55,18 @@ class GooglePlacesGateway(
             .apply { request.regionCode?.let(::setRegionCode) }
             .build()
 
-        return client.searchNearby(sdkRequest).await().places.map(::PlaceSummaryResponse)
+        val places = client.searchNearby(sdkRequest).await().places
+        if (request.includePhotos) {
+            cachePhotoMetadata(places)
+        }
+        return places.map(::PlaceSummaryResponse)
     }
 
     override suspend fun searchByText(request: PlaceTextSearchRequest): List<PlaceSummaryResponse> {
         request.validate()
         val locationBiasCenter = request.locationBiasCenter
         val locationBiasRadiusMeters = request.locationBiasRadiusMeters
-        val sdkRequest = SearchByTextRequest.builder(request.query, nearbyFields)
+        val sdkRequest = SearchByTextRequest.builder(request.query, searchFields(request.includePhotos))
             .setMaxResultCount(request.maxResults)
             .setOpenNow(request.openNow)
             .setStrictTypeFiltering(request.strictTypeFiltering)
@@ -83,7 +87,11 @@ class GooglePlacesGateway(
                 }
             }
             .build()
-        return client.searchByText(sdkRequest).await().places.map(::PlaceSummaryResponse)
+        val places = client.searchByText(sdkRequest).await().places
+        if (request.includePhotos) {
+            cachePhotoMetadata(places)
+        }
+        return places.map(::PlaceSummaryResponse)
     }
 
     override suspend fun getDetails(request: PlaceDetailsRequest): PlaceDetailsResponse {
@@ -129,6 +137,14 @@ class GooglePlacesGateway(
             ?: throw IndexOutOfBoundsException("A foto ${reference.index} não existe para o lugar informado.")
     }
 
+    private fun cachePhotoMetadata(places: List<Place>) {
+        places.forEach { place ->
+            place.id?.let { placeId ->
+                photoMetadataCache[placeId] = place.photoMetadatas.orEmpty()
+            }
+        }
+    }
+
     private fun NearbySearchRequest.validate() {
         require(radiusMeters > 0.0 && radiusMeters <= 50_000.0) {
             "radiusMeters deve estar entre 0 e 50.000 metros."
@@ -170,7 +186,7 @@ class GooglePlacesGateway(
     private companion object {
         const val USAGE_ATTRIBUTION_ID = "gmp_git_agentskills_v1"
 
-        val nearbyFields = listOf(
+        val searchFields = listOf(
             Place.Field.ID,
             Place.Field.DISPLAY_NAME,
             Place.Field.FORMATTED_ADDRESS,
@@ -184,6 +200,11 @@ class GooglePlacesGateway(
             Place.Field.PRICE_LEVEL,
             Place.Field.GOOGLE_MAPS_URI,
         )
+
+        val searchFieldsWithPhotos = searchFields + Place.Field.PHOTO_METADATAS
+
+        fun searchFields(includePhotos: Boolean) =
+            if (includePhotos) searchFieldsWithPhotos else searchFields
 
         val detailFields = listOf(
             Place.Field.ID,

@@ -219,6 +219,7 @@ private class FakeSearchPlacesUseCase(
     override suspend fun invoke(
         query: String,
         location: GeoPoint?,
+        includePhotos: Boolean,
     ): Result<List<PlaceSummary>> = response(query)
 }
 

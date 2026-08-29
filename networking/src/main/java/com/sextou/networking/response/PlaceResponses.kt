@@ -61,6 +61,7 @@ data class PlaceSummaryResponse(val place: Place) : DomainMapperResponse<PlaceSu
         priceLevel = place.priceLevel,
         googleMapsUri = place.googleMapsUri?.toString(),
         providerAttribution = PROVIDER_ATTRIBUTION,
+        photos = place.toPhotoReferences(),
     )
 }
 
@@ -189,18 +190,7 @@ data class PlaceDetailsResponse(val place: Place) : DomainMapperResponse<PlaceDe
                 attribution = review.attribution,
             )
         },
-        photos = place.photoMetadatas.orEmpty().mapIndexed { index, photo ->
-            PlacePhotoReference(
-                placeId = requireNotNull(place.id),
-                index = index,
-                width = photo.width,
-                height = photo.height,
-                attributionHtml = photo.attributions,
-                authors = photo.authorAttributions?.asList().orEmpty().map { it.toDomain() },
-                googleMapsUri = photo.googleMapsUri?.toString(),
-                flagContentUri = photo.flagContentUri?.toString(),
-            )
-        },
+        photos = place.toPhotoReferences(),
         addressDescriptor = place.addressDescriptor?.toDomain(),
         containingPlaces = place.containingPlaces.orEmpty().map {
             ContainingPlace(it.id, it.resourceName)
@@ -223,6 +213,20 @@ data class PlacePhotoResponse(
         providerAttribution = PROVIDER_ATTRIBUTION,
     )
 }
+
+private fun Place.toPhotoReferences(): List<PlacePhotoReference> =
+    photoMetadatas.orEmpty().mapIndexed { index, photo ->
+        PlacePhotoReference(
+            placeId = requireNotNull(id),
+            index = index,
+            width = photo.width,
+            height = photo.height,
+            attributionHtml = photo.attributions,
+            authors = photo.authorAttributions?.asList().orEmpty().map { it.toDomain() },
+            googleMapsUri = photo.googleMapsUri?.toString(),
+            flagContentUri = photo.flagContentUri?.toString(),
+        )
+    }
 
 private fun Place.BusinessStatus?.toDomain() = when (this) {
     Place.BusinessStatus.OPERATIONAL -> BusinessStatus.OPERATIONAL

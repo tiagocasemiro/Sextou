@@ -14,4 +14,5 @@ data class PlaceSummary(
     val priceLevel: Int?,
     val googleMapsUri: String?,
     val providerAttribution: String,
+    val photos: List<PlacePhotoReference> = emptyList(),
 )

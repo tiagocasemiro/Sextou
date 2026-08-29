@@ -4,13 +4,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sextou.features.feed.FeedTab
 
 @Composable
 fun MapDestination(
     query: String,
     viewModel: MapViewModel,
-    onBack: () -> Unit,
     onPlaceClicked: (String) -> Unit,
+    onTabSelected: (FeedTab) -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -20,7 +21,8 @@ fun MapDestination(
 
     MapScreen(
         uiState = uiState,
-        onBack = onBack,
+        onQueryChanged = viewModel::onQueryChanged,
         onPlaceClicked = onPlaceClicked,
+        onTabSelected = onTabSelected,
     )
 }

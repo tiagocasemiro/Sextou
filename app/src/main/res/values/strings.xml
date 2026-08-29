@@ -85,11 +85,30 @@
     <string name="feed_navigation_feed_content_description">Abrir feed</string>
     <string name="feed_navigation_favorites_content_description">Abrir favoritos</string>
 
-    <string name="map_title">Mapa</string>
-    <string name="map_back">Voltar</string>
+    <string name="map_search_placeholder">Buscar litrão, espetinho…</string>
+    <string name="map_filter_content_description">Abrir filtros do mapa</string>
+    <string name="map_location_label">Campo Grande, RJ</string>
+    <string name="map_location_content_description">Localização atual: %1$s</string>
+    <string name="map_recenter_content_description">Centralizar mapa na minha localização</string>
+    <string name="map_help_content_description">Ajuda sobre o mapa</string>
+    <string name="map_help_symbol">?</string>
     <string name="map_rating">Avaliação %1$.1f</string>
+    <string name="map_rating_value">%1$.1f</string>
+    <string name="map_rating_content_description">Avaliação %1$.1f</string>
+    <string name="map_marker_content_description">Lugar no mapa: %1$s</string>
+    <string name="map_card_content_description">Abrir detalhes de %1$s</string>
+    <string name="map_category_unknown">Estabelecimento</string>
+    <string name="map_distance_meters">%1$d m</string>
+    <string name="map_distance_kilometers">%1$.1f km</string>
+    <string name="map_price_symbol">$</string>
+    <string name="map_price_description">Nível de preço</string>
+    <string name="map_price_free">Grátis</string>
+    <string name="map_open_now">Aberto agora</string>
     <string name="map_error">Não foi possível carregar os lugares no mapa.</string>
     <string name="map_provider_attribution">Mapa e dados: Google Maps</string>
+    <string name="map_preview_place_name">Ao Ponto Bar &amp; Rest.</string>
+    <string name="map_preview_place_category">Bar &amp; Restaurante</string>
+    <string name="map_preview_place_highlight">🥩 Na medida certa</string>
 
     <string name="details_title">Detalhes do lugar</string>
     <string name="details_back">Voltar</string>
