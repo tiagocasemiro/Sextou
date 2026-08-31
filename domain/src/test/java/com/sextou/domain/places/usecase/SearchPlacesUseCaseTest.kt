@@ -35,7 +35,7 @@ class SearchPlacesUseCaseTest {
     }
 
     @Test
-    fun `uses every configured radius with popularity when query is blank and location exists`() = runTest {
+    fun `uses only 3 km and 6 km radii with popularity when query is blank and location exists`() = runTest {
         useCase(
             query = "   ",
             location = GeoPoint(latitude = -22.9, longitude = -43.2),
@@ -43,9 +43,8 @@ class SearchPlacesUseCaseTest {
 
         assertEquals(
             listOf(
-                800.0,
-                800.0,
-                800.0,
+                3_000.0,
+                6_000.0,
             ),
             repository.nearbyRequests.map(NearbySearchRequest::radiusMeters),
         )
@@ -85,7 +84,7 @@ class SearchPlacesUseCaseTest {
             includePhotos = true,
         )
 
-        assertEquals(3, repository.nearbyRequests.size)
+        assertEquals(2, repository.nearbyRequests.size)
         assertTrue(repository.nearbyRequests.all(NearbySearchRequest::includePhotos))
     }
 
@@ -93,17 +92,16 @@ class SearchPlacesUseCaseTest {
     fun `merges successful nearby searches and removes duplicated place ids`() = runTest {
         repository.nearbyResults = listOf(
             Success(listOf(place(id = "inner"), place(id = "duplicate"))),
-            Success(listOf(place(id = "duplicate"), place(id = "middle"))),
-            Success(listOf(place(id = "outer"))),
+            Success(listOf(place(id = "duplicate"), place(id = "outer"))),
         )
 
         val result = useCase(query = "", location = GeoPoint(0.0, 0.0))
 
         assertEquals(
-            listOf("inner", "duplicate", "middle", "outer"),
+            listOf("inner", "duplicate", "outer"),
             (result as Success).data.map(PlaceSummary::id),
         )
-        assertEquals(3, repository.nearbyRequests.size)
+        assertEquals(2, repository.nearbyRequests.size)
     }
 
     @Test
@@ -118,7 +116,6 @@ class SearchPlacesUseCaseTest {
         repository.nearbyResults = listOf(
             Success(emptyList()),
             expected,
-            Success(emptyList()),
         )
 
         val result = useCase(query = "", location = GeoPoint(0.0, 0.0))
@@ -132,7 +129,6 @@ class SearchPlacesUseCaseTest {
         repository.nearbyResults = listOf(
             Success(emptyList()),
             Loading(emptyList<PlaceSummary>()),
-            Success(emptyList()),
         )
 
         val result = useCase(query = "", location = GeoPoint(0.0, 0.0))
@@ -153,14 +149,11 @@ class SearchPlacesUseCaseTest {
     }
 
     @Test
-    fun `falls back to a non-empty text search when location is unavailable`() = runTest {
-        useCase(query = "", location = null)
+    fun `does not search before location is available for a blank query`() = runTest {
+        val result = useCase(query = "", location = null)
 
-        val request = repository.textRequest
-        assertNotNull(request)
-        assertTrue(request!!.query.isNotBlank())
-        assertNull(request.locationBiasCenter)
-        assertNull(request.locationBiasRadiusMeters)
+        assertEquals(Success(emptyList<PlaceSummary>()), result)
+        assertNull(repository.textRequest)
         assertTrue(repository.nearbyRequests.isEmpty())
     }
 

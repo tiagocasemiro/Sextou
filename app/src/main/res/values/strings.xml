@@ -87,13 +87,10 @@
 
     <string name="map_search_placeholder">Buscar litrão, espetinho…</string>
     <string name="map_filter_content_description">Abrir filtros do mapa</string>
-    <string name="map_search_area_button">Buscar nesta área</string>
     <string name="map_search_area_content_description">Buscar estabelecimentos na área visível do mapa</string>
     <string name="map_location_label">Campo Grande, RJ</string>
     <string name="map_location_content_description">Localização atual: %1$s</string>
     <string name="map_recenter_content_description">Centralizar mapa na minha localização</string>
-    <string name="map_help_content_description">Ajuda sobre o mapa</string>
-    <string name="map_help_symbol">?</string>
     <string name="map_rating">Avaliação %1$.1f</string>
     <string name="map_rating_value">%1$.1f</string>
     <string name="map_rating_content_description">Avaliação %1$.1f</string>

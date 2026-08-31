@@ -56,7 +56,6 @@ import com.sextou.features.feed.FeedTab
 import com.sextou.features.feed.components.FeedBottomNavigation
 import com.sextou.features.map.components.MapFloatingActions
 import com.sextou.features.map.components.MapPlaceCarousel
-import com.sextou.features.map.components.MapSearchAreaButton
 import com.sextou.features.map.components.MapTopChrome
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
@@ -233,15 +232,6 @@ fun MapScreen(
             modifier = Modifier.align(Alignment.TopCenter),
         )
 
-        if (uiState.isSearchAreaButtonVisible) {
-            MapSearchAreaButton(
-                onClick = onSearchAreaClicked,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 204.dp),
-            )
-        }
-
         MapFloatingActions(
             onRecenter = {
                 uiState.userLocation?.let { location ->
@@ -255,6 +245,8 @@ fun MapScreen(
                     }
                 }
             },
+            onSearchArea = onSearchAreaClicked,
+            isSearchAreaActionEnabled = uiState.isSearchAreaButtonVisible,
             modifier = Modifier.align(Alignment.TopEnd),
         )
 

@@ -21,22 +21,28 @@ open class SearchPlacesUseCase(
     ): Result<List<PlaceSummary>> {
         location?.validate()
 
-        val result = if (query.isBlank() && location != null) {
-            searchNearbyAtConfiguredRadii(
-                center = location,
-                includePhotos = includePhotos,
-            )
-        } else {
-            repository.searchByText(
-                PlaceTextSearchRequest(
-                    query = query.trim().ifBlank { DEFAULT_QUERY },
-                    locationBiasCenter = location,
-                    locationBiasRadiusMeters = location?.let { TEXT_SEARCH_RADIUS_METERS },
-                    maxResults = MAX_RESULTS,
-                    regionCode = REGION_CODE,
+        val result = when {
+            query.isBlank() && location != null -> {
+                searchNearbyAtConfiguredRadii(
+                    center = location,
                     includePhotos = includePhotos,
-                ),
-            )
+                )
+            }
+
+            query.isBlank() -> Success(emptyList())
+
+            else -> {
+                repository.searchByText(
+                    PlaceTextSearchRequest(
+                        query = query.trim(),
+                        locationBiasCenter = location,
+                        locationBiasRadiusMeters = location?.let { TEXT_SEARCH_RADIUS_METERS },
+                        maxResults = MAX_RESULTS,
+                        regionCode = REGION_CODE,
+                        includePhotos = includePhotos,
+                    ),
+                )
+            }
         }
 
         return result.sanitize()
@@ -88,15 +94,13 @@ open class SearchPlacesUseCase(
     }
 
     private companion object {
-        const val DEFAULT_QUERY = "bares, botecos e restaurantes"
         const val TEXT_SEARCH_RADIUS_METERS = 800.0
         const val MAX_RESULTS = 20
         const val REGION_CODE = "BR"
 
         val NEARBY_SEARCH_RADII_METERS = listOf(
-            800.0,
-            800.0,
-            800.0,
+            3_000.0,
+            6_000.0,
         )
 
         val FEED_PLACE_TYPES = setOf(

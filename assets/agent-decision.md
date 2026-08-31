@@ -1,5 +1,28 @@
 # Decisões do agente
 
+## 2026-08-31 — Duas buscas Nearby na abertura
+
+Para a busca inicial sem texto e com localização, o `SearchPlacesUseCase` agora
+faz exatamente duas chamadas Nearby sequenciais: uma com raio de 3 km e outra
+com raio de 6 km. Os resultados continuam sendo consolidados e deduplicados
+por identificador. O fluxo de busca textual permanece separado, pois a
+solicitação trata da descoberta de estabelecimentos na abertura do app e não
+da consulta explícita por texto. Enquanto a localização ainda não estiver
+disponível, uma consulta vazia retorna uma lista vazia sem chamar Text Search;
+isso evita uma terceira busca textual durante a inicialização e permite que o
+feed aguarde as duas buscas geográficas após o GPS ser publicado.
+
+## 2026-08-31 — Ação de buscar na área no botão flutuante do mapa
+
+O botão textual “Buscar nesta área” foi removido da tela de mapas. A mesma
+ação passou a ocupar o segundo botão circular flutuante, que antes exibia uma
+interrogação sem ação. O botão continua presente como affordance fixa, mas só
+fica habilitado depois que o usuário move o mapa para uma nova área; assim a
+ação não dispara uma busca sem um centro pendente. O fundo usa o token primário
+`SextouColors.Primary` e o ícone usa `SextouColors.OnPrimary`, enquanto o
+ícone de lupa existente `ic_sextou_search` comunica a busca de mais
+estabelecimentos sem criar um asset duplicado.
+
 ## 2026-08-29 — Fotos e ícones por tipo nos cards do mapa
 
 Os resultados usados pela tela de mapas passaram a solicitar `PHOTO_METADATAS`

@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.sextou.R
+import com.sextou.designsystem.R as DesignSystemR
 import com.sextou.designsystem.theme.SextouColors
 import com.sextou.designsystem.theme.SextouCornerRadius
 import com.sextou.designsystem.theme.SextouDimensions
@@ -148,41 +149,6 @@ internal fun MapTopChrome(
 }
 
 @Composable
-internal fun MapSearchAreaButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val contentDescription = stringResource(R.string.map_search_area_content_description)
-    Surface(
-        modifier = modifier
-            .height(48.dp)
-            .shadow(
-                elevation = 6.dp,
-                shape = RoundedCornerShape(SextouCornerRadius.Control),
-            )
-            .semantics {
-                this.contentDescription = contentDescription
-                role = Role.Button
-            },
-        onClick = onClick,
-        shape = RoundedCornerShape(SextouCornerRadius.Control),
-        color = SextouColors.Primary,
-    ) {
-        Box(
-            modifier = Modifier.padding(horizontal = SextouSpacing.Lg),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = stringResource(R.string.map_search_area_button),
-                style = SextouTextStyles.ActionButton,
-                color = SextouColors.OnPrimary,
-                maxLines = 1,
-            )
-        }
-    }
-}
-
-@Composable
 private fun MapLocationChip(
     modifier: Modifier = Modifier,
 ) {
@@ -229,6 +195,8 @@ private fun MapLocationChip(
 @Composable
 internal fun MapFloatingActions(
     onRecenter: () -> Unit,
+    onSearchArea: () -> Unit,
+    isSearchAreaActionEnabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -247,13 +215,17 @@ internal fun MapFloatingActions(
             )
         }
         MapFloatingActionButton(
-            contentDescription = stringResource(R.string.map_help_content_description),
-            onClick = {},
+            contentDescription = stringResource(R.string.map_search_area_content_description),
+            onClick = onSearchArea,
+            enabled = isSearchAreaActionEnabled,
+            containerColor = SextouColors.Primary,
+            border = null,
         ) {
-            Text(
-                text = stringResource(R.string.map_help_symbol),
-                color = SextouColors.TextSecondary,
-                style = SextouTextStyles.TitleMedium,
+            Icon(
+                painter = painterResource(DesignSystemR.drawable.ic_sextou_search),
+                contentDescription = null,
+                modifier = Modifier.size(SextouDimensions.SearchIcon),
+                tint = SextouColors.OnPrimary,
             )
         }
     }
@@ -263,6 +235,9 @@ internal fun MapFloatingActions(
 private fun MapFloatingActionButton(
     contentDescription: String,
     onClick: () -> Unit,
+    enabled: Boolean = true,
+    containerColor: Color = SextouColors.SurfaceElevated.copy(alpha = 0.92f),
+    border: BorderStroke? = BorderStroke(SextouDimensions.Border, SextouColors.Border),
     content: @Composable () -> Unit,
 ) {
     Surface(
@@ -274,9 +249,10 @@ private fun MapFloatingActionButton(
                 role = Role.Button
             },
         onClick = onClick,
+        enabled = enabled,
         shape = CircleShape,
-        color = SextouColors.SurfaceElevated.copy(alpha = 0.92f),
-        border = BorderStroke(SextouDimensions.Border, SextouColors.Border),
+        color = containerColor,
+        border = border,
     ) {
         Box(
             modifier = Modifier.fillMaxSize(),
