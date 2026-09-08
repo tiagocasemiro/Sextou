@@ -42,5 +42,10 @@ val appModule = module {
             getPlacePhotoUseCase = get(),
         )
     }
-    viewModel { PlaceDetailsViewModel(getPlaceDetailsUseCase = get()) }
+    viewModel {
+        PlaceDetailsViewModel(
+            getPlaceDetailsUseCase = get(),
+            getPlacePhotoUseCase = get(),
+        )
+    }
 }

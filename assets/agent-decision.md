@@ -1030,3 +1030,29 @@ porque o módulo não embarca as fontes do arquivo de design.
   centro da câmera como nova origem e mantém o mapa nessa posição.
 * A chegada de resultados não reposiciona mais automaticamente a câmera para o
   GPS quando a busca foi feita em uma área escolhida manualmente.
+
+## 2026-09-07 — JDK do Gradle no Android Studio
+
+* O Android Studio instalado usa JBR 25 por padrão, mas este projeto usa Gradle
+  8.6 e Kotlin 2.3.0; essa combinação falha antes da compilação ao analisar a
+  versão Java e também não executa corretamente o `jlink` do GraalVM local.
+* O build foi validado com o JDK 17 `zulu-17`, já cadastrado no Android Studio.
+  O Gradle do projeto passou a apontar explicitamente para esse JDK em
+  `.idea/gradle.xml`, sem adicionar um caminho absoluto a `gradle.properties`.
+  Assim, a configuração permanece específica do IDE e não força um caminho de
+  máquina no projeto compartilhado.
+
+## 2026-09-08 — Layout da tela de detalhes alinhado ao Figma
+
+* O contexto do frame `17:577` do arquivo Sextou foi usado como referência para
+  reorganizar a tela em hero de 320 dp, superfície sobreposta, ações rápidas,
+  avaliação, localização, conteúdo opcional e barra fixa de ações inferiores.
+* A implementação reutiliza tokens e o componente `SextouQuickAction` do
+  `design-system`; os ícones e imagens necessários do frame foram exportados
+  para `app/src/main/res/drawable-nodpi/`.
+* A foto principal continua dinâmica, carregada por
+  `GetPlacePhotoUseCase`. Movimento e itens de cardápio permanecem modelos
+  opcionais e só aparecem quando houver dados, evitando inventar informações
+  não fornecidas pelas APIs do produto.
+* A compilação Kotlin, o APK debug e o lint foram validados com o JDK 17
+  Zulu; não havia emulador conectado para validação visual em runtime.

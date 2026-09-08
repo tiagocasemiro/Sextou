@@ -6,7 +6,9 @@ import com.sextou.domain.Failure
 import com.sextou.domain.Loading
 import com.sextou.domain.Success
 import com.sextou.domain.places.model.PlaceDetails
+import com.sextou.domain.places.model.PlacePhoto
 import com.sextou.domain.places.usecase.GetPlaceDetailsUseCase
+import com.sextou.domain.places.usecase.GetPlacePhotoUseCase
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,6 +18,7 @@ import kotlinx.coroutines.launch
 
 class PlaceDetailsViewModel(
     private val getPlaceDetailsUseCase: GetPlaceDetailsUseCase,
+    private val getPlacePhotoUseCase: GetPlacePhotoUseCase,
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(PlaceDetailsUiState())
     private var loadedPlaceId: String? = null
@@ -37,6 +40,10 @@ class PlaceDetailsViewModel(
                             isError = false,
                             place = result.data.toUiModel(),
                         )
+                    }.also {
+                        result.data.photos.firstOrNull()?.let { reference ->
+                            loadPhoto(reference)
+                        }
                     }
 
                     is Failure -> mutableUiState.update {
@@ -59,13 +66,48 @@ class PlaceDetailsViewModel(
 
     private fun PlaceDetails.toUiModel(): PlaceDetailsUiModel = PlaceDetailsUiModel(
         name = displayName?.takeIf(String::isNotBlank) ?: id,
+        category = primaryTypeDisplayName?.takeIf(String::isNotBlank)
+            ?: primaryType?.takeIf(String::isNotBlank),
         address = shortFormattedAddress ?: formattedAddress,
         phone = nationalPhoneNumber ?: internationalPhoneNumber,
         website = websiteUri,
         summary = editorialSummary?.text ?: generativeSummary?.overview,
         hours = (currentOpeningHours ?: openingHours)?.weekdayText.orEmpty(),
+        hoursSummary = (currentOpeningHours ?: openingHours)?.weekdayText?.firstOrNull(),
         rating = rating,
         ratingsCount = userRatingCount,
         providerAttribution = providerAttribution,
+        location = location,
+        priceLevel = priceLevel,
+        photoCount = photos.size,
+        menuUri = websiteUri ?: googleMapsUri,
     )
+
+    private suspend fun loadPhoto(reference: com.sextou.domain.places.model.PlacePhotoReference) {
+        val photo = try {
+            when (val result = getPlacePhotoUseCase(reference)) {
+                is Success -> result.data
+                is Failure,
+                is Loading<*>,
+                -> null
+            }
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (_: Exception) {
+            null
+        }
+
+        val uri = photo?.uri?.takeIf(String::isNotBlank) ?: return
+        mutableUiState.update { state ->
+            state.copy(
+                place = state.place?.copy(
+                    photoUri = uri,
+                    photoAttribution = photo.toAttribution(),
+                ),
+            )
+        }
+    }
+
+    private fun PlacePhoto.toAttribution(): String? =
+        authors.joinToString(", ") { it.name }.takeIf(String::isNotBlank)
 }
