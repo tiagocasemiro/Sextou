@@ -12,6 +12,7 @@ data class PlaceDetailsUiModel(
     val summary: String?,
     val hours: List<String>,
     val hoursSummary: String? = null,
+    val hoursSchedule: PlaceDetailsHoursScheduleUiModel? = null,
     val distanceText: String? = null,
     val rating: Double?,
     val ratingsCount: Int?,
@@ -27,6 +28,28 @@ data class PlaceDetailsUiModel(
     val movement: PlaceDetailsMovementUiModel? = null,
     val menuItems: List<PlaceDetailsMenuItemUiModel> = emptyList(),
 )
+
+data class PlaceDetailsHoursScheduleUiModel(
+    val status: PlaceDetailsHoursStatusUiModel? = null,
+    val rows: List<PlaceDetailsHoursRowUiModel>,
+)
+
+data class PlaceDetailsHoursStatusUiModel(
+    val isOpen: Boolean,
+    val closingTime: String? = null,
+)
+
+data class PlaceDetailsHoursRowUiModel(
+    val day: String,
+    val time: String,
+    val status: PlaceDetailsHoursRowStatus = PlaceDetailsHoursRowStatus.HIDDEN,
+)
+
+enum class PlaceDetailsHoursRowStatus {
+    OPEN,
+    UNAVAILABLE,
+    HIDDEN,
+}
 
 data class PlaceDetailsMovementUiModel(
     val label: String,

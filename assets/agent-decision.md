@@ -1056,3 +1056,14 @@ porque o módulo não embarca as fontes do arquivo de design.
   não fornecidas pelas APIs do produto.
 * A compilação Kotlin, o APK debug e o lint foram validados com o JDK 17
   Zulu; não havia emulador conectado para validação visual em runtime.
+
+## 2026-09-08 — Cartão de horários da tela de detalhes
+
+* O frame `149:17` foi convertido em um cartão de `168 dp`, com cabeçalho,
+  ícone de relógio, status opcional, divisor e três linhas de horário alinhadas
+  às colunas do design.
+* As linhas usam `currentOpeningHours` como prioridade e `openingHours` como
+  fallback. O texto original do Places é separado apenas para apresentação,
+  preservando a informação fornecida pela origem.
+* O status de abertura permanece opcional: quando não há confirmação confiável,
+  a tela mostra os horários sem afirmar que o estabelecimento está aberto.

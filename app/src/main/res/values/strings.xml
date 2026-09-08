@@ -130,6 +130,10 @@
     <string name="details_price_moderate">Preço médio</string>
     <string name="details_price_expensive">Mais caro</string>
     <string name="details_hours">Horários</string>
+    <string name="details_hours_open_until">Aberto até %1$s</string>
+    <string name="details_hours_open">Aberto</string>
+    <string name="details_hours_closed_now">Fechado agora</string>
+    <string name="details_hours_unavailable">—</string>
     <string name="details_location">Localização</string>
     <string name="details_open_map">Abrir no Mapa</string>
     <string name="details_open_map_content_description">Abrir localização no mapa</string>
@@ -145,6 +149,13 @@
     <string name="details_contact_content_description">Entrar em contato com o estabelecimento</string>
     <string name="details_preview_address">Rua Visconde de Pirajá, 550 - Ipanema, RJ</string>
     <string name="details_preview_hours">Fecha às 02h</string>
+    <string name="details_preview_hours_closing_time">02h</string>
+    <string name="details_preview_hours_today">Hoje</string>
+    <string name="details_preview_hours_today_range">12h — 02h</string>
+    <string name="details_preview_hours_friday">Sexta</string>
+    <string name="details_preview_hours_friday_range">12h — 03h</string>
+    <string name="details_preview_hours_sunday">Domingo</string>
+    <string name="details_preview_hours_sunday_range">Fechado</string>
     <string name="details_preview_summary">O point mais tradicional de Campo Grande para quem busca um litrão gelado e a melhor costela no bafo da região. Ambiente raiz com música ao vivo toda sexta-feira.</string>
     <string name="details_preview_provider">Google Maps</string>
     <string name="details_preview_movement_label">Pouco cheio</string>

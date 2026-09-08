@@ -6,6 +6,7 @@ import com.sextou.domain.Failure
 import com.sextou.domain.Loading
 import com.sextou.domain.Success
 import com.sextou.domain.places.model.PlaceDetails
+import com.sextou.domain.places.model.PlaceOpeningHours
 import com.sextou.domain.places.model.PlacePhoto
 import com.sextou.domain.places.usecase.GetPlaceDetailsUseCase
 import com.sextou.domain.places.usecase.GetPlacePhotoUseCase
@@ -64,24 +65,59 @@ class PlaceDetailsViewModel(
         }
     }
 
-    private fun PlaceDetails.toUiModel(): PlaceDetailsUiModel = PlaceDetailsUiModel(
-        name = displayName?.takeIf(String::isNotBlank) ?: id,
-        category = primaryTypeDisplayName?.takeIf(String::isNotBlank)
-            ?: primaryType?.takeIf(String::isNotBlank),
-        address = shortFormattedAddress ?: formattedAddress,
-        phone = nationalPhoneNumber ?: internationalPhoneNumber,
-        website = websiteUri,
-        summary = editorialSummary?.text ?: generativeSummary?.overview,
-        hours = (currentOpeningHours ?: openingHours)?.weekdayText.orEmpty(),
-        hoursSummary = (currentOpeningHours ?: openingHours)?.weekdayText?.firstOrNull(),
-        rating = rating,
-        ratingsCount = userRatingCount,
-        providerAttribution = providerAttribution,
-        location = location,
-        priceLevel = priceLevel,
-        photoCount = photos.size,
-        menuUri = websiteUri ?: googleMapsUri,
-    )
+    private fun PlaceDetails.toUiModel(): PlaceDetailsUiModel {
+        val availableHours = currentOpeningHours ?: openingHours
+        return PlaceDetailsUiModel(
+            name = displayName?.takeIf(String::isNotBlank) ?: id,
+            category = primaryTypeDisplayName?.takeIf(String::isNotBlank)
+                ?: primaryType?.takeIf(String::isNotBlank),
+            address = shortFormattedAddress ?: formattedAddress,
+            phone = nationalPhoneNumber ?: internationalPhoneNumber,
+            website = websiteUri,
+            summary = editorialSummary?.text ?: generativeSummary?.overview,
+            hours = availableHours?.weekdayText.orEmpty(),
+            hoursSummary = availableHours?.weekdayText?.firstOrNull(),
+            hoursSchedule = availableHours?.toUiModel(),
+            rating = rating,
+            ratingsCount = userRatingCount,
+            providerAttribution = providerAttribution,
+            location = location,
+            priceLevel = priceLevel,
+            photoCount = photos.size,
+            menuUri = websiteUri ?: googleMapsUri,
+        )
+    }
+
+    private fun PlaceOpeningHours.toUiModel(): PlaceDetailsHoursScheduleUiModel? {
+        val rows = weekdayText
+            .mapNotNull { text -> text.toHoursRow() }
+            .take(MAX_VISIBLE_HOURS_ROWS)
+        return rows.takeIf { it.isNotEmpty() }?.let { visibleRows ->
+            PlaceDetailsHoursScheduleUiModel(rows = visibleRows)
+        }
+    }
+
+    private fun String.toHoursRow(): PlaceDetailsHoursRowUiModel? {
+        val separatorIndex = indexOf(':')
+        if (separatorIndex <= 0) return null
+
+        val day = substring(0, separatorIndex).trim()
+        val time = substring(separatorIndex + 1).trim()
+        if (day.isBlank() || time.isBlank()) return null
+
+        return PlaceDetailsHoursRowUiModel(
+            day = day,
+            time = time,
+            status = if (time.isClosedHours()) {
+                PlaceDetailsHoursRowStatus.UNAVAILABLE
+            } else {
+                PlaceDetailsHoursRowStatus.HIDDEN
+            },
+        )
+    }
+
+    private fun String.isClosedHours(): Boolean =
+        contains("fechado", ignoreCase = true) || contains("closed", ignoreCase = true)
 
     private suspend fun loadPhoto(reference: com.sextou.domain.places.model.PlacePhotoReference) {
         val photo = try {
@@ -110,4 +146,8 @@ class PlaceDetailsViewModel(
 
     private fun PlacePhoto.toAttribution(): String? =
         authors.joinToString(", ") { it.name }.takeIf(String::isNotBlank)
+
+    private companion object {
+        const val MAX_VISIBLE_HOURS_ROWS = 3
+    }
 }

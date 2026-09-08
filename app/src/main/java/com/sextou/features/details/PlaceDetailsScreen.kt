@@ -83,6 +83,15 @@ private object PlaceDetailsLayout {
     val BottomActionHeight = 56.dp
     val MapHeight = 128.dp
     val CardRadius = 16.dp
+    val HoursCardHeight = 168.dp
+    val HoursHorizontalPadding = 16.dp
+    val HoursTopPadding = 16.dp
+    val HoursBottomPadding = 7.dp
+    val HoursRowHeight = 24.dp
+    val HoursDayWidth = 80.dp
+    val HoursTimeWidth = 110.dp
+    val HoursStateWidth = 78.dp
+    const val HoursVisibleRows = 3
     val RatingCardHeight = 126.dp
     val MovementCardHeight = 210.dp
     val MenuImage = 64.dp
@@ -122,6 +131,25 @@ private val PlaceDetailsBodyStyle = SextouTextStyles.BodyLarge.copy(
 private val PlaceDetailsSmallStyle = SextouTextStyles.Metadata.copy(
     fontSize = 10.sp,
     lineHeight = 15.sp,
+)
+private val PlaceDetailsHoursHeadingStyle = SextouTextStyles.TitleMedium.copy(
+    fontSize = 16.sp,
+    lineHeight = 24.sp,
+    fontWeight = FontWeight.Bold,
+)
+private val PlaceDetailsHoursStatusStyle = SextouTextStyles.Metadata.copy(
+    fontSize = 12.sp,
+    lineHeight = 16.sp,
+    fontWeight = FontWeight.Medium,
+)
+private val PlaceDetailsHoursDayStyle = SextouTextStyles.BodyLarge.copy(
+    fontSize = 14.sp,
+    lineHeight = 20.sp,
+    fontWeight = FontWeight.Bold,
+)
+private val PlaceDetailsHoursTimeStyle = SextouTextStyles.BodyLarge.copy(
+    fontSize = 14.sp,
+    lineHeight = 20.sp,
 )
 private val PlaceDetailsMenuTitleStyle = SextouTextStyles.TitleMedium.copy(
     fontSize = 14.sp,
@@ -248,6 +276,9 @@ private fun PlaceDetailsScrollContent(
                             location = location,
                             onOpenMap = onOpenMap,
                         )
+                    }
+                    details.hoursSchedule?.let { schedule ->
+                        PlaceDetailsHoursCard(schedule = schedule)
                     }
                     details.summary?.takeIf(String::isNotBlank)?.let { summary ->
                         PlaceDetailsAbout(summary = summary)
@@ -932,6 +963,146 @@ private fun DetailsMap(location: GeoPoint) {
 }
 
 @Composable
+private fun PlaceDetailsHoursCard(schedule: PlaceDetailsHoursScheduleUiModel) {
+    val rows = schedule.rows.take(PlaceDetailsLayout.HoursVisibleRows)
+    if (rows.isEmpty()) return
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(PlaceDetailsLayout.HoursCardHeight),
+        shape = RoundedCornerShape(SextouCornerRadius.Medium),
+        color = SextouColors.SurfaceContainer,
+        border = BorderStroke(SextouDimensions.Border, SextouColors.Border),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    start = PlaceDetailsLayout.HoursHorizontalPadding,
+                    top = PlaceDetailsLayout.HoursTopPadding,
+                    end = PlaceDetailsLayout.HoursHorizontalPadding,
+                    bottom = PlaceDetailsLayout.HoursBottomPadding,
+                ),
+            verticalArrangement = Arrangement.spacedBy(SextouSpacing.Md),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(PlaceDetailsLayout.HoursRowHeight),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(SextouSpacing.Sm),
+                ) {
+                    Image(
+                        painter = painterResource(R.drawable.details_meta_clock),
+                        contentDescription = null,
+                        modifier = Modifier.size(12.dp),
+                    )
+                    Text(
+                        text = stringResource(R.string.details_hours),
+                        style = PlaceDetailsHoursHeadingStyle,
+                        color = SextouColors.TextPrimary,
+                    )
+                }
+                schedule.status?.let { status ->
+                    Text(
+                        text = hoursHeaderStatus(status),
+                        style = PlaceDetailsHoursStatusStyle,
+                        color = if (status.isOpen) {
+                            SextouColors.Positive
+                        } else {
+                            SextouColors.TextSecondary
+                        },
+                        textAlign = TextAlign.End,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(SextouDimensions.Border)
+                    .background(SextouColors.OutlineVariant),
+            )
+            rows.forEach { row ->
+                PlaceDetailsHoursRow(row = row)
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlaceDetailsHoursRow(row: PlaceDetailsHoursRowUiModel) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(PlaceDetailsLayout.HoursRowHeight),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(
+            text = row.day,
+            modifier = Modifier.width(PlaceDetailsLayout.HoursDayWidth),
+            style = PlaceDetailsHoursDayStyle,
+            color = SextouColors.TextPrimary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = row.time,
+            modifier = Modifier.width(PlaceDetailsLayout.HoursTimeWidth),
+            style = PlaceDetailsHoursTimeStyle,
+            color = SextouColors.TextSecondary,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        when (row.status) {
+            PlaceDetailsHoursRowStatus.OPEN -> {
+                Text(
+                    text = stringResource(R.string.details_hours_open),
+                    modifier = Modifier.width(PlaceDetailsLayout.HoursStateWidth),
+                    style = PlaceDetailsHoursStatusStyle,
+                    color = SextouColors.Positive,
+                    textAlign = TextAlign.End,
+                )
+            }
+
+            PlaceDetailsHoursRowStatus.UNAVAILABLE -> {
+                Text(
+                    text = stringResource(R.string.details_hours_unavailable),
+                    modifier = Modifier.width(PlaceDetailsLayout.HoursStateWidth),
+                    style = PlaceDetailsHoursStatusStyle,
+                    color = SextouColors.TextSecondary,
+                    textAlign = TextAlign.End,
+                )
+            }
+
+            PlaceDetailsHoursRowStatus.HIDDEN -> {
+                Spacer(modifier = Modifier.width(PlaceDetailsLayout.HoursStateWidth))
+            }
+        }
+    }
+}
+
+@Composable
+private fun hoursHeaderStatus(status: PlaceDetailsHoursStatusUiModel): String =
+    when {
+        status.isOpen && status.closingTime != null -> stringResource(
+            R.string.details_hours_open_until,
+            status.closingTime,
+        )
+
+        status.isOpen -> stringResource(R.string.details_hours_open)
+        else -> stringResource(R.string.details_hours_closed_now)
+    }
+
+@Composable
 private fun PlaceDetailsAbout(summary: String) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -1210,6 +1381,29 @@ private fun PlaceDetailsScreenPreview() {
                     summary = stringResource(R.string.details_preview_summary),
                     hours = emptyList(),
                     hoursSummary = stringResource(R.string.details_preview_hours),
+                    hoursSchedule = PlaceDetailsHoursScheduleUiModel(
+                        status = PlaceDetailsHoursStatusUiModel(
+                            isOpen = true,
+                            closingTime = stringResource(R.string.details_preview_hours_closing_time),
+                        ),
+                        rows = listOf(
+                            PlaceDetailsHoursRowUiModel(
+                                day = stringResource(R.string.details_preview_hours_today),
+                                time = stringResource(R.string.details_preview_hours_today_range),
+                                status = PlaceDetailsHoursRowStatus.OPEN,
+                            ),
+                            PlaceDetailsHoursRowUiModel(
+                                day = stringResource(R.string.details_preview_hours_friday),
+                                time = stringResource(R.string.details_preview_hours_friday_range),
+                                status = PlaceDetailsHoursRowStatus.OPEN,
+                            ),
+                            PlaceDetailsHoursRowUiModel(
+                                day = stringResource(R.string.details_preview_hours_sunday),
+                                time = stringResource(R.string.details_preview_hours_sunday_range),
+                                status = PlaceDetailsHoursRowStatus.UNAVAILABLE,
+                            ),
+                        ),
+                    ),
                     distanceText = stringResource(R.string.feed_place_ao_ponto_distance),
                     rating = 4.6,
                     ratingsCount = 156,
