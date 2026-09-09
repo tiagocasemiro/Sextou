@@ -4,12 +4,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sextou.domain.places.model.GeoPoint
 
 @Composable
 fun PlaceDetailsDestination(
     placeId: String,
     viewModel: PlaceDetailsViewModel,
     onBack: () -> Unit,
+    onOpenMap: (GeoPoint?) -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -20,5 +22,9 @@ fun PlaceDetailsDestination(
     PlaceDetailsScreen(
         uiState = uiState,
         onBack = onBack,
+        onFavoriteClick = viewModel::onFavoriteClicked,
+        onVisitClick = viewModel::onVisitClicked,
+        onIgnoreClick = viewModel::onIgnoreClicked,
+        onOpenMap = { onOpenMap(uiState.place?.location) },
     )
 }

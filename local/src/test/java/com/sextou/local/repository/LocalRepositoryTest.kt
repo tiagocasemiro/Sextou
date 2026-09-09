@@ -3,6 +3,7 @@ package com.sextou.local.repository
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import com.sextou.domain.places.model.PlaceStatus
 import com.sextou.local.database.SextouDatabase
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -51,4 +52,45 @@ class LocalRepositoryTest {
 
         assertEquals(setOf("place-2"), repository.observeIds().first())
     }
+
+    @Test
+    fun ignoredPlaceSelectionIsPersistedAndCanBeRemoved() = runTest {
+        val repository = IgnoredPlaceLocalRepository(database)
+
+        repository.setSelected("place-3", selected = true)
+        assertEquals(setOf("place-3"), repository.observeIds().first())
+
+        repository.setSelected("place-3", selected = false)
+
+        assertEquals(emptySet<String>(), repository.observeIds().first())
+    }
+
+    @Test
+    fun placeStatusIsExclusiveAcrossFavoriteVisitedAndIgnoredTables() = runTest {
+        val statusRepository = PlaceStatusLocalRepository(database)
+
+        statusRepository.setStatus("place-4", PlaceStatus.FAVORITE)
+        assertEquals(listOf("place-4"), database.favoriteDao().observeIds().first())
+        assertEquals(emptyList<String>(), database.visitedPlaceDao().observeIds().first())
+        assertEquals(emptyList<String>(), database.ignoredPlaceDao().observeIds().first())
+
+        statusRepository.setStatus("place-4", PlaceStatus.VISITED)
+        assertEquals(emptyList<String>(), database.favoriteDao().observeIds().first())
+        assertEquals(listOf("place-4"), database.visitedPlaceDao().observeIds().first())
+        assertEquals(emptyList<String>(), database.ignoredPlaceDao().observeIds().first())
+
+        statusRepository.setStatus("place-4", PlaceStatus.IGNORED)
+        assertEquals(emptyList<String>(), database.favoriteDao().observeIds().first())
+        assertEquals(emptyList<String>(), database.visitedPlaceDao().observeIds().first())
+        assertEquals(listOf("place-4"), database.ignoredDaoIds())
+
+        statusRepository.setStatus("place-4", null)
+        assertEquals(emptyList<String>(), database.favoriteDao().observeIds().first())
+        assertEquals(emptyList<String>(), database.visitedPlaceDao().observeIds().first())
+        assertEquals(emptyList<String>(), database.ignoredDaoIds())
+    }
+
+    private suspend fun SextouDatabase.ignoredDaoIds(): List<String> = ignoredPlaceDao()
+        .observeIds()
+        .first()
 }

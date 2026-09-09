@@ -91,6 +91,7 @@
     <string name="map_location_label">Campo Grande, RJ</string>
     <string name="map_location_content_description">Localização atual: %1$s</string>
     <string name="map_recenter_content_description">Centralizar mapa na minha localização</string>
+    <string name="map_user_location_content_description">Minha localização e direção no mapa</string>
     <string name="map_rating">Avaliação %1$.1f</string>
     <string name="map_rating_value">%1$.1f</string>
     <string name="map_rating_content_description">Avaliação %1$.1f</string>
@@ -124,6 +125,11 @@
     <string name="details_rating_prompt">O que achou deste lugar?</string>
     <string name="details_rating_hint">Toque nas estrelas para avaliar</string>
     <string name="details_rating_star_content_description">Dar %1$d estrelas</string>
+    <string name="details_google_rating_prompt">Avaliação no Google Maps</string>
+    <string name="details_google_rating_hint">Nota informada pelo Google Maps</string>
+    <string name="details_google_rating_unavailable">Sem avaliações no Google Maps</string>
+    <string name="details_google_rating_content_description">Avaliação no Google Maps: %1$.1f de 5</string>
+    <string name="details_google_rating_unavailable_content_description">Sem avaliações no Google Maps</string>
     <string name="details_price_symbol">$</string>
     <string name="details_price_cheap">Baratinho</string>
     <string name="details_price_bargain">Baratinho</string>

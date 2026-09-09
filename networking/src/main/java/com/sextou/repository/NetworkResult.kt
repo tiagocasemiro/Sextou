@@ -19,3 +19,9 @@ internal fun mapPlacesError(throwable: Throwable): Error {
         )
     }
 }
+
+internal fun mapRoutesError(throwable: Throwable): Error = Error(
+    code = generalErrorCode,
+    title = "Falha ao calcular rota",
+    message = throwable.message ?: "Não foi possível calcular a rota agora.",
+)

@@ -1,5 +1,37 @@
 # Decisões do agente
 
+## 2026-09-09 — Botões da tela de detalhes pelo design system
+
+Os controles de ação da tela de detalhes deixaram de duplicar superfícies
+clicáveis locais. O cabeçalho e o estado de erro usam `SextouIconButton`; as
+ações de mapa, cardápio e barra inferior usam `SextouButton` com os estilos
+`ghost`, `outline` e `primary` já definidos no módulo compartilhado. Os
+quick actions já consumiam `SextouQuickAction` e não foram substituídos.
+
+Para manter a acessibilidade existente, as descrições específicas de mapa e
+contato continuam aplicadas como semântica nos botões do design system. A
+barra inferior usa a string de uma linha `details_directions_button`, porque a
+API pública de `SextouButton` limita o rótulo a uma linha.
+
+## 2026-09-09 — Status exclusivo, avaliação do Google e foco no mapa
+
+Favorito, visitar e ignorar agora compartilham o caso de uso
+`SetPlaceStatusUseCase`. A implementação local apaga os três registros e
+insere somente o status escolhido dentro de uma transação Room; desmarcar o
+status passa `null` e limpa todos. Feed e detalhe usam esse mesmo caminho para
+que uma ação em uma tela não crie estados conflitantes nas outras.
+
+O retorno de detalhes do Places SDK, que já solicitava `RATING` e
+`USER_RATING_COUNT`, é convertido para `PlaceSummary` e salvo pelo cache
+normalizado antes de ser exibido. O card de avaliação do detalhe passou a
+renderizar as cinco estrelas somente como a avaliação do Google, incluindo a
+fração da última estrela, sem misturá-la com uma avaliação local do usuário.
+
+O comando “Abrir no Mapa” envia o identificador e as coordenadas pela rota.
+Esses dados têm prioridade sobre a localização do usuário e sobre o primeiro
+resultado carregado, e o mapa mantém o foco no estabelecimento mesmo quando a
+localização do aparelho chega em paralelo.
+
 ## 2026-09-08 — Fallback do detalhe quando a quota do Places é excedida
 
 O `GetPlaceRequest` do projeto retornou quota diária excedida ao abrir um
@@ -1103,3 +1135,43 @@ porque o módulo não embarca as fontes do arquivo de design.
 * Cada requisição de busca que aceita raio recebe um valor aleatório entre
   500 m, 1 km, 2 km, 5 km, 10 km e 20 km. O raio é injetável nos testes para
   manter o comportamento determinístico.
+
+## 2026-09-09 — Marcadores do mapa por favorito e ignorado
+
+* O `MapViewModel` observa os IDs persistidos de favoritos e ignorados, e a
+  tela escolhe o recurso do marcador durante a composição. Assim, alterações
+  feitas na tela de detalhes atualizam o mapa sem duplicar estado de domínio.
+* Para favoritos foi reutilizado o recurso existente
+  `ic_sextou_map_marker_bombando`, por ser o marcador de chama com a paleta
+  do ícone da aplicação. Para ignorados foi reutilizado
+  `ic_sextou_map_marker_ignorar`, cuja marcação é cinza e tem o símbolo de
+  exclusão.
+* Como `IGNORAR` ainda não tinha persistência local, foi criada uma tabela
+  própria no Room com migration 2 → 3 e o botão da tela de detalhes passou a
+  atualizar esse estado. Se um estabelecimento estiver nos dois conjuntos, o
+  marcador ignorado prevalece para manter a indicação cinza.
+
+## 2026-09-09 — Rota e indicador de direção no mapa
+
+* Os botões inferiores “Como chegar” e “Contato” preservam o componente
+  `DetailsBottomAction` original, incluindo o rótulo de “Como chegar” em duas
+  linhas e o estilo primário de “Contato”.
+* A navegação de detalhes para o mapa conserva o `placeId` e as coordenadas do
+  estabelecimento. O `MapViewModel` guarda esse destino até a localização do
+  usuário estar disponível e solicita uma única rota para a origem atual,
+  usando a Routes API `computeRoutes` e a polyline codificada retornada por ela.
+* A rota não é persistida: apenas a geometria necessária à sessão é mantida no
+  estado do mapa. A polyline é exibida com `SextouColors.Accent`, o amarelo
+  semântico da marca, e a câmera enquadra todo o trajeto quando ele chega.
+* A localização do usuário passou a transportar opcionalmente o rumo do GPS.
+  O mapa desenha um marcador circular próprio do Sextou e o rotaciona pelo
+  rumo, mantendo o círculo de precisão como camada de contexto quando o rumo
+  não estiver disponível.
+
+## 2026-09-09 — Preservação dos controles superiores dos detalhes
+
+* Os controles superiores da tela de detalhes — voltar, compartilhar e mais
+  opções — permanecem no componente e no estilo originais da tela.
+* A barra inferior também mantém o componente e o estilo originais; os
+  componentes do design system não substituem os dois botões de ação dessa
+  área.

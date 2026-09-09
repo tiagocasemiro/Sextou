@@ -47,12 +47,13 @@ class SextouDatabaseMigrationTest {
     @Test
     fun `migrates version one while preserving existing data and creating place tables`() = runTest {
         database = Room.databaseBuilder(context, SextouDatabase::class.java, DATABASE_NAME)
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .build()
 
         assertEquals(listOf("favorite-1"), database!!.favoriteDao().observeIds().first())
         assertEquals(null, database!!.placesDao().findPlace("place-1"))
         assertEquals(emptyList<PlaceTypeEntity>(), database!!.placesDao().findTypes("place-1"))
+        assertEquals(emptyList<String>(), database!!.ignoredPlaceDao().observeIds().first())
     }
 
     private companion object {

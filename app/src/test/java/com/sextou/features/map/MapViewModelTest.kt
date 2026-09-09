@@ -2,6 +2,10 @@ package com.sextou.features.map
 
 import com.sextou.domain.Result
 import com.sextou.domain.Success
+import com.sextou.domain.favorites.repository.FavoriteRepository
+import com.sextou.domain.favorites.usecase.ObserveFavoritesUseCase
+import com.sextou.domain.ignored.repository.IgnoredPlaceRepository
+import com.sextou.domain.ignored.usecase.ObserveIgnoredPlacesUseCase
 import com.sextou.domain.places.model.BusinessStatus
 import com.sextou.domain.places.model.GeoPoint
 import com.sextou.domain.places.model.NearbySearchRequest
@@ -15,6 +19,9 @@ import com.sextou.domain.places.model.PlaceTextSearchRequest
 import com.sextou.domain.places.repository.PlacesRepository
 import com.sextou.domain.places.usecase.GetPlacePhotoUseCase
 import com.sextou.domain.places.usecase.SearchPlacesUseCase
+import com.sextou.domain.routes.model.RoutePath
+import com.sextou.domain.routes.repository.RouteRepository
+import com.sextou.domain.routes.usecase.GetRouteUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
@@ -45,6 +52,9 @@ class MapViewModelTest {
         val viewModel = MapViewModel(
             searchPlacesUseCase = searchPlacesUseCase,
             getPlacePhotoUseCase = GetPlacePhotoUseCase(NoOpPlacesRepository()),
+            getRouteUseCase = GetRouteUseCase(NoOpRouteRepository()),
+            observeFavoritesUseCase = ObserveFavoritesUseCase(EmptyFavoriteRepository()),
+            observeIgnoredPlacesUseCase = ObserveIgnoredPlacesUseCase(EmptyIgnoredPlaceRepository()),
         )
 
         viewModel.onLocationChanged(location)
@@ -60,6 +70,47 @@ class MapViewModelTest {
     }
 
     @Test
+    fun `loads persisted favorite and ignored ids for marker rendering`() {
+        val viewModel = MapViewModel(
+            searchPlacesUseCase = RecordingSearchPlacesUseCase(),
+            getPlacePhotoUseCase = GetPlacePhotoUseCase(NoOpPlacesRepository()),
+            getRouteUseCase = GetRouteUseCase(NoOpRouteRepository()),
+            observeFavoritesUseCase = ObserveFavoritesUseCase(
+                EmptyFavoriteRepository(setOf("favorite-place")),
+            ),
+            observeIgnoredPlacesUseCase = ObserveIgnoredPlacesUseCase(
+                EmptyIgnoredPlaceRepository(setOf("ignored-place")),
+            ),
+        )
+
+        assertEquals(setOf("favorite-place"), viewModel.uiState.value.favoritePlaceIds)
+        assertEquals(setOf("ignored-place"), viewModel.uiState.value.ignoredPlaceIds)
+    }
+
+    @Test
+    fun `loads a route from the user location to the focused establishment`() {
+        val origin = GeoPoint(-22.9, -43.2)
+        val destination = GeoPoint(-22.91, -43.21)
+        val routeRepository = RecordingRouteRepository()
+        val viewModel = MapViewModel(
+            searchPlacesUseCase = RecordingSearchPlacesUseCase(),
+            getPlacePhotoUseCase = GetPlacePhotoUseCase(NoOpPlacesRepository()),
+            getRouteUseCase = GetRouteUseCase(routeRepository),
+            observeFavoritesUseCase = ObserveFavoritesUseCase(EmptyFavoriteRepository()),
+            observeIgnoredPlacesUseCase = ObserveIgnoredPlacesUseCase(EmptyIgnoredPlaceRepository()),
+        )
+
+        viewModel.onLocationChanged(origin, bearingDegrees = 135f)
+        viewModel.setRouteDestination(destination)
+
+        assertEquals(origin to destination, routeRepository.lastRequest)
+        assertEquals(listOf(origin, destination), viewModel.uiState.value.routePoints)
+        assertEquals(135f, viewModel.uiState.value.userLocation?.bearingDegrees)
+        assertFalse(viewModel.uiState.value.isRouteLoading)
+        assertFalse(viewModel.uiState.value.isRouteError)
+    }
+
+    @Test
     fun `reloads the active map query when the user location changes`() {
         val firstLocation = GeoPoint(latitude = -22.9, longitude = -43.2)
         val secondLocation = GeoPoint(latitude = -22.91, longitude = -43.21)
@@ -67,6 +118,9 @@ class MapViewModelTest {
         val viewModel = MapViewModel(
             searchPlacesUseCase = searchPlacesUseCase,
             getPlacePhotoUseCase = GetPlacePhotoUseCase(NoOpPlacesRepository()),
+            getRouteUseCase = GetRouteUseCase(NoOpRouteRepository()),
+            observeFavoritesUseCase = ObserveFavoritesUseCase(EmptyFavoriteRepository()),
+            observeIgnoredPlacesUseCase = ObserveIgnoredPlacesUseCase(EmptyIgnoredPlaceRepository()),
         )
 
         viewModel.load(query = "bar")
@@ -86,6 +140,9 @@ class MapViewModelTest {
         val viewModel = MapViewModel(
             searchPlacesUseCase = RecordingSearchPlacesUseCase(),
             getPlacePhotoUseCase = GetPlacePhotoUseCase(NoOpPlacesRepository()),
+            getRouteUseCase = GetRouteUseCase(NoOpRouteRepository()),
+            observeFavoritesUseCase = ObserveFavoritesUseCase(EmptyFavoriteRepository()),
+            observeIgnoredPlacesUseCase = ObserveIgnoredPlacesUseCase(EmptyIgnoredPlaceRepository()),
             initialLocation = location,
         )
 
@@ -104,6 +161,9 @@ class MapViewModelTest {
         val viewModel = MapViewModel(
             searchPlacesUseCase = searchPlacesUseCase,
             getPlacePhotoUseCase = GetPlacePhotoUseCase(NoOpPlacesRepository()),
+            getRouteUseCase = GetRouteUseCase(NoOpRouteRepository()),
+            observeFavoritesUseCase = ObserveFavoritesUseCase(EmptyFavoriteRepository()),
+            observeIgnoredPlacesUseCase = ObserveIgnoredPlacesUseCase(EmptyIgnoredPlaceRepository()),
             initialLocation = initialLocation,
         )
 
@@ -154,6 +214,9 @@ class MapViewModelTest {
         val viewModel = MapViewModel(
             searchPlacesUseCase = searchPlacesUseCase,
             getPlacePhotoUseCase = GetPlacePhotoUseCase(photoRepository),
+            getRouteUseCase = GetRouteUseCase(NoOpRouteRepository()),
+            observeFavoritesUseCase = ObserveFavoritesUseCase(EmptyFavoriteRepository()),
+            observeIgnoredPlacesUseCase = ObserveIgnoredPlacesUseCase(EmptyIgnoredPlaceRepository()),
         )
 
         viewModel.load(query = "")
@@ -201,6 +264,9 @@ class MapViewModelTest {
                 ),
             ),
             getPlacePhotoUseCase = GetPlacePhotoUseCase(photoRepository),
+            getRouteUseCase = GetRouteUseCase(NoOpRouteRepository()),
+            observeFavoritesUseCase = ObserveFavoritesUseCase(EmptyFavoriteRepository()),
+            observeIgnoredPlacesUseCase = ObserveIgnoredPlacesUseCase(EmptyIgnoredPlaceRepository()),
         )
 
         viewModel.load(query = "")
@@ -224,6 +290,9 @@ class MapViewModelTest {
                 ),
             ),
             getPlacePhotoUseCase = GetPlacePhotoUseCase(NoOpPlacesRepository()),
+            getRouteUseCase = GetRouteUseCase(NoOpRouteRepository()),
+            observeFavoritesUseCase = ObserveFavoritesUseCase(EmptyFavoriteRepository()),
+            observeIgnoredPlacesUseCase = ObserveIgnoredPlacesUseCase(EmptyIgnoredPlaceRepository()),
         )
 
         viewModel.load(query = "")
@@ -298,6 +367,47 @@ private class NoOpPlacesRepository : PlacesRepository.Remote, PlacesRepository.L
     override fun observeAll() = flowOf(emptyList<PlaceSummary>())
 
     override suspend fun saveAll(places: List<PlaceSummary>): Result<Unit> = Success(Unit)
+}
+
+private class NoOpRouteRepository : RouteRepository.Remote {
+    override suspend fun calculateRoute(
+        origin: GeoPoint,
+        destination: GeoPoint,
+    ): Result<RoutePath> = Success(RoutePath(listOf(origin, destination)))
+}
+
+private class RecordingRouteRepository : RouteRepository.Remote {
+    var lastRequest: Pair<GeoPoint, GeoPoint>? = null
+
+    override suspend fun calculateRoute(
+        origin: GeoPoint,
+        destination: GeoPoint,
+    ): Result<RoutePath> {
+        lastRequest = origin to destination
+        return Success(RoutePath(listOf(origin, destination)))
+    }
+}
+
+private class EmptyFavoriteRepository(
+    private val ids: Set<String> = emptySet(),
+) : FavoriteRepository.Local {
+    override fun observeIds() = flowOf(ids)
+
+    override suspend fun setSelected(
+        placeId: String,
+        selected: Boolean,
+    ): Result<Unit> = Success(Unit)
+}
+
+private class EmptyIgnoredPlaceRepository(
+    private val ids: Set<String> = emptySet(),
+) : IgnoredPlaceRepository.Local {
+    override fun observeIds() = flowOf(ids)
+
+    override suspend fun setSelected(
+        placeId: String,
+        selected: Boolean,
+    ): Result<Unit> = Success(Unit)
 }
 
 private fun place(

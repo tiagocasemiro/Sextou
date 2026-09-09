@@ -7,14 +7,14 @@ import com.sextou.domain.Failure
 import com.sextou.domain.Loading
 import com.sextou.domain.Success
 import com.sextou.domain.favorites.usecase.ObserveFavoritesUseCase
-import com.sextou.domain.favorites.usecase.ToggleFavoriteUseCase
 import com.sextou.domain.places.model.BusinessStatus
 import com.sextou.domain.places.model.GeoPoint
+import com.sextou.domain.places.model.PlaceStatus
 import com.sextou.domain.places.model.PlaceSummary
 import com.sextou.domain.places.usecase.ObservePlacesUseCase
 import com.sextou.domain.places.usecase.SearchPlacesUseCase
+import com.sextou.domain.places.usecase.SetPlaceStatusUseCase
 import com.sextou.domain.visits.usecase.ObserveVisitedPlacesUseCase
-import com.sextou.domain.visits.usecase.ToggleVisitedPlaceUseCase
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,9 +35,8 @@ class FeedViewModel(
     private val searchPlacesUseCase: SearchPlacesUseCase,
     private val observePlacesUseCase: ObservePlacesUseCase,
     private val observeFavoritesUseCase: ObserveFavoritesUseCase,
-    private val toggleFavoriteUseCase: ToggleFavoriteUseCase,
     private val observeVisitedPlacesUseCase: ObserveVisitedPlacesUseCase,
-    private val toggleVisitedPlaceUseCase: ToggleVisitedPlaceUseCase,
+    private val setPlaceStatusUseCase: SetPlaceStatusUseCase,
     initialLocation: GeoPoint? = null,
 ) : ViewModel() {
     private var searchLocation: GeoPoint? = initialLocation
@@ -118,13 +117,14 @@ class FeedViewModel(
     fun onFavoriteClicked(placeId: String) {
         val selected = placeId !in mutableUiState.value.favoritePlaceIds
         viewModelScope.launch {
-            when (toggleFavoriteUseCase(placeId, selected)) {
+            when (setPlaceStatusUseCase(placeId, PlaceStatus.FAVORITE.takeIf { selected })) {
                 is Success -> mutableUiState.update { state ->
                     state.copy(
                         favoritePlaceIds = state.favoritePlaceIds.withSelection(
                             value = placeId,
                             selected = selected,
                         ),
+                        visitedPlaceIds = state.visitedPlaceIds - placeId,
                         actionErrorMessageResId = null,
                     )
                 }
@@ -141,9 +141,10 @@ class FeedViewModel(
     fun onVisitedClicked(placeId: String) {
         val selected = placeId !in mutableUiState.value.visitedPlaceIds
         viewModelScope.launch {
-            when (toggleVisitedPlaceUseCase(placeId, selected)) {
+            when (setPlaceStatusUseCase(placeId, PlaceStatus.VISITED.takeIf { selected })) {
                 is Success -> mutableUiState.update { state ->
                     state.copy(
+                        favoritePlaceIds = state.favoritePlaceIds - placeId,
                         visitedPlaceIds = state.visitedPlaceIds.withSelection(
                             value = placeId,
                             selected = selected,

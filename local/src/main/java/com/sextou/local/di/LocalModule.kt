@@ -2,13 +2,18 @@ package com.sextou.local.di
 
 import androidx.room.Room
 import com.sextou.domain.favorites.repository.FavoriteRepository
+import com.sextou.domain.ignored.repository.IgnoredPlaceRepository
+import com.sextou.domain.places.repository.PlaceStatusRepository
 import com.sextou.domain.places.repository.PlacesRepository
 import com.sextou.domain.visits.repository.VisitRepository
 import com.sextou.local.adapter.PlacesLocalImpl
 import com.sextou.local.database.SextouDatabase
 import com.sextou.local.database.MIGRATION_1_2
+import com.sextou.local.database.MIGRATION_2_3
 import com.sextou.local.database.PlacesDao
 import com.sextou.local.repository.FavoriteLocalRepository
+import com.sextou.local.repository.IgnoredPlaceLocalRepository
+import com.sextou.local.repository.PlaceStatusLocalRepository
 import com.sextou.local.repository.VisitedPlaceLocalRepository
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
@@ -19,10 +24,12 @@ fun localModule() = module {
             androidContext(),
             SextouDatabase::class.java,
             DATABASE_NAME,
-        ).addMigrations(MIGRATION_1_2).build()
+        ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
     }
     single<PlacesDao> { get<SextouDatabase>().placesDao() }
     factory<FavoriteRepository.Local> { FavoriteLocalRepository(get()) }
+    factory<IgnoredPlaceRepository.Local> { IgnoredPlaceLocalRepository(get()) }
+    factory<PlaceStatusRepository.Local> { PlaceStatusLocalRepository(get()) }
     factory<PlacesRepository.Local> { PlacesLocalImpl(placesDao = get()) }
     factory<VisitRepository.Local> { VisitedPlaceLocalRepository(get()) }
 }

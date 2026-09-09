@@ -1,6 +1,7 @@
 package com.sextou.features.map
 
 import androidx.annotation.DrawableRes
+import com.sextou.domain.places.model.GeoPoint
 
 data class MapPlaceUiModel(
     val id: String,
@@ -26,12 +27,18 @@ data class MapPlaceUiModel(
 data class MapUserLocationUiModel(
     val latitude: Double,
     val longitude: Double,
+    val bearingDegrees: Float? = null,
 )
 
 data class MapUiState(
     val query: String = "",
     val places: List<MapPlaceUiModel> = emptyList(),
+    val favoritePlaceIds: Set<String> = emptySet(),
+    val ignoredPlaceIds: Set<String> = emptySet(),
     val userLocation: MapUserLocationUiModel? = null,
+    val routePoints: List<GeoPoint> = emptyList(),
+    val isRouteLoading: Boolean = false,
+    val isRouteError: Boolean = false,
     val isLoading: Boolean = false,
     val isError: Boolean = false,
     val isSearchAreaButtonVisible: Boolean = false,

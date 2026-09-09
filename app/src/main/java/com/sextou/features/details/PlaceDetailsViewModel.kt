@@ -5,29 +5,69 @@ import androidx.lifecycle.viewModelScope
 import com.sextou.domain.Failure
 import com.sextou.domain.Loading
 import com.sextou.domain.Success
+import com.sextou.domain.favorites.usecase.ObserveFavoritesUseCase
+import com.sextou.domain.ignored.usecase.ObserveIgnoredPlacesUseCase
 import com.sextou.domain.places.model.PlaceDetails
 import com.sextou.domain.places.model.PlaceOpeningHours
 import com.sextou.domain.places.model.PlacePhoto
+import com.sextou.domain.places.model.PlaceStatus
 import com.sextou.domain.places.usecase.GetPlaceDetailsUseCase
 import com.sextou.domain.places.usecase.GetPlacePhotoUseCase
+import com.sextou.domain.places.usecase.SetPlaceStatusUseCase
+import com.sextou.domain.visits.usecase.ObserveVisitedPlacesUseCase
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class PlaceDetailsViewModel(
     private val getPlaceDetailsUseCase: GetPlaceDetailsUseCase,
     private val getPlacePhotoUseCase: GetPlacePhotoUseCase,
+    private val observeFavoritesUseCase: ObserveFavoritesUseCase,
+    private val observeVisitedPlacesUseCase: ObserveVisitedPlacesUseCase,
+    private val observeIgnoredPlacesUseCase: ObserveIgnoredPlacesUseCase,
+    private val setPlaceStatusUseCase: SetPlaceStatusUseCase,
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(PlaceDetailsUiState())
+    private var activePlaceId: String? = null
+    private var favoritePlaceIds: Set<String> = emptySet()
+    private var visitedPlaceIds: Set<String> = emptySet()
+    private var ignoredPlaceIds: Set<String> = emptySet()
     private var loadedPlaceId: String? = null
     private var pendingFallback: PlaceDetailsFallback? = null
     private var loadJob: Job? = null
 
     val uiState: StateFlow<PlaceDetailsUiState> = mutableUiState.asStateFlow()
+
+    init {
+        observeFavoritesUseCase()
+            .onEach { placeIds ->
+                favoritePlaceIds = placeIds
+                updateSelectionState()
+            }
+            .catch { throwable -> ignoreSelectionObservationFailure(throwable) }
+            .launchIn(viewModelScope)
+        observeVisitedPlacesUseCase()
+            .onEach { placeIds ->
+                visitedPlaceIds = placeIds
+                updateSelectionState()
+            }
+            .catch { throwable -> ignoreSelectionObservationFailure(throwable) }
+            .launchIn(viewModelScope)
+        observeIgnoredPlacesUseCase()
+            .onEach { placeIds ->
+                ignoredPlaceIds = placeIds
+                updateSelectionState()
+            }
+            .catch { throwable -> ignoreSelectionObservationFailure(throwable) }
+            .launchIn(viewModelScope)
+    }
 
     fun setFallback(fallback: PlaceDetailsFallback?) {
         pendingFallback = fallback
@@ -43,6 +83,8 @@ class PlaceDetailsViewModel(
     }
 
     fun load(placeId: String) {
+        activePlaceId = placeId
+        updateSelectionState()
         val fallback = pendingFallback?.takeIf { it.id == placeId }
         pendingFallback = null
         if (loadedPlaceId == placeId && (mutableUiState.value.isLoading || mutableUiState.value.place != null)) {
@@ -97,6 +139,18 @@ class PlaceDetailsViewModel(
                 }
             }
         }
+    }
+
+    fun onFavoriteClicked() {
+        onStatusClicked(PlaceStatus.FAVORITE)
+    }
+
+    fun onVisitClicked() {
+        onStatusClicked(PlaceStatus.VISITED)
+    }
+
+    fun onIgnoreClicked() {
+        onStatusClicked(PlaceStatus.IGNORED)
     }
 
     private fun PlaceDetails.toUiModel(): PlaceDetailsUiModel {
@@ -199,6 +253,65 @@ class PlaceDetailsViewModel(
 
     private fun PlacePhoto.toAttribution(): String? =
         authors.joinToString(", ") { it.name }.takeIf(String::isNotBlank)
+
+    private fun onStatusClicked(status: PlaceStatus) {
+        val placeId = activePlaceId ?: return
+        val isSelected = when (status) {
+            PlaceStatus.FAVORITE -> placeId in favoritePlaceIds
+            PlaceStatus.VISITED -> placeId in visitedPlaceIds
+            PlaceStatus.IGNORED -> placeId in ignoredPlaceIds
+        }
+        val nextStatus = status.takeUnless { isSelected }
+        viewModelScope.launch {
+            try {
+                when (setPlaceStatusUseCase(placeId, nextStatus)) {
+                    is Success -> {
+                        favoritePlaceIds = favoritePlaceIds.withSelection(
+                            placeId = placeId,
+                            selected = nextStatus == PlaceStatus.FAVORITE,
+                        )
+                        visitedPlaceIds = visitedPlaceIds.withSelection(
+                            placeId = placeId,
+                            selected = nextStatus == PlaceStatus.VISITED,
+                        )
+                        ignoredPlaceIds = ignoredPlaceIds.withSelection(
+                            placeId = placeId,
+                            selected = nextStatus == PlaceStatus.IGNORED,
+                        )
+                        updateSelectionState()
+                    }
+
+                    is Failure,
+                    is Loading<*>,
+                    -> Unit
+                }
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (_: Exception) {
+                // The local use cases return Failure for expected persistence errors.
+            }
+        }
+    }
+
+    private fun updateSelectionState() {
+        val placeId = activePlaceId
+        mutableUiState.update { state ->
+            state.copy(
+                isFavorite = placeId != null && placeId in favoritePlaceIds,
+                isVisited = placeId != null && placeId in visitedPlaceIds,
+                isIgnored = placeId != null && placeId in ignoredPlaceIds,
+            )
+        }
+    }
+
+    private fun ignoreSelectionObservationFailure(throwable: Throwable) {
+        if (throwable is CancellationException) throw throwable
+    }
+
+    private fun Set<String>.withSelection(placeId: String?, selected: Boolean): Set<String> {
+        if (placeId == null) return this
+        return if (selected) this + placeId else this - placeId
+    }
 
     private companion object {
         const val MAX_VISIBLE_HOURS_ROWS = 3

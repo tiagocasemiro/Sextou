@@ -3,6 +3,7 @@ package com.sextou.features.map
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -24,7 +25,9 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -34,6 +37,7 @@ import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.maps.android.compose.Circle
 import com.google.maps.android.compose.CameraMoveStartedReason
@@ -42,6 +46,7 @@ import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
+import com.google.maps.android.compose.Polyline
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.sextou.R
 import com.sextou.designsystem.R as DesignSystemR
@@ -57,10 +62,18 @@ import com.sextou.features.feed.components.FeedBottomNavigation
 import com.sextou.features.map.components.MapFloatingActions
 import com.sextou.features.map.components.MapPlaceCarousel
 import com.sextou.features.map.components.MapTopChrome
+import com.sextou.features.map.components.mapMarkerIconResource
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
 private val CampoGrandeRioDeJaneiro = LatLng(-22.9068, -43.5614)
+private val MapMarkerResources = listOf(
+    DesignSystemR.drawable.ic_sextou_map_marker_listados,
+    DesignSystemR.drawable.ic_sextou_map_marker_bombando,
+    DesignSystemR.drawable.ic_sextou_map_marker_ignorar,
+)
+private val UserLocationMarkerResource = DesignSystemR.drawable.ic_sextou_map_user_location
+private const val RouteStrokeWidth = 8f
 private val MapErrorShape = androidx.compose.foundation.shape.RoundedCornerShape(
     SextouCornerRadius.Surface,
 )
@@ -74,13 +87,17 @@ fun MapScreen(
     onPlaceClicked: (String) -> Unit,
     onTabSelected: (FeedTab) -> Unit,
     modifier: Modifier = Modifier,
+    focusedPlaceId: String? = null,
+    focusedLocation: GeoPoint? = null,
 ) {
     val firstPlace = uiState.places.firstOrNull()
     var selectedPlaceId by remember { mutableStateOf<String?>(null) }
     var selectionRequest by remember { mutableIntStateOf(0) }
     var isMapReady by remember { mutableStateOf(false) }
     var hasCenteredInitialPlace by remember { mutableStateOf(false) }
-    val initialCameraTarget = uiState.userLocation?.let { location ->
+    val initialCameraTarget = focusedLocation?.let { location ->
+        LatLng(location.latitude, location.longitude)
+    } ?: uiState.userLocation?.let { location ->
         LatLng(location.latitude, location.longitude)
     } ?: firstPlace?.let { place ->
         LatLng(place.latitude, place.longitude)
@@ -88,11 +105,18 @@ fun MapScreen(
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(
             initialCameraTarget ?: CampoGrandeRioDeJaneiro,
-            if (uiState.userLocation != null) 14f else 12f,
+            when {
+                focusedLocation != null -> 16f
+                uiState.userLocation != null -> 14f
+                else -> 12f
+            },
         )
     }
     val context = LocalContext.current
-    val markerIcon = remember { mutableStateOf<BitmapDescriptor?>(null) }
+    val routeCameraPadding = with(LocalDensity.current) {
+        SextouSpacing.Xl.roundToPx()
+    }
+    val markerIcons = remember { mutableStateOf<Map<Int, BitmapDescriptor>>(emptyMap()) }
     val mapStyleOptions = remember(context) {
         runCatching {
             MapStyleOptions.loadRawResourceStyle(context, R.raw.map_style)
@@ -131,19 +155,37 @@ fun MapScreen(
         }
     }
 
-    LaunchedEffect(uiState.userLocation) {
-        uiState.userLocation?.let { location ->
+    LaunchedEffect(focusedLocation) {
+        focusedLocation?.let { location ->
+            hasCenteredInitialPlace = true
+            cameraPositionState.animate(
+                CameraUpdateFactory.newLatLngZoom(
+                    LatLng(location.latitude, location.longitude),
+                    16f,
+                ),
+            )
+        }
+    }
+
+    LaunchedEffect(uiState.userLocation, focusedLocation) {
+        if (focusedLocation == null) {
+            uiState.userLocation?.let { location ->
             cameraPositionState.animate(
                 CameraUpdateFactory.newLatLngZoom(
                     LatLng(location.latitude, location.longitude),
                     14f,
                 ),
             )
+            }
         }
     }
 
-    LaunchedEffect(firstPlace?.id, uiState.userLocation) {
-        if (uiState.userLocation == null && firstPlace != null && !hasCenteredInitialPlace) {
+    LaunchedEffect(firstPlace?.id, uiState.userLocation, focusedLocation) {
+        if (focusedLocation == null &&
+            uiState.userLocation == null &&
+            firstPlace != null &&
+            !hasCenteredInitialPlace
+        ) {
             hasCenteredInitialPlace = true
             cameraPositionState.animate(
                 CameraUpdateFactory.newLatLngZoom(
@@ -151,6 +193,15 @@ fun MapScreen(
                     13f,
                 ),
             )
+        }
+    }
+
+    LaunchedEffect(focusedPlaceId, uiState.places) {
+        focusedPlaceId?.let { placeId ->
+            if (uiState.places.any { it.id == placeId }) {
+                selectedPlaceId = placeId
+                selectionRequest++
+            }
         }
     }
 
@@ -178,12 +229,27 @@ fun MapScreen(
             properties = mapProperties,
             uiSettings = mapUiSettings,
             onMapLoaded = {
-                if (markerIcon.value == null) {
-                    markerIcon.value = context.createMapMarkerIcon()
+                if (markerIcons.value.isEmpty()) {
+                    markerIcons.value = (MapMarkerResources + UserLocationMarkerResource)
+                        .mapNotNull { resource ->
+                        context.createMapMarkerIcon(resource)?.let { icon ->
+                            resource to icon
+                        }
+                    }.toMap()
                 }
                 isMapReady = true
             },
         ) {
+            if (uiState.routePoints.size > 1) {
+                Polyline(
+                    points = uiState.routePoints.map { point ->
+                        LatLng(point.latitude, point.longitude)
+                    },
+                    color = SextouColors.Accent,
+                    width = RouteStrokeWidth,
+                )
+            }
+
             uiState.userLocation?.let { location ->
                 Circle(
                     center = LatLng(location.latitude, location.longitude),
@@ -192,12 +258,33 @@ fun MapScreen(
                     strokeColor = SextouColors.Primary,
                     strokeWidth = 2f,
                 )
+
+                val userMarkerState = remember(location.latitude, location.longitude) {
+                    MarkerState(
+                        position = LatLng(location.latitude, location.longitude),
+                    )
+                }
+                Marker(
+                    state = userMarkerState,
+                    icon = markerIcons.value[UserLocationMarkerResource],
+                    rotation = location.bearingDegrees ?: 0f,
+                    flat = true,
+                    anchor = Offset(0.5f, 0.5f),
+                    contentDescription = stringResource(
+                        R.string.map_user_location_content_description,
+                    ),
+                )
             }
 
             uiState.places.forEach { place ->
                 val markerState = remember(place.id) {
                     MarkerState(position = LatLng(place.latitude, place.longitude))
                 }
+                val markerResource = mapMarkerIconResource(
+                    placeId = place.id,
+                    favoritePlaceIds = uiState.favoritePlaceIds,
+                    ignoredPlaceIds = uiState.ignoredPlaceIds,
+                )
                 Marker(
                     state = markerState,
                     title = place.name,
@@ -208,12 +295,30 @@ fun MapScreen(
                         R.string.map_marker_content_description,
                         place.name,
                     ),
-                    icon = markerIcon.value,
+                    icon = markerIcons.value[markerResource],
                     onClick = {
                         centerMapOnPlace(place)
                         selectionRequest++
                         true
                     },
+                )
+            }
+        }
+
+        LaunchedEffect(uiState.routePoints, isMapReady) {
+            if (isMapReady && uiState.routePoints.size > 1) {
+                val routeBounds = LatLngBounds.builder()
+                    .apply {
+                        uiState.routePoints.forEach { point ->
+                            include(LatLng(point.latitude, point.longitude))
+                        }
+                    }
+                    .build()
+                cameraPositionState.animate(
+                    CameraUpdateFactory.newLatLngBounds(
+                        routeBounds,
+                        routeCameraPadding,
+                    ),
                 )
             }
         }
@@ -250,13 +355,17 @@ fun MapScreen(
             modifier = Modifier.align(Alignment.TopEnd),
         )
 
-        if (uiState.isLoading) {
+        if (uiState.isLoading || uiState.isRouteLoading) {
             LinearProgressIndicator(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .fillMaxWidth()
                     .height(2.dp),
-                color = SextouColors.Primary,
+                color = if (uiState.isRouteLoading) {
+                    SextouColors.Accent
+                } else {
+                    SextouColors.Primary
+                },
                 trackColor = androidx.compose.ui.graphics.Color.Transparent,
             )
         }
@@ -309,11 +418,11 @@ fun MapScreen(
     }
 }
 
-private fun Context.createMapMarkerIcon(): BitmapDescriptor? {
+private fun Context.createMapMarkerIcon(@DrawableRes resourceId: Int): BitmapDescriptor? {
     return runCatching {
         val drawable = ContextCompat.getDrawable(
             this,
-            DesignSystemR.drawable.ic_sextou_map_marker_listados,
+            resourceId,
         ) ?: return null
         val width = drawable.intrinsicWidth.takeIf { it > 0 } ?: 1
         val height = drawable.intrinsicHeight.takeIf { it > 0 } ?: 1

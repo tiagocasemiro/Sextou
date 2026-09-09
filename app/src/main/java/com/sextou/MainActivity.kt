@@ -9,11 +9,11 @@ import androidx.activity.compose.setContent
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.sextou.designsystem.theme.SextouTheme
-import com.sextou.domain.places.model.GeoPoint
 import com.sextou.features.details.PlaceDetailsViewModel
 import com.sextou.features.feed.FeedViewModel
 import com.sextou.features.map.MapViewModel
 import com.sextou.location.LocationProvider
+import com.sextou.location.LocationSnapshot
 import com.sextou.navigation.SextouNavHost
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -84,9 +84,12 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun publishLocation(location: GeoPoint) {
-        feedViewModel.onLocationChanged(location)
-        mapViewModel.onLocationChanged(location)
+    private fun publishLocation(location: LocationSnapshot) {
+        feedViewModel.onLocationChanged(location.point)
+        mapViewModel.onLocationChanged(
+            location = location.point,
+            bearingDegrees = location.bearingDegrees,
+        )
     }
 
     private companion object {

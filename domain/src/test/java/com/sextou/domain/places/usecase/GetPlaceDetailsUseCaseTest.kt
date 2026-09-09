@@ -13,6 +13,8 @@ import com.sextou.domain.places.model.PlaceSummary
 import com.sextou.domain.places.model.NearbySearchRequest
 import com.sextou.domain.places.model.PlaceTextSearchRequest
 import com.sextou.domain.places.repository.PlacesRepository
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -20,18 +22,21 @@ import org.junit.Test
 
 class GetPlaceDetailsUseCaseTest {
     private lateinit var repository: DetailsRecordingPlacesRepository
+    private lateinit var localRepository: DetailsRecordingPlacesLocalRepository
 
     @Before
     fun setUp() {
         repository = DetailsRecordingPlacesRepository()
+        localRepository = DetailsRecordingPlacesLocalRepository()
     }
 
     @Test
     fun blankPlaceIdReturnsFailureWithoutCallingRemoteRepository() = kotlinx.coroutines.test.runTest {
-        val result = GetPlaceDetailsUseCase(repository).invoke(" ")
+        val result = GetPlaceDetailsUseCase(repository, localRepository).invoke(" ")
 
         assertTrue(result is Failure)
         assertEquals(null, repository.lastDetailsRequest)
+        assertTrue(localRepository.savedPlaces.isEmpty())
     }
 
     @Test
@@ -39,10 +44,24 @@ class GetPlaceDetailsUseCaseTest {
         val details = samplePlaceDetails()
         repository.detailsResult = Success(details)
 
-        val result = GetPlaceDetailsUseCase(repository).invoke("place-1")
+        val result = GetPlaceDetailsUseCase(repository, localRepository).invoke("place-1")
 
         assertEquals(Success(details), result)
         assertEquals(PlaceDetailsRequest("place-1", "BR"), repository.lastDetailsRequest)
+        assertEquals(listOf("place-1"), localRepository.savedPlaces.map(PlaceSummary::id))
+        assertEquals(4.7, localRepository.savedPlaces.single().rating ?: 0.0, 0.0)
+        assertEquals(123, localRepository.savedPlaces.single().userRatingCount)
+    }
+}
+
+private class DetailsRecordingPlacesLocalRepository : PlacesRepository.Local {
+    var savedPlaces: List<PlaceSummary> = emptyList()
+
+    override fun observeAll(): Flow<List<PlaceSummary>> = emptyFlow()
+
+    override suspend fun saveAll(places: List<PlaceSummary>): Result<Unit> {
+        savedPlaces = places
+        return Success(Unit)
     }
 }
 
@@ -97,8 +116,8 @@ private fun samplePlaceDetails() = PlaceDetails(
     currentSecondaryOpeningHours = emptyList(),
     priceLevel = null,
     priceRange = null,
-    rating = null,
-    userRatingCount = null,
+    rating = 4.7,
+    userRatingCount = 123,
     accessibility = null,
     parking = null,
     payment = null,

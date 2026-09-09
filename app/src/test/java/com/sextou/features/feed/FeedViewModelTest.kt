@@ -7,7 +7,6 @@ import com.sextou.domain.Result
 import com.sextou.domain.Success
 import com.sextou.domain.favorites.repository.FavoriteRepository
 import com.sextou.domain.favorites.usecase.ObserveFavoritesUseCase
-import com.sextou.domain.favorites.usecase.ToggleFavoriteUseCase
 import com.sextou.domain.places.model.BusinessStatus
 import com.sextou.domain.places.model.GeoPoint
 import com.sextou.domain.places.model.NearbySearchRequest
@@ -15,14 +14,16 @@ import com.sextou.domain.places.model.PlaceDetails
 import com.sextou.domain.places.model.PlaceDetailsRequest
 import com.sextou.domain.places.model.PlacePhoto
 import com.sextou.domain.places.model.PlacePhotoRequest
+import com.sextou.domain.places.model.PlaceStatus
 import com.sextou.domain.places.model.PlaceSummary
 import com.sextou.domain.places.model.PlaceTextSearchRequest
+import com.sextou.domain.places.repository.PlaceStatusRepository
 import com.sextou.domain.places.repository.PlacesRepository
 import com.sextou.domain.places.usecase.ObservePlacesUseCase
 import com.sextou.domain.places.usecase.SearchPlacesUseCase
+import com.sextou.domain.places.usecase.SetPlaceStatusUseCase
 import com.sextou.domain.visits.repository.VisitRepository
 import com.sextou.domain.visits.usecase.ObserveVisitedPlacesUseCase
-import com.sextou.domain.visits.usecase.ToggleVisitedPlaceUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -86,7 +87,7 @@ class FeedViewModelTest {
     }
 
     @Test
-    fun favoriteAndVisitedActionsToggleIndependently() {
+    fun favoriteAndVisitedActionsAreExclusive() {
         val viewModel = feedViewModel(
             searchPlacesUseCase = FakeSearchPlacesUseCase { Success(emptyList()) },
         )
@@ -94,10 +95,9 @@ class FeedViewModelTest {
         viewModel.onFavoriteClicked("ao-ponto")
         viewModel.onVisitedClicked("ao-ponto")
 
-        assertTrue("ao-ponto" in viewModel.uiState.value.favoritePlaceIds)
         assertTrue("ao-ponto" in viewModel.uiState.value.visitedPlaceIds)
+        assertTrue(viewModel.uiState.value.favoritePlaceIds.isEmpty())
 
-        viewModel.onFavoriteClicked("ao-ponto")
         viewModel.onVisitedClicked("ao-ponto")
 
         assertTrue(viewModel.uiState.value.favoritePlaceIds.isEmpty())
@@ -285,16 +285,16 @@ private fun feedViewModel(
     visitedPlaceIds: Set<String> = emptySet(),
     savedPlaces: List<PlaceSummary> = emptyList(),
 ): FeedViewModel {
-    val favoriteRepository = FakeFavoriteRepository(favoritePlaceIds)
-    val visitedRepository = FakeVisitRepository(visitedPlaceIds)
+    val statusRepository = FakeStatusRepository(favoritePlaceIds, visitedPlaceIds)
+    val favoriteRepository = FakeFavoriteRepository(statusRepository)
+    val visitedRepository = FakeVisitRepository(statusRepository)
     val placesRepository = FakePlacesLocalRepository(savedPlaces)
     return FeedViewModel(
         searchPlacesUseCase = searchPlacesUseCase,
         observePlacesUseCase = ObservePlacesUseCase(placesRepository),
         observeFavoritesUseCase = ObserveFavoritesUseCase(favoriteRepository),
-        toggleFavoriteUseCase = ToggleFavoriteUseCase(favoriteRepository),
         observeVisitedPlacesUseCase = ObserveVisitedPlacesUseCase(visitedRepository),
-        toggleVisitedPlaceUseCase = ToggleVisitedPlaceUseCase(visitedRepository),
+        setPlaceStatusUseCase = SetPlaceStatusUseCase(statusRepository),
         initialLocation = initialLocation,
     )
 }
@@ -310,27 +310,48 @@ private class FakePlacesLocalRepository(
 }
 
 private class FakeFavoriteRepository(
-    initialIds: Set<String>,
+    private val statusRepository: FakeStatusRepository,
 ) : FavoriteRepository.Local {
-    private val ids = MutableStateFlow(initialIds)
-
-    override fun observeIds(): Flow<Set<String>> = ids
+    override fun observeIds(): Flow<Set<String>> = statusRepository.favoriteIds
 
     override suspend fun setSelected(placeId: String, selected: Boolean): Result<Unit> {
-        ids.value = if (selected) ids.value + placeId else ids.value - placeId
-        return Success(Unit)
+        return statusRepository.setStatus(
+            placeId,
+            PlaceStatus.FAVORITE.takeIf { selected },
+        )
     }
 }
 
 private class FakeVisitRepository(
-    initialIds: Set<String>,
+    private val statusRepository: FakeStatusRepository,
 ) : VisitRepository.Local {
-    private val ids = MutableStateFlow(initialIds)
-
-    override fun observeIds(): Flow<Set<String>> = ids
+    override fun observeIds(): Flow<Set<String>> = statusRepository.visitedIds
 
     override suspend fun setSelected(placeId: String, selected: Boolean): Result<Unit> {
-        ids.value = if (selected) ids.value + placeId else ids.value - placeId
+        return statusRepository.setStatus(
+            placeId,
+            PlaceStatus.VISITED.takeIf { selected },
+        )
+    }
+}
+
+private class FakeStatusRepository(
+    favoritePlaceIds: Set<String>,
+    visitedPlaceIds: Set<String>,
+) : PlaceStatusRepository.Local {
+    val favoriteIds = MutableStateFlow(favoritePlaceIds)
+    val visitedIds = MutableStateFlow(visitedPlaceIds)
+
+    override suspend fun setStatus(placeId: String, status: PlaceStatus?): Result<Unit> {
+        favoriteIds.value = favoriteIds.value - placeId
+        visitedIds.value = visitedIds.value - placeId
+        when (status) {
+            PlaceStatus.FAVORITE -> favoriteIds.value += placeId
+            PlaceStatus.VISITED -> visitedIds.value += placeId
+            PlaceStatus.IGNORED,
+            null,
+            -> Unit
+        }
         return Success(Unit)
     }
 }

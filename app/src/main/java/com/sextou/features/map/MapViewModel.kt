@@ -5,18 +5,24 @@ import androidx.lifecycle.viewModelScope
 import com.sextou.domain.Failure
 import com.sextou.domain.Loading
 import com.sextou.domain.Success
+import com.sextou.domain.favorites.usecase.ObserveFavoritesUseCase
+import com.sextou.domain.ignored.usecase.ObserveIgnoredPlacesUseCase
 import com.sextou.domain.places.model.GeoPoint
 import com.sextou.domain.places.model.PlacePhoto
 import com.sextou.domain.places.model.PlacePhotoReference
 import com.sextou.domain.places.usecase.GetPlacePhotoUseCase
 import com.sextou.domain.places.usecase.SearchPlacesUseCase
+import com.sextou.domain.routes.usecase.GetRouteUseCase
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.isActive
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -26,6 +32,9 @@ import kotlin.math.sqrt
 class MapViewModel(
     private val searchPlacesUseCase: SearchPlacesUseCase,
     private val getPlacePhotoUseCase: GetPlacePhotoUseCase,
+    private val getRouteUseCase: GetRouteUseCase,
+    private val observeFavoritesUseCase: ObserveFavoritesUseCase,
+    private val observeIgnoredPlacesUseCase: ObserveIgnoredPlacesUseCase,
     initialLocation: GeoPoint? = null,
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(
@@ -38,9 +47,27 @@ class MapViewModel(
     private var pendingSearchLocation: GeoPoint? = null
     private var searchJob: Job? = null
     private var photoJob: Job? = null
+    private var routeJob: Job? = null
     private var photoLoadGeneration = 0L
+    private var routeDestination: GeoPoint? = null
+    private var requestedRoute: RouteRequest? = null
 
     val uiState: StateFlow<MapUiState> = mutableUiState.asStateFlow()
+
+    init {
+        observeFavoritesUseCase()
+            .onEach { placeIds ->
+                mutableUiState.update { state -> state.copy(favoritePlaceIds = placeIds) }
+            }
+            .catch { throwable -> handleMarkerStateFailure(throwable) }
+            .launchIn(viewModelScope)
+        observeIgnoredPlacesUseCase()
+            .onEach { placeIds ->
+                mutableUiState.update { state -> state.copy(ignoredPlaceIds = placeIds) }
+            }
+            .catch { throwable -> handleMarkerStateFailure(throwable) }
+            .launchIn(viewModelScope)
+    }
 
     fun load(query: String) {
         activeQuery = query
@@ -208,18 +235,102 @@ class MapViewModel(
         load(activeQuery)
     }
 
-    fun onLocationChanged(location: GeoPoint?) {
-        if (location == searchLocation) return
+    fun onLocationChanged(
+        location: GeoPoint?,
+        bearingDegrees: Float? = null,
+    ) {
+        val locationChanged = location != searchLocation
+        val currentUserLocation = mutableUiState.value.userLocation
+        val bearingChanged = currentUserLocation?.bearingDegrees != bearingDegrees
+        if (!locationChanged && !bearingChanged) return
 
-        pendingSearchLocation = null
-        searchLocation = location
-        mutableUiState.update { it.copy(userLocation = location?.toUiModel()) }
-        loadedQuery?.let { load(activeQuery) }
+        if (locationChanged) {
+            pendingSearchLocation = null
+            searchLocation = location
+        }
+        mutableUiState.update {
+            it.copy(userLocation = location?.toUiModel(bearingDegrees))
+        }
+        if (locationChanged) {
+            loadedQuery?.let { load(activeQuery) }
+        }
+        loadRouteIfPossible()
     }
 
-    private fun GeoPoint.toUiModel() = MapUserLocationUiModel(
+    fun setRouteDestination(destination: GeoPoint?) {
+        if (routeDestination == destination) return
+
+        routeDestination = destination
+        requestedRoute = null
+        routeJob?.cancel()
+        mutableUiState.update {
+            it.copy(
+                routePoints = emptyList(),
+                isRouteLoading = false,
+                isRouteError = false,
+            )
+        }
+        loadRouteIfPossible()
+    }
+
+    private fun loadRouteIfPossible() {
+        val destination = routeDestination ?: return
+        val origin = mutableUiState.value.userLocation?.toGeoPoint() ?: return
+        val routeRequest = RouteRequest(origin = origin, destination = destination)
+        if (requestedRoute == routeRequest) return
+
+        requestedRoute = routeRequest
+        routeJob?.cancel()
+        routeJob = viewModelScope.launch {
+            mutableUiState.update {
+                it.copy(
+                    routePoints = emptyList(),
+                    isRouteLoading = true,
+                    isRouteError = false,
+                )
+            }
+            try {
+                when (val result = getRouteUseCase(origin, destination)) {
+                    is Success -> mutableUiState.update {
+                        it.copy(
+                            routePoints = result.data.points,
+                            isRouteLoading = false,
+                            isRouteError = false,
+                        )
+                    }
+
+                    is Failure -> mutableUiState.update {
+                        it.copy(isRouteLoading = false, isRouteError = true)
+                    }
+
+                    is Loading<*> -> mutableUiState.update {
+                        it.copy(isRouteLoading = true)
+                    }
+                }
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (_: Exception) {
+                mutableUiState.update {
+                    it.copy(isRouteLoading = false, isRouteError = true)
+                }
+            }
+        }
+    }
+
+    private fun MapUserLocationUiModel.toGeoPoint() = GeoPoint(
         latitude = latitude,
         longitude = longitude,
+    )
+
+    private fun GeoPoint.toUiModel(bearingDegrees: Float? = null) = MapUserLocationUiModel(
+        latitude = latitude,
+        longitude = longitude,
+        bearingDegrees = bearingDegrees,
+    )
+
+    private data class RouteRequest(
+        val origin: GeoPoint,
+        val destination: GeoPoint,
     )
 
     private fun GeoPoint.distanceTo(other: GeoPoint): Double {
@@ -232,6 +343,11 @@ class MapViewModel(
             sin(longitudeDelta / 2) * sin(longitudeDelta / 2)
 
         return EARTH_RADIUS_METERS * 2 * atan2(sqrt(haversine), sqrt(1 - haversine))
+    }
+
+    private fun handleMarkerStateFailure(throwable: Throwable) {
+        if (throwable is CancellationException) throw throwable
+        mutableUiState.update { it.copy(isError = true) }
     }
 
     private companion object {

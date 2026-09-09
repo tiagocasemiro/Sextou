@@ -3,7 +3,6 @@ package com.sextou.features.details
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -12,6 +11,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -41,9 +42,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -61,6 +60,8 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.sextou.R
 import com.sextou.designsystem.R as DesignSystemR
+import com.sextou.designsystem.component.button.SextouButton
+import com.sextou.designsystem.component.button.SextouButtonDefaults
 import com.sextou.designsystem.component.quickaction.SextouQuickAction
 import com.sextou.designsystem.component.quickaction.SextouQuickActionDefaults
 import com.sextou.designsystem.component.statusbadge.SextouStatus
@@ -163,7 +164,6 @@ fun PlaceDetailsScreen(
     onFavoriteClick: () -> Unit = {},
     onVisitClick: () -> Unit = {},
     onIgnoreClick: () -> Unit = {},
-    onRatingSelected: (Int) -> Unit = {},
     onOpenMap: () -> Unit = {},
     onOpenMenu: () -> Unit = {},
     onShare: () -> Unit = {},
@@ -181,13 +181,15 @@ fun PlaceDetailsScreen(
             details != null -> {
                 PlaceDetailsScrollContent(
                     details = details,
+                    isFavorite = uiState.isFavorite,
+                    isVisited = uiState.isVisited,
+                    isIgnored = uiState.isIgnored,
                     onBack = onBack,
                     onShare = onShare,
                     onMore = onMore,
                     onFavoriteClick = onFavoriteClick,
                     onVisitClick = onVisitClick,
                     onIgnoreClick = onIgnoreClick,
-                    onRatingSelected = onRatingSelected,
                     onOpenMap = onOpenMap,
                     onOpenMenu = onOpenMenu,
                 )
@@ -216,13 +218,15 @@ fun PlaceDetailsScreen(
 @Composable
 private fun PlaceDetailsScrollContent(
     details: PlaceDetailsUiModel,
+    isFavorite: Boolean,
+    isVisited: Boolean,
+    isIgnored: Boolean,
     onBack: () -> Unit,
     onShare: () -> Unit,
     onMore: () -> Unit,
     onFavoriteClick: () -> Unit,
     onVisitClick: () -> Unit,
     onIgnoreClick: () -> Unit,
-    onRatingSelected: (Int) -> Unit,
     onOpenMap: () -> Unit,
     onOpenMenu: () -> Unit,
 ) {
@@ -262,11 +266,17 @@ private fun PlaceDetailsScrollContent(
                         PlaceDetailsMetadata(details = details)
                     }
                     PlaceDetailsQuickActions(
+                        isFavorite = isFavorite,
+                        isVisited = isVisited,
+                        isIgnored = isIgnored,
                         onFavoriteClick = onFavoriteClick,
                         onVisitClick = onVisitClick,
                         onIgnoreClick = onIgnoreClick,
                     )
-                    PlaceDetailsRatingCard(onRatingSelected = onRatingSelected)
+                    PlaceDetailsRatingCard(
+                        rating = details.rating,
+                        ratingsCount = details.ratingsCount,
+                    )
                     details.movement?.let { movement ->
                         PlaceDetailsMovementCard(movement = movement)
                     }
@@ -618,6 +628,9 @@ private fun DetailsMetadataItem(
 
 @Composable
 private fun PlaceDetailsQuickActions(
+    isFavorite: Boolean,
+    isVisited: Boolean,
+    isIgnored: Boolean,
     onFavoriteClick: () -> Unit,
     onVisitClick: () -> Unit,
     onIgnoreClick: () -> Unit,
@@ -628,21 +641,31 @@ private fun PlaceDetailsQuickActions(
     ) {
         SextouQuickAction(
             action = SextouQuickActionDefaults.Action.FAVORITAR,
+            selected = isFavorite,
             onClick = onFavoriteClick,
         )
         SextouQuickAction(
             action = SextouQuickActionDefaults.Action.VISITAR,
+            selected = isVisited,
             onClick = onVisitClick,
         )
         SextouQuickAction(
             action = SextouQuickActionDefaults.Action.IGNORAR,
+            selected = isIgnored,
             onClick = onIgnoreClick,
         )
     }
 }
 
 @Composable
-private fun PlaceDetailsRatingCard(onRatingSelected: (Int) -> Unit) {
+private fun PlaceDetailsRatingCard(
+    rating: Double?,
+    ratingsCount: Int?,
+) {
+    val normalizedRating = rating?.coerceIn(0.0, 5.0)
+    val ratingDescription = normalizedRating?.let {
+        stringResource(R.string.details_google_rating_content_description, it)
+    } ?: stringResource(R.string.details_google_rating_unavailable_content_description)
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -659,42 +682,83 @@ private fun PlaceDetailsRatingCard(onRatingSelected: (Int) -> Unit) {
             verticalArrangement = Arrangement.spacedBy(SextouSpacing.Md),
         ) {
             Text(
-                text = stringResource(R.string.details_rating_prompt),
+                text = stringResource(R.string.details_google_rating_prompt),
                 style = SextouTextStyles.SectionTitle,
                 color = SextouColors.TextPrimary,
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(SextouSpacing.Sm)) {
+            Row(
+                modifier = Modifier.semantics {
+                    contentDescription = ratingDescription
+                },
+                horizontalArrangement = Arrangement.spacedBy(SextouSpacing.Sm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 repeat(5) { index ->
-                    val starDescription = stringResource(
-                        R.string.details_rating_star_content_description,
-                        index + 1,
+                    PlaceDetailsRatingStar(
+                        fillFraction = normalizedRating
+                            ?.minus(index)
+                            ?.coerceIn(0.0, 1.0)
+                            ?.toFloat()
+                            ?: 0f,
                     )
-                    Box(
-                        modifier = Modifier
-                            .width(27.dp)
-                            .height(32.dp)
-                            .clickable(
-                                role = Role.Button,
-                                onClick = { onRatingSelected(index + 1) },
-                            )
-                            .semantics {
-                                contentDescription = starDescription
-                            },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Image(
-                            painter = painterResource(R.drawable.details_user_rating_star),
-                            contentDescription = null,
-                            modifier = Modifier.size(27.dp, 24.dp),
-                        )
-                    }
+                }
+                normalizedRating?.let {
+                    Text(
+                        text = stringResource(R.string.details_rating_value, it),
+                        style = PlaceDetailsMetaStyle.copy(fontWeight = FontWeight.Bold),
+                        color = SextouColors.PrimaryStrong,
+                    )
+                }
+                ratingsCount?.let {
+                    Text(
+                        text = stringResource(R.string.details_rating_count_short, it),
+                        style = PlaceDetailsSmallStyle,
+                        color = SextouColors.TextSecondary,
+                    )
                 }
             }
             Text(
-                text = stringResource(R.string.details_rating_hint),
+                text = if (normalizedRating == null) {
+                    stringResource(R.string.details_google_rating_unavailable)
+                } else {
+                    stringResource(R.string.details_google_rating_hint)
+                },
                 style = PlaceDetailsSmallStyle,
                 color = SextouColors.TextSecondary,
             )
+        }
+    }
+}
+
+@Composable
+private fun PlaceDetailsRatingStar(fillFraction: Float) {
+    Box(
+        modifier = Modifier
+            .width(27.dp)
+            .height(24.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.ic_feed_card_star),
+            contentDescription = null,
+            tint = SextouColors.TextSecondary,
+            modifier = Modifier.size(27.dp, 24.dp),
+        )
+        if (fillFraction > 0f) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(fillFraction)
+                    .clip(RoundedCornerShape(0.dp)),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_feed_rating_star),
+                    contentDescription = null,
+                    tint = SextouColors.PrimaryStrong,
+                    modifier = Modifier.size(27.dp, 24.dp),
+                )
+            }
         }
     }
 }
@@ -851,18 +915,14 @@ private fun PlaceDetailsLocation(
                 style = PlaceDetailsSectionTitleStyle,
                 color = SextouColors.TextPrimary,
             )
-            Text(
-                text = stringResource(R.string.details_open_map),
-                modifier = Modifier
-                    .clickable(
-                        role = Role.Button,
-                        onClick = onOpenMap,
-                    )
-                    .semantics {
-                        contentDescription = openMapDescription
-                    },
-                style = SextouTextStyles.StatusBadge,
-                color = SextouColors.Primary,
+            SextouButton(
+                label = stringResource(R.string.details_open_map),
+                onClick = onOpenMap,
+                modifier = Modifier.semantics {
+                    this.contentDescription = openMapDescription
+                },
+                size = SextouButtonDefaults.Size.Small,
+                style = SextouButtonDefaults.ghostStyle(),
             )
         }
         DetailsMap(location = location)
@@ -1144,18 +1204,14 @@ private fun PlaceDetailsMenu(
                 val menuDescription = stringResource(
                     R.string.details_menu_open_content_description,
                 )
-                Text(
-                    text = stringResource(R.string.details_menu_open),
-                    modifier = Modifier
-                        .clickable(
-                            role = Role.Button,
-                            onClick = onOpenMenu,
-                        )
-                        .semantics {
-                            contentDescription = menuDescription
-                        },
-                    style = SextouTextStyles.StatusBadge,
-                    color = SextouColors.Primary,
+                SextouButton(
+                    label = stringResource(R.string.details_menu_open),
+                    onClick = onOpenMenu,
+                    modifier = Modifier.semantics {
+                        this.contentDescription = menuDescription
+                    },
+                    size = SextouButtonDefaults.Size.Small,
+                    style = SextouButtonDefaults.ghostStyle(),
                 )
             }
         }

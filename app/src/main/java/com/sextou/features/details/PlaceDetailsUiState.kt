@@ -74,6 +74,9 @@ data class PlaceDetailsUiState(
     val isLoading: Boolean = false,
     val isError: Boolean = false,
     val place: PlaceDetailsUiModel? = null,
+    val isFavorite: Boolean = false,
+    val isVisited: Boolean = false,
+    val isIgnored: Boolean = false,
 )
 
 data class PlaceDetailsFallback(

@@ -16,6 +16,7 @@ import com.sextou.features.feed.FeedViewModel
 import com.sextou.features.map.MapPlaceUiModel
 import com.sextou.features.map.MapDestination
 import com.sextou.features.map.MapViewModel
+import com.sextou.domain.places.model.GeoPoint
 
 @Composable
 fun SextouNavHost(
@@ -52,12 +53,28 @@ fun SextouNavHost(
                     type = NavType.StringType
                     defaultValue = ""
                 },
+                navArgument(AppRoutes.MAP_FOCUS_PLACE_ID_ARGUMENT) {
+                    type = NavType.StringType
+                    defaultValue = ""
+                },
+                navArgument(AppRoutes.MAP_FOCUS_LATITUDE_ARGUMENT) {
+                    type = NavType.StringType
+                    defaultValue = ""
+                },
+                navArgument(AppRoutes.MAP_FOCUS_LONGITUDE_ARGUMENT) {
+                    type = NavType.StringType
+                    defaultValue = ""
+                },
             ),
         ) { backStackEntry ->
             MapDestination(
                 query = backStackEntry.arguments
                     ?.getString(AppRoutes.QUERY_ARGUMENT)
                     .orEmpty(),
+                focusedPlaceId = backStackEntry.arguments
+                    ?.getString(AppRoutes.MAP_FOCUS_PLACE_ID_ARGUMENT)
+                    ?.takeIf(String::isNotBlank),
+                focusedLocation = backStackEntry.arguments.toFocusedLocation(),
                 viewModel = mapViewModel,
                 onPlaceClicked = { placeId ->
                     placeDetailsViewModel.setFallback(
@@ -93,6 +110,16 @@ fun SextouNavHost(
                     .orEmpty(),
                 viewModel = placeDetailsViewModel,
                 onBack = navController::popBackStack,
+                onOpenMap = { location ->
+                    navController.navigate(
+                        AppRoutes.map(
+                            query = "",
+                            focusedPlaceId = backStackEntry.arguments
+                                ?.getString(AppRoutes.PLACE_ID_ARGUMENT),
+                            focusedLocation = location,
+                        ),
+                    )
+                },
             )
         }
     }
@@ -124,3 +151,13 @@ private fun MapPlaceUiModel.toDetailsFallback() = PlaceDetailsFallback(
     photoUri = photoUri,
     photoAttribution = photoAttribution,
 )
+
+private fun android.os.Bundle?.toFocusedLocation(): GeoPoint? {
+    val latitude = this?.getString(AppRoutes.MAP_FOCUS_LATITUDE_ARGUMENT)?.toDoubleOrNull()
+    val longitude = this?.getString(AppRoutes.MAP_FOCUS_LONGITUDE_ARGUMENT)?.toDoubleOrNull()
+    return if (latitude != null && longitude != null) {
+        GeoPoint(latitude = latitude, longitude = longitude)
+    } else {
+        null
+    }
+}

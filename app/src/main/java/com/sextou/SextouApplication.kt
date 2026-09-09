@@ -15,7 +15,10 @@ class SextouApplication : Application() {
             modules(
                 appModule,
                 localModule(),
-                networkingModule(BuildConfig.PLACES_API_KEY),
+                networkingModule(
+                    placesApiKey = BuildConfig.PLACES_API_KEY,
+                    mapsApiKey = BuildConfig.MAPS_API_KEY,
+                ),
             )
         }
     }
