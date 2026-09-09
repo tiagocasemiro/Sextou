@@ -3,6 +3,7 @@ package com.sextou.features.feed
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import com.sextou.R
+import com.sextou.domain.places.model.GeoPoint
 
 enum class FeedTab {
     MAP,
@@ -25,6 +26,9 @@ data class FeedPlaceUiModel(
     val nameText: String? = null,
     val highlightText: String? = null,
     val distanceMeters: Double? = null,
+    val address: String? = null,
+    val location: GeoPoint? = null,
+    val googleMapsUri: String? = null,
     val providerAttribution: String? = null,
     @param:StringRes val hoursResId: Int = 0,
     val hoursText: String? = null,

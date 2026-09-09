@@ -75,3 +75,18 @@ data class PlaceDetailsUiState(
     val isError: Boolean = false,
     val place: PlaceDetailsUiModel? = null,
 )
+
+data class PlaceDetailsFallback(
+    val id: String,
+    val name: String,
+    val category: String?,
+    val address: String?,
+    val rating: Double?,
+    val ratingsCount: Int?,
+    val priceLevel: Int?,
+    val location: GeoPoint?,
+    val googleMapsUri: String?,
+    val photoUri: String? = null,
+    val photoAttribution: String? = null,
+    val providerAttribution: String = "Google Maps",
+)

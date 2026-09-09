@@ -1,5 +1,18 @@
 # Decisões do agente
 
+## 2026-09-08 — Fallback do detalhe quando a quota do Places é excedida
+
+O `GetPlaceRequest` do projeto retornou quota diária excedida ao abrir um
+estabelecimento. Para não transformar uma falha de enriquecimento remoto em
+uma tela vazia, o Feed e o Mapa agora entregam ao detalhe os dados resumidos
+que já possuem; o `PlaceDetailsViewModel` os mantém visíveis quando a chamada
+de detalhes falha. O detalhe continua substituindo o fallback pelos dados
+completos quando a API responde normalmente. A máscara de campos do
+`FetchPlaceRequest` também foi reduzida aos dados usados pela tela, evitando a
+solicitação de campos não renderizados e reduzindo custo, latência e consumo
+de quota. A quota do projeto Google ainda precisa ser ajustada no Cloud
+Console para que os dados completos voltem a ser carregados.
+
 ## 2026-08-31 — Duas buscas Nearby na abertura
 
 Para a busca inicial sem texto e com localização, o `SearchPlacesUseCase` agora
@@ -1067,3 +1080,26 @@ porque o módulo não embarca as fontes do arquivo de design.
   preservando a informação fornecida pela origem.
 * O status de abertura permanece opcional: quando não há confirmação confiável,
   a tela mostra os horários sem afirmar que o estabelecimento está aberto.
+
+## 2026-09-09 — Cache local normalizado dos estabelecimentos
+
+* O `SearchPlacesUseCase` passou a coordenar os contratos remoto e local: depois
+  de uma busca bem-sucedida, persiste a lista sanitizada inteira antes de
+  devolvê-la à apresentação. Falhas de persistência não são ocultadas.
+* O Room foi mantido exclusivamente no módulo `local`, com migration da versão
+  1 para a 2. Os dados do resumo são separados em `places`, `place_types`,
+  `place_photos` e `place_photo_authors`, usando chaves primárias e estrangeiras
+  para evitar listas serializadas e remover relações antigas de forma atômica
+  quando um estabelecimento é atualizado.
+
+## 2026-09-09 — Carregamento inicial local e atualização remota única
+
+* A tela inicial observa todos os estabelecimentos persistidos no Room desde a
+  criação do `FeedViewModel`, exibindo-os enquanto a busca remota é executada
+  em paralelo.
+* A atualização automática inicial só começa quando há localização e é
+  protegida para executar uma única vez por instância do ViewModel. Novas
+  buscas explícitas continuam permitidas para pesquisa, retry e mapa.
+* Cada requisição de busca que aceita raio recebe um valor aleatório entre
+  500 m, 1 km, 2 km, 5 km, 10 km e 20 km. O raio é injetável nos testes para
+  manter o comportamento determinístico.

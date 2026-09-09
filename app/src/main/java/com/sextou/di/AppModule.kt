@@ -4,6 +4,7 @@ import com.sextou.domain.favorites.usecase.ObserveFavoritesUseCase
 import com.sextou.domain.favorites.usecase.ToggleFavoriteUseCase
 import com.sextou.domain.places.usecase.GetPlaceDetailsUseCase
 import com.sextou.domain.places.usecase.GetPlacePhotoUseCase
+import com.sextou.domain.places.usecase.ObservePlacesUseCase
 import com.sextou.domain.places.usecase.SearchPlacesUseCase
 import com.sextou.domain.visits.usecase.ObserveVisitedPlacesUseCase
 import com.sextou.domain.visits.usecase.ToggleVisitedPlaceUseCase
@@ -20,7 +21,13 @@ val appModule = module {
     single<LocationProvider> {
         AndroidLocationProvider(context = androidContext())
     }
-    factory { SearchPlacesUseCase(repository = get()) }
+    factory {
+        SearchPlacesUseCase(
+            repository = get(),
+            localRepository = get(),
+        )
+    }
+    factory { ObservePlacesUseCase(repository = get()) }
     factory { GetPlaceDetailsUseCase(repository = get()) }
     factory { GetPlacePhotoUseCase(repository = get()) }
     factory { ObserveFavoritesUseCase(repository = get()) }
@@ -30,6 +37,7 @@ val appModule = module {
     viewModel {
         FeedViewModel(
             searchPlacesUseCase = get(),
+            observePlacesUseCase = get(),
             observeFavoritesUseCase = get(),
             toggleFavoriteUseCase = get(),
             observeVisitedPlacesUseCase = get(),

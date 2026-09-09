@@ -12,7 +12,9 @@ import com.sextou.domain.places.model.PlaceTextSearchRequest
 import com.sextou.domain.places.repository.PlacesRepository
 
 open class SearchPlacesUseCase(
-    private val repository: PlacesRepository.Remote
+    private val repository: PlacesRepository.Remote,
+    private val localRepository: PlacesRepository.Local,
+    private val radiusProvider: () -> Double = { SEARCH_RADII_METERS.random() },
 ) {
     open suspend operator fun invoke(
         query: String,
@@ -23,9 +25,16 @@ open class SearchPlacesUseCase(
 
         val result = when {
             query.isBlank() && location != null -> {
-                searchNearbyAtConfiguredRadii(
-                    center = location,
-                    includePhotos = includePhotos,
+                repository.searchNearby(
+                    NearbySearchRequest(
+                        center = location,
+                        radiusMeters = radiusProvider(),
+                        includedTypes = FEED_PLACE_TYPES,
+                        maxResults = MAX_RESULTS,
+                        rankPreference = PlaceRankPreference.POPULARITY,
+                        regionCode = REGION_CODE,
+                        includePhotos = includePhotos,
+                    ),
                 )
             }
 
@@ -36,7 +45,7 @@ open class SearchPlacesUseCase(
                     PlaceTextSearchRequest(
                         query = query.trim(),
                         locationBiasCenter = location,
-                        locationBiasRadiusMeters = location?.let { TEXT_SEARCH_RADIUS_METERS },
+                        locationBiasRadiusMeters = location?.let { radiusProvider() },
                         maxResults = MAX_RESULTS,
                         regionCode = REGION_CODE,
                         includePhotos = includePhotos,
@@ -45,36 +54,18 @@ open class SearchPlacesUseCase(
             }
         }
 
-        return result.sanitize()
-    }
+        val sanitizedResult = result.sanitize()
 
-    private suspend fun searchNearbyAtConfiguredRadii(
-        center: GeoPoint,
-        includePhotos: Boolean,
-    ): Result<List<PlaceSummary>> {
-        val places = mutableListOf<PlaceSummary>()
-
-        for (radiusMeters in NEARBY_SEARCH_RADII_METERS) {
-            when (
-                val result = repository.searchNearby(
-                    NearbySearchRequest(
-                        center = center,
-                        radiusMeters = radiusMeters,
-                        includedTypes = FEED_PLACE_TYPES,
-                        maxResults = MAX_RESULTS,
-                        rankPreference = PlaceRankPreference.POPULARITY,
-                        regionCode = REGION_CODE,
-                        includePhotos = includePhotos,
-                    ),
-                )
-            ) {
-                is Success -> places += result.data
-                is Failure -> return result
-                is Loading<*> -> return result
+        return when (sanitizedResult) {
+            is Success -> when (val saveResult = localRepository.saveAll(sanitizedResult.data)) {
+                is Success -> sanitizedResult
+                is Failure -> saveResult
+                is Loading<*> -> saveResult
             }
-        }
 
-        return Success(places)
+            is Failure -> sanitizedResult
+            is Loading<*> -> sanitizedResult
+        }
     }
 
     private fun GeoPoint.validate() {
@@ -94,13 +85,16 @@ open class SearchPlacesUseCase(
     }
 
     private companion object {
-        const val TEXT_SEARCH_RADIUS_METERS = 800.0
         const val MAX_RESULTS = 20
         const val REGION_CODE = "BR"
 
-        val NEARBY_SEARCH_RADII_METERS = listOf(
-            3_000.0,
-            6_000.0,
+        val SEARCH_RADII_METERS = listOf(
+            500.0,
+            1_000.0,
+            2_000.0,
+            5_000.0,
+            10_000.0,
+            20_000.0,
         )
 
         val FEED_PLACE_TYPES = setOf(

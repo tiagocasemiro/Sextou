@@ -106,7 +106,7 @@ data class PlaceDetailsResponse(val place: Place) : DomainMapperResponse<PlaceDe
         iconMaskUrl = place.iconMaskUrl,
         iconBackgroundColor = place.iconBackgroundColor,
         utcOffsetMinutes = place.utcOffsetMinutes,
-        timeZoneId = place.timeZone?.id,
+        timeZoneId = place.timeZone?.toString(),
         openingHours = place.openingHours?.toDomain(),
         currentOpeningHours = place.currentOpeningHours?.toDomain(),
         secondaryOpeningHours = place.secondaryOpeningHours.orEmpty().map { it.toDomain() },

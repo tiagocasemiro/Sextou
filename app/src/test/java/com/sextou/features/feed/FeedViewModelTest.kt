@@ -18,6 +18,7 @@ import com.sextou.domain.places.model.PlacePhotoRequest
 import com.sextou.domain.places.model.PlaceSummary
 import com.sextou.domain.places.model.PlaceTextSearchRequest
 import com.sextou.domain.places.repository.PlacesRepository
+import com.sextou.domain.places.usecase.ObservePlacesUseCase
 import com.sextou.domain.places.usecase.SearchPlacesUseCase
 import com.sextou.domain.visits.repository.VisitRepository
 import com.sextou.domain.visits.usecase.ObserveVisitedPlacesUseCase
@@ -26,6 +27,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -121,6 +123,8 @@ class FeedViewModelTest {
             },
         )
 
+        viewModel.retry()
+
         assertFalse(viewModel.uiState.value.isLoading)
         assertFalse(viewModel.uiState.value.isError)
         assertEquals(listOf("ao-ponto"), viewModel.uiState.value.places.map(FeedPlaceUiModel::id))
@@ -161,6 +165,8 @@ class FeedViewModelTest {
             },
         )
 
+        viewModel.retry()
+
         assertFalse(viewModel.uiState.value.isLoading)
         assertTrue(viewModel.uiState.value.isError)
         assertEquals(R.string.feed_generic_error, viewModel.uiState.value.errorMessageResId)
@@ -181,10 +187,36 @@ class FeedViewModelTest {
         )
 
         viewModel.retry()
+        viewModel.retry()
 
         assertEquals(listOf("ao-ponto"), viewModel.uiState.value.places.map(FeedPlaceUiModel::id))
         assertTrue(viewModel.uiState.value.isStale)
         assertEquals(R.string.feed_generic_error, viewModel.uiState.value.errorMessageResId)
+    }
+
+    @Test
+    fun savedPlacesAreShownBeforeOneAutomaticRefreshAfterLocationArrives() {
+        val searchPlacesUseCase = FakeSearchPlacesUseCase {
+            Success(listOf(place(id = "remote-place", name = "Remote Place")))
+        }
+        val viewModel = feedViewModel(
+            searchPlacesUseCase = searchPlacesUseCase,
+            savedPlaces = listOf(place(id = "saved-place", name = "Saved Place")),
+        )
+
+        assertEquals(
+            listOf("saved-place"),
+            viewModel.uiState.value.places.map(FeedPlaceUiModel::id),
+        )
+
+        viewModel.onLocationChanged(GeoPoint(1.0, 1.0))
+        viewModel.onLocationChanged(GeoPoint(2.0, 2.0))
+
+        assertEquals(1, searchPlacesUseCase.calls.size)
+        assertEquals(
+            setOf("saved-place", "remote-place"),
+            viewModel.uiState.value.places.map(FeedPlaceUiModel::id).toSet(),
+        )
     }
 
     @Test
@@ -215,15 +247,20 @@ class MainDispatcherRule : TestWatcher() {
 
 private class FakeSearchPlacesUseCase(
     private val response: (String) -> Result<List<PlaceSummary>>,
-) : SearchPlacesUseCase(NoOpPlacesRepository()) {
+) : SearchPlacesUseCase(NoOpPlacesRepository(), NoOpPlacesRepository()) {
+    val calls = mutableListOf<String>()
+
     override suspend fun invoke(
         query: String,
         location: GeoPoint?,
         includePhotos: Boolean,
-    ): Result<List<PlaceSummary>> = response(query)
+    ): Result<List<PlaceSummary>> {
+        calls += query
+        return response(query)
+    }
 }
 
-private class NoOpPlacesRepository : PlacesRepository.Remote {
+private class NoOpPlacesRepository : PlacesRepository.Remote, PlacesRepository.Local {
     override suspend fun searchNearby(request: NearbySearchRequest): Result<List<PlaceSummary>> =
         Success(emptyList())
 
@@ -235,6 +272,10 @@ private class NoOpPlacesRepository : PlacesRepository.Remote {
 
     override suspend fun getPhoto(request: PlacePhotoRequest): Result<PlacePhoto> =
         error("Not used")
+
+    override fun observeAll(): Flow<List<PlaceSummary>> = flowOf(emptyList())
+
+    override suspend fun saveAll(places: List<PlaceSummary>): Result<Unit> = Success(Unit)
 }
 
 private fun feedViewModel(
@@ -242,17 +283,30 @@ private fun feedViewModel(
     initialLocation: GeoPoint? = null,
     favoritePlaceIds: Set<String> = emptySet(),
     visitedPlaceIds: Set<String> = emptySet(),
+    savedPlaces: List<PlaceSummary> = emptyList(),
 ): FeedViewModel {
     val favoriteRepository = FakeFavoriteRepository(favoritePlaceIds)
     val visitedRepository = FakeVisitRepository(visitedPlaceIds)
+    val placesRepository = FakePlacesLocalRepository(savedPlaces)
     return FeedViewModel(
         searchPlacesUseCase = searchPlacesUseCase,
+        observePlacesUseCase = ObservePlacesUseCase(placesRepository),
         observeFavoritesUseCase = ObserveFavoritesUseCase(favoriteRepository),
         toggleFavoriteUseCase = ToggleFavoriteUseCase(favoriteRepository),
         observeVisitedPlacesUseCase = ObserveVisitedPlacesUseCase(visitedRepository),
         toggleVisitedPlaceUseCase = ToggleVisitedPlaceUseCase(visitedRepository),
         initialLocation = initialLocation,
     )
+}
+
+private class FakePlacesLocalRepository(
+    initialPlaces: List<PlaceSummary>,
+) : PlacesRepository.Local {
+    private val places = MutableStateFlow(initialPlaces)
+
+    override fun observeAll(): Flow<List<PlaceSummary>> = places
+
+    override suspend fun saveAll(places: List<PlaceSummary>): Result<Unit> = Success(Unit)
 }
 
 private class FakeFavoriteRepository(

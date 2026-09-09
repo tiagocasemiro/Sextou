@@ -11,6 +11,7 @@ import com.sextou.domain.favorites.usecase.ToggleFavoriteUseCase
 import com.sextou.domain.places.model.BusinessStatus
 import com.sextou.domain.places.model.GeoPoint
 import com.sextou.domain.places.model.PlaceSummary
+import com.sextou.domain.places.usecase.ObservePlacesUseCase
 import com.sextou.domain.places.usecase.SearchPlacesUseCase
 import com.sextou.domain.visits.usecase.ObserveVisitedPlacesUseCase
 import com.sextou.domain.visits.usecase.ToggleVisitedPlaceUseCase
@@ -32,6 +33,7 @@ import kotlin.math.sqrt
 
 class FeedViewModel(
     private val searchPlacesUseCase: SearchPlacesUseCase,
+    private val observePlacesUseCase: ObservePlacesUseCase,
     private val observeFavoritesUseCase: ObserveFavoritesUseCase,
     private val toggleFavoriteUseCase: ToggleFavoriteUseCase,
     private val observeVisitedPlacesUseCase: ObserveVisitedPlacesUseCase,
@@ -41,6 +43,7 @@ class FeedViewModel(
     private var searchLocation: GeoPoint? = initialLocation
     private var allPlaces: List<FeedPlaceUiModel> = emptyList()
     private var searchJob: Job? = null
+    private var initialRefreshStarted = false
 
     private val mutableUiState = MutableStateFlow(FeedUiState())
 
@@ -69,7 +72,16 @@ class FeedViewModel(
                 }
             }
             .launchIn(viewModelScope)
-        loadPlaces()
+        observePlacesUseCase()
+            .onEach(::onSavedPlacesChanged)
+            .catch { throwable ->
+                if (throwable is CancellationException) throw throwable
+                mutableUiState.update {
+                    it.copy(actionErrorMessageResId = R.string.feed_local_error)
+                }
+            }
+            .launchIn(viewModelScope)
+        startInitialRefreshIfPossible()
     }
 
     fun onQueryChanged(query: String) {
@@ -82,12 +94,21 @@ class FeedViewModel(
                 errorMessageResId = null,
             )
         }
-        loadPlaces(query)
+        if (query.isBlank()) {
+            startInitialRefreshIfPossible()
+        } else {
+            loadPlaces(query)
+        }
     }
 
     fun onLocationChanged(location: GeoPoint?) {
+        if (searchLocation == location) return
         searchLocation = location
-        loadPlaces()
+        if (mutableUiState.value.query.isBlank()) {
+            startInitialRefreshIfPossible()
+        } else {
+            loadPlaces()
+        }
     }
 
     fun retry() {
@@ -157,6 +178,13 @@ class FeedViewModel(
     }
 
     private fun loadPlaces(query: String = mutableUiState.value.query) {
+        loadPlaces(query = query, preserveSavedPlaces = query.isBlank())
+    }
+
+    private fun loadPlaces(
+        query: String,
+        preserveSavedPlaces: Boolean,
+    ) {
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
             mutableUiState.update {
@@ -171,13 +199,22 @@ class FeedViewModel(
             try {
                 when (val result = searchPlacesUseCase(query, searchLocation)) {
                     is Success -> {
-                        val places = result.data.map { place ->
+                        val searchedPlaces = result.data.map { place ->
                             place.toUiModel(referenceLocation = searchLocation)
+                        }
+                        val places = if (preserveSavedPlaces) {
+                            (searchedPlaces + allPlaces).distinctBy(FeedPlaceUiModel::id)
+                        } else {
+                            searchedPlaces
                         }
                         allPlaces = places
                         mutableUiState.update { state ->
                             state.copy(
-                                places = places,
+                                places = if (preserveSavedPlaces) {
+                                    filterPlaces(places, query)
+                                } else {
+                                    places
+                                },
                                 isLoading = false,
                                 isError = false,
                                 isStale = false,
@@ -223,6 +260,26 @@ class FeedViewModel(
         }
     }
 
+    private fun startInitialRefreshIfPossible() {
+        if (initialRefreshStarted || searchLocation == null) return
+
+        initialRefreshStarted = true
+        loadPlaces(query = "", preserveSavedPlaces = true)
+    }
+
+    private fun onSavedPlacesChanged(places: List<PlaceSummary>) {
+        val mappedPlaces = places.map { place ->
+            place.toUiModel(referenceLocation = searchLocation)
+        }
+        allPlaces = mappedPlaces
+        mutableUiState.update { state ->
+            state.copy(
+                places = filterPlaces(mappedPlaces, state.query),
+                providerAttribution = mappedPlaces.firstOrNull()?.providerAttribution,
+            )
+        }
+    }
+
     private fun filterPlaces(
         places: List<FeedPlaceUiModel>,
         query: String,
@@ -254,6 +311,9 @@ class FeedViewModel(
             distanceMeters = location?.let { placeLocation ->
                 referenceLocation?.distanceTo(placeLocation)
             },
+            address = formattedAddress,
+            location = location,
+            googleMapsUri = googleMapsUri,
             rating = rating?.toFloat(),
             ratingsCount = userRatingCount,
             priceLevel = priceLevel,

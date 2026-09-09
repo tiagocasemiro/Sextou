@@ -82,9 +82,12 @@ class MapViewModel(
                                         latitude = location.latitude,
                                         longitude = location.longitude,
                                         rating = place.rating,
+                                        ratingsCount = place.userRatingCount,
                                         categoryText = place.primaryTypeDisplayName
                                             ?.takeIf(String::isNotBlank)
                                             ?: place.primaryType?.takeIf(String::isNotBlank),
+                                        address = place.formattedAddress,
+                                        googleMapsUri = place.googleMapsUri,
                                         distanceMeters = searchLocation?.distanceTo(location),
                                         priceLevel = place.priceLevel,
                                         primaryType = place.primaryType,

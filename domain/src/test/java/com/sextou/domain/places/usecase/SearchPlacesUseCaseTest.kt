@@ -16,6 +16,8 @@ import com.sextou.domain.places.model.PlaceRankPreference
 import com.sextou.domain.places.model.PlaceSummary
 import com.sextou.domain.places.model.PlaceTextSearchRequest
 import com.sextou.domain.places.repository.PlacesRepository
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -26,26 +28,29 @@ import org.junit.Test
 
 class SearchPlacesUseCaseTest {
     private lateinit var repository: RecordingPlacesRepository
+    private lateinit var localRepository: RecordingPlacesLocalRepository
     private lateinit var useCase: SearchPlacesUseCase
 
     @Before
     fun setUp() {
         repository = RecordingPlacesRepository()
-        useCase = SearchPlacesUseCase(repository)
+        localRepository = RecordingPlacesLocalRepository()
+        useCase = SearchPlacesUseCase(
+            repository = repository,
+            localRepository = localRepository,
+            radiusProvider = { 5_000.0 },
+        )
     }
 
     @Test
-    fun `uses only 3 km and 6 km radii with popularity when query is blank and location exists`() = runTest {
+    fun `uses one random radius with popularity when query is blank and location exists`() = runTest {
         useCase(
             query = "   ",
             location = GeoPoint(latitude = -22.9, longitude = -43.2),
         )
 
         assertEquals(
-            listOf(
-                3_000.0,
-                6_000.0,
-            ),
+            listOf(5_000.0),
             repository.nearbyRequests.map(NearbySearchRequest::radiusMeters),
         )
         repository.nearbyRequests.forEach { request ->
@@ -71,7 +76,7 @@ class SearchPlacesUseCaseTest {
         assertNotNull(request)
         assertEquals("espetinho", request?.query)
         assertEquals(GeoPoint(-22.9, -43.2), request?.locationBiasCenter)
-        assertEquals(800.0, request?.locationBiasRadiusMeters)
+        assertEquals(5_000.0, request?.locationBiasRadiusMeters)
         assertEquals(false, request?.includePhotos)
         assertTrue(repository.nearbyRequests.isEmpty())
     }
@@ -84,15 +89,19 @@ class SearchPlacesUseCaseTest {
             includePhotos = true,
         )
 
-        assertEquals(2, repository.nearbyRequests.size)
+        assertEquals(1, repository.nearbyRequests.size)
         assertTrue(repository.nearbyRequests.all(NearbySearchRequest::includePhotos))
     }
 
     @Test
-    fun `merges successful nearby searches and removes duplicated place ids`() = runTest {
-        repository.nearbyResults = listOf(
-            Success(listOf(place(id = "inner"), place(id = "duplicate"))),
-            Success(listOf(place(id = "duplicate"), place(id = "outer"))),
+    fun `persists all valid places from the single nearby search`() = runTest {
+        repository.nearbyResult = Success(
+            listOf(
+                place(id = "inner"),
+                place(id = "duplicate"),
+                place(id = "duplicate"),
+                place(id = "outer"),
+            ),
         )
 
         val result = useCase(query = "", location = GeoPoint(0.0, 0.0))
@@ -101,11 +110,57 @@ class SearchPlacesUseCaseTest {
             listOf("inner", "duplicate", "outer"),
             (result as Success).data.map(PlaceSummary::id),
         )
-        assertEquals(2, repository.nearbyRequests.size)
+        assertEquals(
+            listOf("inner", "duplicate", "outer"),
+            localRepository.savedPlaces.map(PlaceSummary::id),
+        )
+        assertEquals(1, repository.nearbyRequests.size)
     }
 
     @Test
-    fun `preserves a nearby search failure and does not start later radii`() = runTest {
+    fun `persists every valid establishment from a successful text search`() = runTest {
+        repository.textResult = Success(
+            listOf(
+                place(id = "first"),
+                place(id = "second"),
+            ),
+        )
+
+        val result = useCase(query = "bar", location = null)
+
+        assertEquals(
+            listOf("first", "second"),
+            (result as Success).data.map(PlaceSummary::id),
+        )
+        assertEquals(
+            listOf("first", "second"),
+            localRepository.savedPlaces.map(PlaceSummary::id),
+        )
+    }
+
+    @Test
+    fun `propagates local persistence failure`() = runTest {
+        val expected = Failure(Error(message = "database unavailable"))
+        localRepository.saveResult = expected
+        repository.textResult = Success(listOf(place(id = "place-1")))
+
+        val result = useCase(query = "bar", location = null)
+
+        assertEquals(expected, result)
+        assertEquals(listOf("place-1"), localRepository.savedPlaces.map(PlaceSummary::id))
+    }
+
+    @Test
+    fun `does not persist when the remote search fails`() = runTest {
+        repository.textResult = Failure(Error(message = "offline"))
+
+        useCase(query = "bar", location = null)
+
+        assertTrue(localRepository.savedPlaces.isEmpty())
+    }
+
+    @Test
+    fun `preserves a nearby search failure without retrying another radius`() = runTest {
         val expected = Failure(
             Error(
                 code = 503,
@@ -113,28 +168,22 @@ class SearchPlacesUseCaseTest {
                 message = "Try again",
             ),
         )
-        repository.nearbyResults = listOf(
-            Success(emptyList()),
-            expected,
-        )
+        repository.nearbyResult = expected
 
         val result = useCase(query = "", location = GeoPoint(0.0, 0.0))
 
         assertEquals(expected, result)
-        assertEquals(2, repository.nearbyRequests.size)
+        assertEquals(1, repository.nearbyRequests.size)
     }
 
     @Test
-    fun `preserves nearby loading state and does not start later radii`() = runTest {
-        repository.nearbyResults = listOf(
-            Success(emptyList()),
-            Loading(emptyList<PlaceSummary>()),
-        )
+    fun `preserves nearby loading state without retrying another radius`() = runTest {
+        repository.nearbyResult = Loading(emptyList<PlaceSummary>())
 
         val result = useCase(query = "", location = GeoPoint(0.0, 0.0))
 
         assertEquals(Loading(emptyList<PlaceSummary>()), result)
-        assertEquals(2, repository.nearbyRequests.size)
+        assertEquals(1, repository.nearbyRequests.size)
     }
 
     @Test
@@ -222,6 +271,18 @@ private class RecordingPlacesRepository : PlacesRepository.Remote {
 
     override suspend fun getPhoto(request: PlacePhotoRequest): Result<PlacePhoto> =
         error("Not used")
+}
+
+private class RecordingPlacesLocalRepository : PlacesRepository.Local {
+    val savedPlaces = mutableListOf<PlaceSummary>()
+    var saveResult: Result<Unit> = Success(Unit)
+
+    override fun observeAll(): Flow<List<PlaceSummary>> = flowOf(emptyList())
+
+    override suspend fun saveAll(places: List<PlaceSummary>): Result<Unit> {
+        savedPlaces += places
+        return saveResult
+    }
 }
 
 private fun place(id: String) = PlaceSummary(

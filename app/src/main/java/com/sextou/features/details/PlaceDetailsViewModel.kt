@@ -11,6 +11,7 @@ import com.sextou.domain.places.model.PlacePhoto
 import com.sextou.domain.places.usecase.GetPlaceDetailsUseCase
 import com.sextou.domain.places.usecase.GetPlacePhotoUseCase
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,16 +24,41 @@ class PlaceDetailsViewModel(
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(PlaceDetailsUiState())
     private var loadedPlaceId: String? = null
+    private var pendingFallback: PlaceDetailsFallback? = null
+    private var loadJob: Job? = null
 
     val uiState: StateFlow<PlaceDetailsUiState> = mutableUiState.asStateFlow()
 
+    fun setFallback(fallback: PlaceDetailsFallback?) {
+        pendingFallback = fallback
+        if (fallback != null && loadedPlaceId != fallback.id) {
+            mutableUiState.update {
+                it.copy(
+                    isLoading = false,
+                    isError = false,
+                    place = fallback.toUiModel(),
+                )
+            }
+        }
+    }
+
     fun load(placeId: String) {
+        val fallback = pendingFallback?.takeIf { it.id == placeId }
+        pendingFallback = null
         if (loadedPlaceId == placeId && (mutableUiState.value.isLoading || mutableUiState.value.place != null)) {
             return
         }
         loadedPlaceId = placeId
-        viewModelScope.launch {
-            mutableUiState.update { it.copy(isLoading = true, isError = false) }
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
+            val fallbackUiModel = fallback?.toUiModel()
+            mutableUiState.update {
+                it.copy(
+                    isLoading = true,
+                    isError = false,
+                    place = fallbackUiModel,
+                )
+            }
             try {
                 when (val result = getPlaceDetailsUseCase(placeId)) {
                     is Success -> mutableUiState.update {
@@ -48,7 +74,11 @@ class PlaceDetailsViewModel(
                     }
 
                     is Failure -> mutableUiState.update {
-                        it.copy(isLoading = false, isError = true, place = null)
+                        it.copy(
+                            isLoading = false,
+                            isError = fallbackUiModel == null,
+                            place = fallbackUiModel,
+                        )
                     }
 
                     is Loading<*> -> mutableUiState.update {
@@ -59,7 +89,11 @@ class PlaceDetailsViewModel(
                 throw cancellation
             } catch (_: Exception) {
                 mutableUiState.update {
-                    it.copy(isLoading = false, isError = true, place = null)
+                    it.copy(
+                        isLoading = false,
+                        isError = fallbackUiModel == null,
+                        place = fallbackUiModel,
+                    )
                 }
             }
         }
@@ -87,6 +121,25 @@ class PlaceDetailsViewModel(
             menuUri = websiteUri ?: googleMapsUri,
         )
     }
+
+    private fun PlaceDetailsFallback.toUiModel() = PlaceDetailsUiModel(
+        name = name,
+        category = category,
+        address = address,
+        phone = null,
+        website = null,
+        summary = null,
+        hours = emptyList(),
+        rating = rating,
+        ratingsCount = ratingsCount,
+        providerAttribution = providerAttribution,
+        location = location,
+        priceLevel = priceLevel,
+        photoUri = photoUri,
+        photoAttribution = photoAttribution,
+        photoCount = if (photoUri != null) 1 else 0,
+        menuUri = googleMapsUri,
+    )
 
     private fun PlaceOpeningHours.toUiModel(): PlaceDetailsHoursScheduleUiModel? {
         val rows = weekdayText

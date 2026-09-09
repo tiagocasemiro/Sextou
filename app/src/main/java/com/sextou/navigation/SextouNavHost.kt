@@ -7,10 +7,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.sextou.features.details.PlaceDetailsDestination
+import com.sextou.features.details.PlaceDetailsFallback
 import com.sextou.features.details.PlaceDetailsViewModel
+import com.sextou.features.feed.FeedPlaceUiModel
 import com.sextou.features.feed.FeedDestination
 import com.sextou.features.feed.FeedTab
 import com.sextou.features.feed.FeedViewModel
+import com.sextou.features.map.MapPlaceUiModel
 import com.sextou.features.map.MapDestination
 import com.sextou.features.map.MapViewModel
 
@@ -33,6 +36,11 @@ fun SextouNavHost(
                     navController.navigate(AppRoutes.map(query))
                 },
                 onOpenPlace = { placeId ->
+                    placeDetailsViewModel.setFallback(
+                        feedViewModel.uiState.value.places
+                            .firstOrNull { it.id == placeId }
+                            ?.toDetailsFallback(),
+                    )
                     navController.navigate(AppRoutes.placeDetails(placeId))
                 },
             )
@@ -52,6 +60,11 @@ fun SextouNavHost(
                     .orEmpty(),
                 viewModel = mapViewModel,
                 onPlaceClicked = { placeId ->
+                    placeDetailsViewModel.setFallback(
+                        mapViewModel.uiState.value.places
+                            .firstOrNull { it.id == placeId }
+                            ?.toDetailsFallback(),
+                    )
                     navController.navigate(AppRoutes.placeDetails(placeId))
                 },
                 onTabSelected = { tab ->
@@ -84,3 +97,30 @@ fun SextouNavHost(
         }
     }
 }
+
+private fun FeedPlaceUiModel.toDetailsFallback() = PlaceDetailsFallback(
+    id = id,
+    name = nameText ?: id,
+    category = categoryText,
+    address = address,
+    rating = rating?.toDouble(),
+    ratingsCount = ratingsCount,
+    priceLevel = priceLevel,
+    location = location,
+    googleMapsUri = googleMapsUri,
+    providerAttribution = providerAttribution ?: "Google Maps",
+)
+
+private fun MapPlaceUiModel.toDetailsFallback() = PlaceDetailsFallback(
+    id = id,
+    name = name,
+    category = categoryText,
+    address = address,
+    rating = rating,
+    ratingsCount = ratingsCount,
+    priceLevel = priceLevel,
+    location = com.sextou.domain.places.model.GeoPoint(latitude, longitude),
+    googleMapsUri = googleMapsUri,
+    photoUri = photoUri,
+    photoAttribution = photoAttribution,
+)

@@ -17,6 +17,7 @@ import com.sextou.domain.places.usecase.GetPlacePhotoUseCase
 import com.sextou.domain.places.usecase.SearchPlacesUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -252,7 +253,7 @@ private data class LocationSearchCall(
 
 private class RecordingSearchPlacesUseCase(
     private val result: Result<List<PlaceSummary>> = Success(emptyList()),
-) : SearchPlacesUseCase(NoOpPlacesRepository()) {
+) : SearchPlacesUseCase(NoOpPlacesRepository(), NoOpPlacesRepository()) {
     val calls = mutableListOf<LocationSearchCall>()
 
     override suspend fun invoke(
@@ -269,7 +270,7 @@ private class RecordingSearchPlacesUseCase(
     }
 }
 
-private class NoOpPlacesRepository : PlacesRepository.Remote {
+private class NoOpPlacesRepository : PlacesRepository.Remote, PlacesRepository.Local {
     var lastPhotoRequest: PlacePhotoRequest? = null
     var photoResult: Result<PlacePhoto> = Success(
         PlacePhoto(
@@ -293,6 +294,10 @@ private class NoOpPlacesRepository : PlacesRepository.Remote {
         lastPhotoRequest = request
         return photoResult
     }
+
+    override fun observeAll() = flowOf(emptyList<PlaceSummary>())
+
+    override suspend fun saveAll(places: List<PlaceSummary>): Result<Unit> = Success(Unit)
 }
 
 private fun place(
