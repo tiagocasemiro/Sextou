@@ -48,6 +48,29 @@ class PlacesLocalImpl(
             ),
         )
     }
+
+    override suspend fun saveMissing(places: List<PlaceSummary>): Result<Unit> = try {
+        val uniquePlaces = places
+            .filter { it.id.isNotBlank() }
+            .distinctBy(PlaceSummary::id)
+
+        placesDao.saveMissing(
+            places = uniquePlaces.map(PlaceSummary::toEntity),
+            types = uniquePlaces.flatMap(PlaceSummary::toTypeEntities),
+            photos = uniquePlaces.flatMap(PlaceSummary::toPhotoEntities),
+            photoAuthors = uniquePlaces.flatMap(PlaceSummary::toPhotoAuthorEntities),
+        )
+        Success(Unit)
+    } catch (cancellation: CancellationException) {
+        throw cancellation
+    } catch (exception: Exception) {
+        Failure(
+            Error(
+                message = exception.message?.takeIf(String::isNotBlank)
+                    ?: "Não foi possível salvar os estabelecimentos localmente.",
+            ),
+        )
+    }
 }
 
 private fun PlaceWithRelations.toDomain() = PlaceSummary(

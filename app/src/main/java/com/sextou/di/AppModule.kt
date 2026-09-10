@@ -7,6 +7,7 @@ import com.sextou.domain.ignored.usecase.ToggleIgnoredPlaceUseCase
 import com.sextou.domain.places.usecase.GetPlaceDetailsUseCase
 import com.sextou.domain.places.usecase.GetPlacePhotoUseCase
 import com.sextou.domain.places.usecase.ObservePlacesUseCase
+import com.sextou.domain.places.usecase.SavePlacesUseCase
 import com.sextou.domain.places.usecase.SearchPlacesUseCase
 import com.sextou.domain.places.usecase.SetPlaceStatusUseCase
 import com.sextou.domain.routes.usecase.GetRouteUseCase
@@ -28,10 +29,10 @@ val appModule = module {
     factory {
         SearchPlacesUseCase(
             repository = get(),
-            localRepository = get(),
         )
     }
     factory { ObservePlacesUseCase(repository = get()) }
+    factory { SavePlacesUseCase(repository = get()) }
     factory { GetPlaceDetailsUseCase(repository = get(), localRepository = get()) }
     factory { GetPlacePhotoUseCase(repository = get()) }
     factory { GetRouteUseCase(repository = get()) }
@@ -46,6 +47,7 @@ val appModule = module {
         FeedViewModel(
             searchPlacesUseCase = get(),
             getPlacePhotoUseCase = get(),
+            savePlacesUseCase = get(),
             observePlacesUseCase = get(),
             observeFavoritesUseCase = get(),
             observeVisitedPlacesUseCase = get(),
@@ -56,6 +58,7 @@ val appModule = module {
         MapViewModel(
             searchPlacesUseCase = get(),
             getPlacePhotoUseCase = get(),
+            savePlacesUseCase = get(),
             getRouteUseCase = get(),
             observeFavoritesUseCase = get(),
             observeIgnoredPlacesUseCase = get(),

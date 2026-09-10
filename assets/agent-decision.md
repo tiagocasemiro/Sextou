@@ -1,5 +1,34 @@
 # Decisões do agente
 
+## 2026-09-10 — Persistência assíncrona de todos os resultados de busca
+
+`SearchPlacesUseCase` passou a cuidar somente da consulta remota e da
+sanitização dos resultados. Feed e Mapa atualizam a UI assim que a API retorna
+e iniciam `SavePlacesUseCase` em uma coroutine independente; a transação
+suspensa do Room usa o executor de consultas para executar a persistência fora
+da thread da UI. Falhas do cache não substituem um resultado remoto válido.
+
+Foi adicionada a operação local `saveMissing`, transacional e protegida por
+consulta dos IDs já existentes. Assim, todos os estabelecimentos válidos
+retornados pela busca são considerados, mas registros já salvos — inclusive
+seus dados detalhados e fotos — não são sobrescritos pela busca resumida.
+`saveAll` continua reservado às atualizações completas, como os detalhes do
+estabelecimento.
+
+## 2026-09-10 — Mapa real na localização dos detalhes
+
+* A imagem fixa da seção “Localização” deixou de ser usada como conteúdo em
+  runtime. O detalhe agora monta `GoogleMap` com um `Marker` do Maps Compose
+  nas coordenadas do estabelecimento e reposiciona a câmera quando elas
+  mudam.
+* O marcador visual existente é aplicado como `BitmapDescriptor` depois de o
+  mapa carregar, evitando inicializar a fábrica do Maps antes do SDK estar
+  pronto. A imagem de mapa foi mantida somente no caminho de preview, onde o
+  `GoogleMap` não é renderizado.
+* A dimensão existente de `128.dp` foi preservada. Também foram adicionadas
+  descrições de acessibilidade para o mapa e para o marcador nos recursos de
+  string.
+
 ## 2026-09-09 — Botões da tela de detalhes pelo design system
 
 Os controles de ação da tela de detalhes deixaram de duplicar superfícies

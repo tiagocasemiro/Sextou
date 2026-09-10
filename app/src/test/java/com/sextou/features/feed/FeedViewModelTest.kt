@@ -22,10 +22,12 @@ import com.sextou.domain.places.repository.PlaceStatusRepository
 import com.sextou.domain.places.repository.PlacesRepository
 import com.sextou.domain.places.usecase.ObservePlacesUseCase
 import com.sextou.domain.places.usecase.GetPlacePhotoUseCase
+import com.sextou.domain.places.usecase.SavePlacesUseCase
 import com.sextou.domain.places.usecase.SearchPlacesUseCase
 import com.sextou.domain.places.usecase.SetPlaceStatusUseCase
 import com.sextou.domain.visits.repository.VisitRepository
 import com.sextou.domain.visits.usecase.ObserveVisitedPlacesUseCase
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -130,6 +132,32 @@ class FeedViewModelTest {
         assertFalse(viewModel.uiState.value.isLoading)
         assertFalse(viewModel.uiState.value.isError)
         assertEquals(listOf("ao-ponto"), viewModel.uiState.value.places.map(FeedPlaceUiModel::id))
+    }
+
+    @Test
+    fun `publishes every remote place before background persistence finishes`() {
+        val remotePlaces = listOf(
+            place(id = "place-1", name = "Place 1"),
+            place(id = "place-2", name = "Place 2"),
+            place(id = "place-3", name = "Place 3"),
+        )
+        val savePlacesUseCase = BlockingSavePlacesUseCase()
+        val viewModel = feedViewModel(
+            searchPlacesUseCase = FakeSearchPlacesUseCase { Success(remotePlaces) },
+            savePlacesUseCase = savePlacesUseCase,
+        )
+
+        viewModel.retry()
+
+        assertEquals(
+            remotePlaces.map(PlaceSummary::id),
+            viewModel.uiState.value.places.map(FeedPlaceUiModel::id),
+        )
+        assertTrue(savePlacesUseCase.started.isCompleted)
+        assertEquals(remotePlaces, savePlacesUseCase.receivedPlaces)
+        assertFalse(savePlacesUseCase.release.isCompleted)
+
+        savePlacesUseCase.release.complete(Unit)
     }
 
     @Test
@@ -296,7 +324,7 @@ class MainDispatcherRule : TestWatcher() {
 
 private class FakeSearchPlacesUseCase(
     private val response: (String) -> Result<List<PlaceSummary>>,
-) : SearchPlacesUseCase(NoOpPlacesRepository(), NoOpPlacesRepository()) {
+) : SearchPlacesUseCase(NoOpPlacesRepository()) {
     val calls = mutableListOf<String>()
     val includePhotosCalls = mutableListOf<Boolean>()
 
@@ -308,6 +336,19 @@ private class FakeSearchPlacesUseCase(
         calls += query
         includePhotosCalls += includePhotos
         return response(query)
+    }
+}
+
+private class BlockingSavePlacesUseCase : SavePlacesUseCase(NoOpPlacesRepository()) {
+    val started = CompletableDeferred<Unit>()
+    val release = CompletableDeferred<Unit>()
+    var receivedPlaces: List<PlaceSummary> = emptyList()
+
+    override suspend fun invoke(places: List<PlaceSummary>): Result<Unit> {
+        receivedPlaces = places
+        started.complete(Unit)
+        release.await()
+        return Success(Unit)
     }
 }
 
@@ -329,6 +370,8 @@ private class NoOpPlacesRepository(
     override fun observeAll(): Flow<List<PlaceSummary>> = flowOf(emptyList())
 
     override suspend fun saveAll(places: List<PlaceSummary>): Result<Unit> = Success(Unit)
+
+    override suspend fun saveMissing(places: List<PlaceSummary>): Result<Unit> = Success(Unit)
 }
 
 private fun feedViewModel(
@@ -338,6 +381,7 @@ private fun feedViewModel(
     visitedPlaceIds: Set<String> = emptySet(),
     savedPlaces: List<PlaceSummary> = emptyList(),
     photoResult: Result<PlacePhoto> = Failure(null),
+    savePlacesUseCase: SavePlacesUseCase = SavePlacesUseCase(NoOpPlacesRepository()),
 ): FeedViewModel {
     val statusRepository = FakeStatusRepository(favoritePlaceIds, visitedPlaceIds)
     val favoriteRepository = FakeFavoriteRepository(statusRepository)
@@ -346,6 +390,7 @@ private fun feedViewModel(
     return FeedViewModel(
         searchPlacesUseCase = searchPlacesUseCase,
         getPlacePhotoUseCase = GetPlacePhotoUseCase(NoOpPlacesRepository(photoResult)),
+        savePlacesUseCase = savePlacesUseCase,
         observePlacesUseCase = ObservePlacesUseCase(placesRepository),
         observeFavoritesUseCase = ObserveFavoritesUseCase(favoriteRepository),
         observeVisitedPlacesUseCase = ObserveVisitedPlacesUseCase(visitedRepository),
@@ -362,6 +407,8 @@ private class FakePlacesLocalRepository(
     override fun observeAll(): Flow<List<PlaceSummary>> = places
 
     override suspend fun saveAll(places: List<PlaceSummary>): Result<Unit> = Success(Unit)
+
+    override suspend fun saveMissing(places: List<PlaceSummary>): Result<Unit> = Success(Unit)
 }
 
 private class FakeFavoriteRepository(

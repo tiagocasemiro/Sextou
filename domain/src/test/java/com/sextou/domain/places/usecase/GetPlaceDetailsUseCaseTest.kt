@@ -63,6 +63,8 @@ private class DetailsRecordingPlacesLocalRepository : PlacesRepository.Local {
         savedPlaces = places
         return Success(Unit)
     }
+
+    override suspend fun saveMissing(places: List<PlaceSummary>): Result<Unit> = Success(Unit)
 }
 
 private class DetailsRecordingPlacesRepository : PlacesRepository.Remote {

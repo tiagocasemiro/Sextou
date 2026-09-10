@@ -16,8 +16,6 @@ import com.sextou.domain.places.model.PlaceRankPreference
 import com.sextou.domain.places.model.PlaceSummary
 import com.sextou.domain.places.model.PlaceTextSearchRequest
 import com.sextou.domain.places.repository.PlacesRepository
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -28,16 +26,13 @@ import org.junit.Test
 
 class SearchPlacesUseCaseTest {
     private lateinit var repository: RecordingPlacesRepository
-    private lateinit var localRepository: RecordingPlacesLocalRepository
     private lateinit var useCase: SearchPlacesUseCase
 
     @Before
     fun setUp() {
         repository = RecordingPlacesRepository()
-        localRepository = RecordingPlacesLocalRepository()
         useCase = SearchPlacesUseCase(
             repository = repository,
-            localRepository = localRepository,
             radiusProvider = { 5_000.0 },
         )
     }
@@ -94,7 +89,7 @@ class SearchPlacesUseCaseTest {
     }
 
     @Test
-    fun `persists all valid places from the single nearby search`() = runTest {
+    fun `returns all valid places from the single nearby search`() = runTest {
         repository.nearbyResult = Success(
             listOf(
                 place(id = "inner"),
@@ -110,15 +105,11 @@ class SearchPlacesUseCaseTest {
             listOf("inner", "duplicate", "outer"),
             (result as Success).data.map(PlaceSummary::id),
         )
-        assertEquals(
-            listOf("inner", "duplicate", "outer"),
-            localRepository.savedPlaces.map(PlaceSummary::id),
-        )
         assertEquals(1, repository.nearbyRequests.size)
     }
 
     @Test
-    fun `persists every valid establishment from a successful text search`() = runTest {
+    fun `returns every valid establishment from a successful text search`() = runTest {
         repository.textResult = Success(
             listOf(
                 place(id = "first"),
@@ -132,31 +123,6 @@ class SearchPlacesUseCaseTest {
             listOf("first", "second"),
             (result as Success).data.map(PlaceSummary::id),
         )
-        assertEquals(
-            listOf("first", "second"),
-            localRepository.savedPlaces.map(PlaceSummary::id),
-        )
-    }
-
-    @Test
-    fun `propagates local persistence failure`() = runTest {
-        val expected = Failure(Error(message = "database unavailable"))
-        localRepository.saveResult = expected
-        repository.textResult = Success(listOf(place(id = "place-1")))
-
-        val result = useCase(query = "bar", location = null)
-
-        assertEquals(expected, result)
-        assertEquals(listOf("place-1"), localRepository.savedPlaces.map(PlaceSummary::id))
-    }
-
-    @Test
-    fun `does not persist when the remote search fails`() = runTest {
-        repository.textResult = Failure(Error(message = "offline"))
-
-        useCase(query = "bar", location = null)
-
-        assertTrue(localRepository.savedPlaces.isEmpty())
     }
 
     @Test
@@ -271,18 +237,6 @@ private class RecordingPlacesRepository : PlacesRepository.Remote {
 
     override suspend fun getPhoto(request: PlacePhotoRequest): Result<PlacePhoto> =
         error("Not used")
-}
-
-private class RecordingPlacesLocalRepository : PlacesRepository.Local {
-    val savedPlaces = mutableListOf<PlaceSummary>()
-    var saveResult: Result<Unit> = Success(Unit)
-
-    override fun observeAll(): Flow<List<PlaceSummary>> = flowOf(emptyList())
-
-    override suspend fun saveAll(places: List<PlaceSummary>): Result<Unit> {
-        savedPlaces += places
-        return saveResult
-    }
 }
 
 private fun place(id: String) = PlaceSummary(

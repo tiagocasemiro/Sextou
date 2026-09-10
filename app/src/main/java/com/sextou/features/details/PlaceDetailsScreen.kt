@@ -30,6 +30,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,12 +57,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import coil.compose.AsyncImage
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.model.BitmapDescriptor
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
+import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.sextou.R
 import com.sextou.designsystem.R as DesignSystemR
@@ -1027,7 +1033,10 @@ private fun PlaceDetailsLocation(
                 style = SextouButtonDefaults.ghostStyle(),
             )
         }
-        DetailsMap(location = location)
+        DetailsMap(
+            placeName = details.name,
+            location = location,
+        )
         details.address?.takeIf(String::isNotBlank)?.let { address ->
             Row(
                 modifier = Modifier.padding(top = SextouSpacing.Xs),
@@ -1046,9 +1055,15 @@ private fun PlaceDetailsLocation(
 }
 
 @Composable
-private fun DetailsMap(location: GeoPoint) {
+private fun DetailsMap(
+    placeName: String,
+    location: GeoPoint,
+) {
     val context = LocalContext.current
     val isPreview = LocalInspectionMode.current
+    val target = remember(location.latitude, location.longitude) {
+        LatLng(location.latitude, location.longitude)
+    }
     val mapStyleOptions = remember(context) {
         runCatching {
             MapStyleOptions.loadRawResourceStyle(context, R.raw.map_style)
@@ -1077,9 +1092,25 @@ private fun DetailsMap(location: GeoPoint) {
     }
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(
-            LatLng(location.latitude, location.longitude),
+            target,
             15f,
         )
+    }
+    val markerState = remember(target) {
+        MarkerState(position = target)
+    }
+    var markerIcon by remember { mutableStateOf<BitmapDescriptor?>(null) }
+    val mapDescription = stringResource(
+        R.string.details_map_content_description,
+        placeName,
+    )
+
+    LaunchedEffect(target, isPreview) {
+        if (!isPreview) {
+            cameraPositionState.animate(
+                CameraUpdateFactory.newLatLngZoom(target, 15f),
+            )
+        }
     }
 
     Box(
@@ -1087,7 +1118,10 @@ private fun DetailsMap(location: GeoPoint) {
             .fillMaxWidth()
             .height(PlaceDetailsLayout.MapHeight)
             .clip(PlaceDetailsCardShape)
-            .background(SextouColors.SurfaceImage),
+            .background(SextouColors.SurfaceImage)
+            .semantics {
+                contentDescription = mapDescription
+            },
     ) {
         if (isPreview) {
             Image(
@@ -1102,7 +1136,23 @@ private fun DetailsMap(location: GeoPoint) {
                 cameraPositionState = cameraPositionState,
                 properties = mapProperties,
                 uiSettings = mapUiSettings,
-            )
+                onMapLoaded = {
+                    markerIcon = runCatching {
+                        BitmapDescriptorFactory.fromResource(R.drawable.details_map_marker)
+                    }.getOrNull()
+                },
+            ) {
+                Marker(
+                    state = markerState,
+                    title = placeName,
+                    icon = markerIcon,
+                    anchor = androidx.compose.ui.geometry.Offset(0.5f, 0.5f),
+                    contentDescription = stringResource(
+                        R.string.details_map_marker_content_description,
+                        placeName,
+                    ),
+                )
+            }
         }
         Box(
             modifier = Modifier
@@ -1113,13 +1163,6 @@ private fun DetailsMap(location: GeoPoint) {
             modifier = Modifier
                 .fillMaxSize()
                 .background(SextouColors.Primary.copy(alpha = 0.1f)),
-        )
-        Image(
-            painter = painterResource(R.drawable.details_map_marker),
-            contentDescription = null,
-            modifier = Modifier
-                .size(32.dp)
-                .align(Alignment.Center),
         )
     }
 }

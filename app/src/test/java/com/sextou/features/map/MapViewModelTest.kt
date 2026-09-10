@@ -18,6 +18,7 @@ import com.sextou.domain.places.model.PlaceSummary
 import com.sextou.domain.places.model.PlaceTextSearchRequest
 import com.sextou.domain.places.repository.PlacesRepository
 import com.sextou.domain.places.usecase.GetPlacePhotoUseCase
+import com.sextou.domain.places.usecase.SavePlacesUseCase
 import com.sextou.domain.places.usecase.SearchPlacesUseCase
 import com.sextou.domain.routes.model.RoutePath
 import com.sextou.domain.routes.repository.RouteRepository
@@ -52,6 +53,7 @@ class MapViewModelTest {
         val viewModel = MapViewModel(
             searchPlacesUseCase = searchPlacesUseCase,
             getPlacePhotoUseCase = GetPlacePhotoUseCase(NoOpPlacesRepository()),
+            savePlacesUseCase = SavePlacesUseCase(NoOpPlacesRepository()),
             getRouteUseCase = GetRouteUseCase(NoOpRouteRepository()),
             observeFavoritesUseCase = ObserveFavoritesUseCase(EmptyFavoriteRepository()),
             observeIgnoredPlacesUseCase = ObserveIgnoredPlacesUseCase(EmptyIgnoredPlaceRepository()),
@@ -74,6 +76,7 @@ class MapViewModelTest {
         val viewModel = MapViewModel(
             searchPlacesUseCase = RecordingSearchPlacesUseCase(),
             getPlacePhotoUseCase = GetPlacePhotoUseCase(NoOpPlacesRepository()),
+            savePlacesUseCase = SavePlacesUseCase(NoOpPlacesRepository()),
             getRouteUseCase = GetRouteUseCase(NoOpRouteRepository()),
             observeFavoritesUseCase = ObserveFavoritesUseCase(
                 EmptyFavoriteRepository(setOf("favorite-place")),
@@ -95,6 +98,7 @@ class MapViewModelTest {
         val viewModel = MapViewModel(
             searchPlacesUseCase = RecordingSearchPlacesUseCase(),
             getPlacePhotoUseCase = GetPlacePhotoUseCase(NoOpPlacesRepository()),
+            savePlacesUseCase = SavePlacesUseCase(NoOpPlacesRepository()),
             getRouteUseCase = GetRouteUseCase(routeRepository),
             observeFavoritesUseCase = ObserveFavoritesUseCase(EmptyFavoriteRepository()),
             observeIgnoredPlacesUseCase = ObserveIgnoredPlacesUseCase(EmptyIgnoredPlaceRepository()),
@@ -118,6 +122,7 @@ class MapViewModelTest {
         val viewModel = MapViewModel(
             searchPlacesUseCase = searchPlacesUseCase,
             getPlacePhotoUseCase = GetPlacePhotoUseCase(NoOpPlacesRepository()),
+            savePlacesUseCase = SavePlacesUseCase(NoOpPlacesRepository()),
             getRouteUseCase = GetRouteUseCase(NoOpRouteRepository()),
             observeFavoritesUseCase = ObserveFavoritesUseCase(EmptyFavoriteRepository()),
             observeIgnoredPlacesUseCase = ObserveIgnoredPlacesUseCase(EmptyIgnoredPlaceRepository()),
@@ -140,6 +145,7 @@ class MapViewModelTest {
         val viewModel = MapViewModel(
             searchPlacesUseCase = RecordingSearchPlacesUseCase(),
             getPlacePhotoUseCase = GetPlacePhotoUseCase(NoOpPlacesRepository()),
+            savePlacesUseCase = SavePlacesUseCase(NoOpPlacesRepository()),
             getRouteUseCase = GetRouteUseCase(NoOpRouteRepository()),
             observeFavoritesUseCase = ObserveFavoritesUseCase(EmptyFavoriteRepository()),
             observeIgnoredPlacesUseCase = ObserveIgnoredPlacesUseCase(EmptyIgnoredPlaceRepository()),
@@ -161,6 +167,7 @@ class MapViewModelTest {
         val viewModel = MapViewModel(
             searchPlacesUseCase = searchPlacesUseCase,
             getPlacePhotoUseCase = GetPlacePhotoUseCase(NoOpPlacesRepository()),
+            savePlacesUseCase = SavePlacesUseCase(NoOpPlacesRepository()),
             getRouteUseCase = GetRouteUseCase(NoOpRouteRepository()),
             observeFavoritesUseCase = ObserveFavoritesUseCase(EmptyFavoriteRepository()),
             observeIgnoredPlacesUseCase = ObserveIgnoredPlacesUseCase(EmptyIgnoredPlaceRepository()),
@@ -214,6 +221,7 @@ class MapViewModelTest {
         val viewModel = MapViewModel(
             searchPlacesUseCase = searchPlacesUseCase,
             getPlacePhotoUseCase = GetPlacePhotoUseCase(photoRepository),
+            savePlacesUseCase = SavePlacesUseCase(NoOpPlacesRepository()),
             getRouteUseCase = GetRouteUseCase(NoOpRouteRepository()),
             observeFavoritesUseCase = ObserveFavoritesUseCase(EmptyFavoriteRepository()),
             observeIgnoredPlacesUseCase = ObserveIgnoredPlacesUseCase(EmptyIgnoredPlaceRepository()),
@@ -265,6 +273,7 @@ class MapViewModelTest {
                 ),
             ),
             getPlacePhotoUseCase = GetPlacePhotoUseCase(photoRepository),
+            savePlacesUseCase = SavePlacesUseCase(NoOpPlacesRepository()),
             getRouteUseCase = GetRouteUseCase(NoOpRouteRepository()),
             observeFavoritesUseCase = ObserveFavoritesUseCase(EmptyFavoriteRepository()),
             observeIgnoredPlacesUseCase = ObserveIgnoredPlacesUseCase(EmptyIgnoredPlaceRepository()),
@@ -292,6 +301,7 @@ class MapViewModelTest {
                 ),
             ),
             getPlacePhotoUseCase = GetPlacePhotoUseCase(NoOpPlacesRepository()),
+            savePlacesUseCase = SavePlacesUseCase(NoOpPlacesRepository()),
             getRouteUseCase = GetRouteUseCase(NoOpRouteRepository()),
             observeFavoritesUseCase = ObserveFavoritesUseCase(EmptyFavoriteRepository()),
             observeIgnoredPlacesUseCase = ObserveIgnoredPlacesUseCase(EmptyIgnoredPlaceRepository()),
@@ -324,7 +334,7 @@ private data class LocationSearchCall(
 
 private class RecordingSearchPlacesUseCase(
     private val result: Result<List<PlaceSummary>> = Success(emptyList()),
-) : SearchPlacesUseCase(NoOpPlacesRepository(), NoOpPlacesRepository()) {
+) : SearchPlacesUseCase(NoOpPlacesRepository()) {
     val calls = mutableListOf<LocationSearchCall>()
 
     override suspend fun invoke(
@@ -369,6 +379,8 @@ private class NoOpPlacesRepository : PlacesRepository.Remote, PlacesRepository.L
     override fun observeAll() = flowOf(emptyList<PlaceSummary>())
 
     override suspend fun saveAll(places: List<PlaceSummary>): Result<Unit> = Success(Unit)
+
+    override suspend fun saveMissing(places: List<PlaceSummary>): Result<Unit> = Success(Unit)
 }
 
 private class NoOpRouteRepository : RouteRepository.Remote {

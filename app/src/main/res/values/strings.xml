@@ -146,6 +146,8 @@
     <string name="details_location">Localização</string>
     <string name="details_open_map">Abrir no Mapa</string>
     <string name="details_open_map_content_description">Abrir localização no mapa</string>
+    <string name="details_map_content_description">Mapa com a localização de %1$s</string>
+    <string name="details_map_marker_content_description">Localização de %1$s</string>
     <string name="details_about">Sobre</string>
     <string name="details_menu">Cardápio</string>
     <string name="details_menu_open">VER COMPLETO</string>

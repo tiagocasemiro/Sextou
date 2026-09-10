@@ -15,6 +15,7 @@ import com.sextou.domain.places.model.PlaceStatus
 import com.sextou.domain.places.model.PlaceSummary
 import com.sextou.domain.places.usecase.GetPlacePhotoUseCase
 import com.sextou.domain.places.usecase.ObservePlacesUseCase
+import com.sextou.domain.places.usecase.SavePlacesUseCase
 import com.sextou.domain.places.usecase.SearchPlacesUseCase
 import com.sextou.domain.places.usecase.SetPlaceStatusUseCase
 import com.sextou.domain.visits.usecase.ObserveVisitedPlacesUseCase
@@ -38,6 +39,7 @@ import kotlin.math.sqrt
 class FeedViewModel(
     private val searchPlacesUseCase: SearchPlacesUseCase,
     private val getPlacePhotoUseCase: GetPlacePhotoUseCase,
+    private val savePlacesUseCase: SavePlacesUseCase,
     private val observePlacesUseCase: ObservePlacesUseCase,
     private val observeFavoritesUseCase: ObserveFavoritesUseCase,
     private val observeVisitedPlacesUseCase: ObserveVisitedPlacesUseCase,
@@ -259,6 +261,7 @@ class FeedViewModel(
                                     ?.providerAttribution,
                             )
                         }
+                        savePlacesInBackground(result.data)
                     }
 
                     is Failure -> mutableUiState.update {
@@ -291,6 +294,21 @@ class FeedViewModel(
                         if (state.isLoading) state.copy(isLoading = false) else state
                     }
                 }
+            }
+        }
+    }
+
+    private fun savePlacesInBackground(places: List<PlaceSummary>) {
+        if (places.isEmpty()) return
+
+        // The Room suspend transaction uses its query executor, keeping persistence off the UI thread.
+        viewModelScope.launch {
+            try {
+                savePlacesUseCase(places)
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (_: Exception) {
+                // A cache failure must not hide establishments already published from the API.
             }
         }
     }

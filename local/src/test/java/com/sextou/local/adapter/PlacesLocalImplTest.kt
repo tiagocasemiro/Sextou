@@ -128,6 +128,28 @@ class PlacesLocalImplTest {
     }
 
     @Test
+    fun `saving missing places keeps existing data and adds every new place`() = runTest {
+        val existingPlace = samplePlace()
+        repository.saveAll(listOf(existingPlace))
+
+        val changedExistingPlace = samplePlace(
+            types = listOf("cafe"),
+            photos = listOf(samplePhoto(authors = emptyList())),
+        ).copy(displayName = "Nome atualizado")
+        val newPlace = samplePlace(id = "place-2")
+
+        assertEquals(
+            Success(Unit),
+            repository.saveMissing(listOf(changedExistingPlace, newPlace)),
+        )
+
+        assertEquals(
+            listOf(existingPlace, newPlace),
+            repository.observeAll().first(),
+        )
+    }
+
+    @Test
     fun `observes every saved place and rebuilds its normalized relationships`() = runTest {
         val expected = samplePlace(
             photos = listOf(
@@ -152,10 +174,11 @@ class PlacesLocalImplTest {
 }
 
 private fun samplePlace(
+    id: String = "place-1",
     types: List<String> = listOf("bar", "restaurant"),
-    photos: List<PlacePhotoReference> = listOf(samplePhoto()),
+    photos: List<PlacePhotoReference> = listOf(samplePhoto(placeId = id)),
 ) = PlaceSummary(
-    id = "place-1",
+    id = id,
     displayName = "Bar do Bairro",
     formattedAddress = "Rua Principal, 10",
     location = GeoPoint(-22.9, -43.2),
@@ -172,6 +195,7 @@ private fun samplePlace(
 )
 
 private fun samplePhoto(
+    placeId: String = "place-1",
     index: Int = 0,
     authors: List<PlaceAuthor> = listOf(
         PlaceAuthor(
@@ -181,7 +205,7 @@ private fun samplePhoto(
         ),
     ),
 ) = PlacePhotoReference(
-    placeId = "place-1",
+    placeId = placeId,
     index = index,
     width = 1_200,
     height = 800,

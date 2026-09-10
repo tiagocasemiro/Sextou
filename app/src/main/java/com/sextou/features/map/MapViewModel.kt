@@ -12,6 +12,7 @@ import com.sextou.domain.places.model.PlacePhoto
 import com.sextou.domain.places.model.PlacePhotoReference
 import com.sextou.domain.places.model.PlaceSummary
 import com.sextou.domain.places.usecase.GetPlacePhotoUseCase
+import com.sextou.domain.places.usecase.SavePlacesUseCase
 import com.sextou.domain.places.usecase.SearchPlacesUseCase
 import com.sextou.domain.routes.usecase.GetRouteUseCase
 import kotlinx.coroutines.CancellationException
@@ -34,6 +35,7 @@ import kotlin.math.sqrt
 class MapViewModel(
     private val searchPlacesUseCase: SearchPlacesUseCase,
     private val getPlacePhotoUseCase: GetPlacePhotoUseCase,
+    private val savePlacesUseCase: SavePlacesUseCase,
     private val getRouteUseCase: GetRouteUseCase,
     private val observeFavoritesUseCase: ObserveFavoritesUseCase,
     private val observeIgnoredPlacesUseCase: ObserveIgnoredPlacesUseCase,
@@ -131,6 +133,7 @@ class MapViewModel(
                                 isError = false,
                             )
                         }
+                        savePlacesInBackground(result.data)
                     }
 
                     is Failure -> mutableUiState.update {
@@ -147,6 +150,21 @@ class MapViewModel(
                 mutableUiState.update {
                     it.copy(isLoading = false, isError = true)
                 }
+            }
+        }
+    }
+
+    private fun savePlacesInBackground(places: List<PlaceSummary>) {
+        if (places.isEmpty()) return
+
+        // The Room suspend transaction uses its query executor, keeping persistence off the UI thread.
+        viewModelScope.launch {
+            try {
+                savePlacesUseCase(places)
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (_: Exception) {
+                // A cache failure must not hide establishments already published from the API.
             }
         }
     }

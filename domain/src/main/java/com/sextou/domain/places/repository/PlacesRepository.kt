@@ -21,5 +21,6 @@ interface PlacesRepository {
     interface Local {
         fun observeAll(): Flow<List<PlaceSummary>>
         suspend fun saveAll(places: List<PlaceSummary>): Result<Unit>
+        suspend fun saveMissing(places: List<PlaceSummary>): Result<Unit>
     }
 }

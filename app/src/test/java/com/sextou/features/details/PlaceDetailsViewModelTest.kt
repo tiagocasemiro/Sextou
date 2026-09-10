@@ -231,6 +231,8 @@ private class EmptyPlacesLocalRepository : PlacesRepository.Local {
     override fun observeAll() = flowOf(emptyList<PlaceSummary>())
 
     override suspend fun saveAll(places: List<PlaceSummary>): Result<Unit> = Success(Unit)
+
+    override suspend fun saveMissing(places: List<PlaceSummary>): Result<Unit> = Success(Unit)
 }
 
 private class EmptyPlaceStatusRepository : com.sextou.domain.places.repository.PlaceStatusRepository.Local {

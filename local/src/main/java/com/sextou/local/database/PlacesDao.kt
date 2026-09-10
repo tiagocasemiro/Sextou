@@ -49,6 +49,35 @@ abstract class PlacesDao {
         upsertPhotoAuthors(photoAuthors)
     }
 
+    @Query("SELECT placeId FROM places WHERE placeId IN (:placeIds)")
+    protected abstract suspend fun findExistingPlaceIds(placeIds: List<String>): List<String>
+
+    @Transaction
+    open suspend fun saveMissing(
+        places: List<PlaceEntity>,
+        types: List<PlaceTypeEntity>,
+        photos: List<PlacePhotoEntity>,
+        photoAuthors: List<PlacePhotoAuthorEntity>,
+    ) {
+        if (places.isEmpty()) return
+
+        val existingPlaceIds = findExistingPlaceIds(
+            places.map(PlaceEntity::placeId).distinct(),
+        ).toSet()
+        val missingPlaces = places.filterNot { place ->
+            place.placeId in existingPlaceIds
+        }
+        if (missingPlaces.isEmpty()) return
+
+        val missingPlaceIds = missingPlaces.map(PlaceEntity::placeId).toSet()
+        upsertPlaces(missingPlaces)
+        upsertTypes(types.filter { type -> type.placeId in missingPlaceIds })
+        upsertPhotos(photos.filter { photo -> photo.placeId in missingPlaceIds })
+        upsertPhotoAuthors(
+            photoAuthors.filter { author -> author.placeId in missingPlaceIds },
+        )
+    }
+
     @Query("SELECT * FROM places WHERE placeId = :placeId")
     abstract suspend fun findPlace(placeId: String): PlaceEntity?
 

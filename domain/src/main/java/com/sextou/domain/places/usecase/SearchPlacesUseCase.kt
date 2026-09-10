@@ -13,7 +13,6 @@ import com.sextou.domain.places.repository.PlacesRepository
 
 open class SearchPlacesUseCase(
     private val repository: PlacesRepository.Remote,
-    private val localRepository: PlacesRepository.Local,
     private val radiusProvider: () -> Double = { SEARCH_RADII_METERS.random() },
 ) {
     open suspend operator fun invoke(
@@ -54,18 +53,7 @@ open class SearchPlacesUseCase(
             }
         }
 
-        val sanitizedResult = result.sanitize()
-
-        return when (sanitizedResult) {
-            is Success -> when (val saveResult = localRepository.saveAll(sanitizedResult.data)) {
-                is Success -> sanitizedResult
-                is Failure -> saveResult
-                is Loading<*> -> saveResult
-            }
-
-            is Failure -> sanitizedResult
-            is Loading<*> -> sanitizedResult
-        }
+        return result.sanitize()
     }
 
     private fun GeoPoint.validate() {
