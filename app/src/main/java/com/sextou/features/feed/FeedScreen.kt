@@ -38,6 +38,7 @@ fun FeedScreen(
     onFilterDialogDismissed: () -> Unit,
     onOpenOnlyChanged: (Boolean) -> Unit,
     onPlaceClicked: (String) -> Unit,
+    onPhotoRequested: (String) -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -64,6 +65,8 @@ fun FeedScreen(
                 isFavoritesTab = uiState.selectedTab == FeedTab.FAVORITES,
                 providerAttribution = uiState.providerAttribution,
                 onPlaceClicked = onPlaceClicked,
+                photoRetryToken = uiState.photoRetryToken,
+                onPhotoRequested = onPhotoRequested,
                 onFavoriteClicked = onFavoriteClicked,
                 onVisitedClicked = onVisitedClicked,
                 onRetry = onRetry,
@@ -191,6 +194,7 @@ private fun FeedScreenPreview() {
             onFilterDialogDismissed = {},
             onOpenOnlyChanged = {},
             onPlaceClicked = {},
+            onPhotoRequested = {},
             onRetry = {},
         )
     }

@@ -130,7 +130,10 @@
     <string name="details_google_rating_unavailable">Sem avaliações no Google Maps</string>
     <string name="details_google_rating_content_description">Avaliação no Google Maps: %1$.1f de 5</string>
     <string name="details_google_rating_unavailable_content_description">Sem avaliações no Google Maps</string>
+    <string name="details_distance_meters">%1$d m</string>
+    <string name="details_distance_kilometers">%1$.1f km</string>
     <string name="details_price_symbol">$</string>
+    <string name="details_price_free">Grátis</string>
     <string name="details_price_cheap">Baratinho</string>
     <string name="details_price_bargain">Baratinho</string>
     <string name="details_price_moderate">Preço médio</string>
@@ -153,6 +156,10 @@
     <string name="details_directions_content_description">Abrir rota até o estabelecimento</string>
     <string name="details_contact">CONTATO</string>
     <string name="details_contact_content_description">Entrar em contato com o estabelecimento</string>
+    <string name="details_contact_dialog_title">Contatos do estabelecimento</string>
+    <string name="details_contact_phone">Telefone</string>
+    <string name="details_contact_website">Site</string>
+    <string name="details_contact_close">Fechar</string>
     <string name="details_preview_address">Rua Visconde de Pirajá, 550 - Ipanema, RJ</string>
     <string name="details_preview_hours">Fecha às 02h</string>
     <string name="details_preview_hours_closing_time">02h</string>

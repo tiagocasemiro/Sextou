@@ -220,6 +220,7 @@ class MapViewModelTest {
         )
 
         viewModel.load(query = "")
+        viewModel.requestPhoto("place-1")
 
         assertEquals(
             "https://example.invalid/place-1.jpg",
@@ -270,6 +271,7 @@ class MapViewModelTest {
         )
 
         viewModel.load(query = "")
+        viewModel.requestPhoto("place-1")
 
         assertEquals(
             "https://example.invalid/place-1.jpg",

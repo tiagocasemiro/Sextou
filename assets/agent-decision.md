@@ -1175,3 +1175,62 @@ porque o módulo não embarca as fontes do arquivo de design.
 * A barra inferior também mantém o componente e o estilo originais; os
   componentes do design system não substituem os dois botões de ação dessa
   área.
+
+## 2026-09-10 — Dados remotos no Feed e nos detalhes
+
+* O `FeedViewModel` passou a solicitar `PHOTO_METADATAS` na busca do Places e
+  a resolver a primeira foto com `GetPlacePhotoUseCase`. A URI retornada pela
+  API é exibida no card principal com Coil; imagens de fixture continuam
+  restritas a previews e ao fallback visual quando não existe foto remota.
+* Preço, avaliação e quantidade de avaliações continuam sendo mapeados dos
+  campos do Places (`priceLevel`, `rating` e `userRatingCount`) tanto no Feed
+  quanto nos detalhes. O nível `0` é apresentado como “Grátis”, sem inventar
+  uma faixa de preço.
+* O Places não fornece uma distância de rota na resposta de busca. Por isso,
+  a distância exibida é calculada em linha reta com a localização atual do
+  usuário e a coordenada retornada pela API, mantendo o valor consistente
+  entre a listagem, o mapa e os detalhes.
+* O fallback de navegação transporta foto e distância já carregadas para que
+  os detalhes sejam úteis imediatamente enquanto a consulta completa da API
+  termina. A URI resolvida da foto permanece apenas em memória; o cache local
+  continua armazenando somente metadados permitidos pelo fluxo existente.
+
+## 2026-09-10 — Carregamento explícito da URI remota da foto
+
+* Feed, detalhes e mapa passaram a validar a URI retornada pelo Places e a
+  convertê-la explicitamente para `android.net.Uri` antes de entregá-la ao
+  Coil. Isso evita tentar renderizar valores vazios e mantém o carregador
+  alinhado ao contrato da URI resolvida pela API.
+* A falha foi reproduzida no dispositivo conectado: o Wi-Fi estava associado,
+  mas a rede não estava validada e o DNS para serviços do Google expirava.
+  Portanto, a foto remota continua dependendo de conectividade funcional e da
+  configuração válida do Places API (New); o app mantém o placeholder/fallback
+  quando a rede não está disponível.
+
+## 2026-09-10 — Controle de requisições de fotos e cota do Places
+
+* O navegador no mesmo dispositivo carregou páginas HTTPS normalmente. No
+  aplicativo, a busca de estabelecimentos funcionou, mas a resolução das
+  fotos retornou `ApiException 13`, indicando que a cota diária de
+  `GetPlaceRequest` do projeto foi excedida.
+* Feed e mapa deixaram de resolver fotos de todos os resultados e passaram a
+  solicitar somente os cards visíveis, enfileirando e deduplicando uma
+  requisição por estabelecimento. O retry limpa essa deduplicação para tentar
+  novamente após a cota ser restabelecida.
+* Nenhuma foto fictícia foi associada a um estabelecimento real. Enquanto a
+  cota permanecer excedida, o placeholder é mantido; é necessário aumentar ou
+  aguardar a renovação da cota no Google Cloud para obter as fotos da API.
+
+## 2026-09-10 — Contatos no detalhe do estabelecimento
+
+* O botão “Contato” passou a abrir um alerta com telefone e site retornados
+  pela API, exibindo somente os contatos realmente disponíveis.
+* O botão fica desabilitado quando ambos os campos estão ausentes ou em branco;
+  a regra foi mantida na camada de UI porque telefone e site já fazem parte do
+  `PlaceDetailsUiModel`.
+
+## 2026-09-10 — Espaçamento das ações inferiores do detalhe
+
+* O conteúdo interno de “Como chegar” e “Contato” passou a usar inset
+  horizontal de 16dp e a ser centralizado dentro de cada botão. O grupo externo
+  da barra mantém o recuo de 24dp em relação às bordas da tela.

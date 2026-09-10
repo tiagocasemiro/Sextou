@@ -1,5 +1,6 @@
 package com.sextou.features.details
 
+import android.text.Html
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -21,11 +22,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -50,6 +54,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import coil.compose.AsyncImage
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
@@ -73,6 +78,7 @@ import com.sextou.designsystem.theme.SextouSpacing
 import com.sextou.designsystem.theme.SextouTextStyles
 import com.sextou.designsystem.theme.SextouTheme
 import com.sextou.domain.places.model.GeoPoint
+import kotlin.math.roundToInt
 
 private object PlaceDetailsLayout {
     val HeroHeight = 320.dp
@@ -171,12 +177,14 @@ fun PlaceDetailsScreen(
     onContact: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    val details = uiState.place
+    var isContactDialogVisible by remember(details) { mutableStateOf(false) }
+
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(SextouColors.Background),
     ) {
-        val details = uiState.place
         when {
             details != null -> {
                 PlaceDetailsScrollContent(
@@ -195,7 +203,11 @@ fun PlaceDetailsScreen(
                 )
                 PlaceDetailsBottomBar(
                     onOpenMap = onOpenMap,
-                    onContact = onContact,
+                    contactEnabled = details.hasContactInformation(),
+                    onContact = {
+                        onContact()
+                        isContactDialogVisible = true
+                    },
                 )
                 if (uiState.isLoading) {
                     LinearProgressIndicator(
@@ -212,6 +224,74 @@ fun PlaceDetailsScreen(
             uiState.isLoading -> PlaceDetailsLoadingContent()
             else -> PlaceDetailsErrorContent(onBack = onBack)
         }
+
+        details
+            ?.takeIf { isContactDialogVisible && it.hasContactInformation() }
+            ?.let { contactDetails ->
+                PlaceDetailsContactDialog(
+                    details = contactDetails,
+                    onDismiss = { isContactDialogVisible = false },
+                )
+            }
+    }
+}
+
+@Composable
+private fun PlaceDetailsContactDialog(
+    details: PlaceDetailsUiModel,
+    onDismiss: () -> Unit,
+) {
+    val phone = details.phone?.takeIf(String::isNotBlank)
+    val website = details.website?.takeIf(String::isNotBlank)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(text = stringResource(R.string.details_contact_dialog_title))
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(SextouSpacing.Md),
+            ) {
+                phone?.let { value ->
+                    PlaceDetailsContactItem(
+                        label = stringResource(R.string.details_contact_phone),
+                        value = value,
+                    )
+                }
+                website?.let { value ->
+                    PlaceDetailsContactItem(
+                        label = stringResource(R.string.details_contact_website),
+                        value = value,
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(R.string.details_contact_close))
+            }
+        },
+    )
+}
+
+@Composable
+private fun PlaceDetailsContactItem(
+    label: String,
+    value: String,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(SextouSpacing.Xs)) {
+        Text(
+            text = label,
+            style = PlaceDetailsMetaStyle.copy(fontWeight = FontWeight.Bold),
+            color = SextouColors.TextSecondary,
+        )
+        Text(
+            text = value,
+            style = PlaceDetailsBodyStyle,
+            color = SextouColors.TextPrimary,
+        )
     }
 }
 
@@ -324,16 +404,17 @@ private fun PlaceDetailsHero(
     onShare: () -> Unit,
     onMore: () -> Unit,
 ) {
-    var photoLoadFailed by remember(details.photoUri) { mutableStateOf(false) }
+    val photoUri = details.photoUri?.takeIf(String::isNotBlank)
+    var photoLoadFailed by remember(photoUri) { mutableStateOf(false) }
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(PlaceDetailsLayout.HeroHeight),
     ) {
         when {
-            details.photoUri != null && !photoLoadFailed -> {
+            photoUri != null && !photoLoadFailed -> {
                 AsyncImage(
-                    model = details.photoUri,
+                    model = photoUri.toUri(),
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
@@ -408,26 +489,33 @@ private fun PlaceDetailsHero(
                 SextouStatusBadge(status = SextouStatus.OPEN)
             }
         }
-        details.photoAttribution?.takeIf(String::isNotBlank)?.let { attribution ->
-            Text(
-                text = attribution,
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(
-                        start = PlaceDetailsLayout.ContentPadding,
-                        bottom = 4.dp,
-                    )
-                    .background(
-                        color = SextouColors.Scrim,
-                        shape = RoundedCornerShape(SextouCornerRadius.Chip),
-                    )
-                    .padding(horizontal = SextouSpacing.Xs, vertical = 2.dp),
-                style = PlaceDetailsSmallStyle,
-                color = SextouColors.TextPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
+        details.photoAttribution
+            ?.let { attribution ->
+                Html.fromHtml(attribution, Html.FROM_HTML_MODE_LEGACY)
+                    .toString()
+                    .trim()
+                    .takeIf(String::isNotBlank)
+            }
+            ?.let { attribution ->
+                Text(
+                    text = attribution,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(
+                            start = PlaceDetailsLayout.ContentPadding,
+                            bottom = 4.dp,
+                        )
+                        .background(
+                            color = SextouColors.Scrim,
+                            shape = RoundedCornerShape(SextouCornerRadius.Chip),
+                        )
+                        .padding(horizontal = SextouSpacing.Xs, vertical = 2.dp),
+                    style = PlaceDetailsSmallStyle,
+                    color = SextouColors.TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
     }
 }
 
@@ -564,19 +652,31 @@ private fun PlaceDetailsRatingBadge(
 
 @Composable
 private fun PlaceDetailsMetadata(details: PlaceDetailsUiModel) {
+    val distance = details.distanceMeters?.let { distanceMeters ->
+        if (distanceMeters < 1_000.0) {
+            stringResource(R.string.details_distance_meters, distanceMeters.roundToInt())
+        } else {
+            stringResource(R.string.details_distance_kilometers, distanceMeters / 1_000.0)
+        }
+    } ?: details.distanceText
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(SextouSpacing.Lg),
     ) {
-        details.distanceText?.let { distance ->
+        distance?.let { distance ->
             DetailsMetadataItem(
                 icon = painterResource(R.drawable.details_meta_distance),
                 text = distance,
             )
         }
         details.priceLevel?.let { level ->
-            val price = stringResource(R.string.details_price_symbol).repeat(level.coerceIn(1, 4))
+            val price = if (level <= 0) {
+                stringResource(R.string.details_price_free)
+            } else {
+                stringResource(R.string.details_price_symbol).repeat(level.coerceIn(1, 4))
+            }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(SextouSpacing.Xs),
@@ -586,11 +686,13 @@ private fun PlaceDetailsMetadata(details: PlaceDetailsUiModel) {
                     style = PlaceDetailsMetaStyle.copy(fontWeight = FontWeight.Bold),
                     color = SextouColors.Positive,
                 )
-                Text(
-                    text = stringResource(priceDescription(level)),
-                    style = PlaceDetailsMetaStyle,
-                    color = SextouColors.TextSecondary,
-                )
+                if (level > 0) {
+                    Text(
+                        text = stringResource(priceDescription(level)),
+                        style = PlaceDetailsMetaStyle,
+                        color = SextouColors.TextSecondary,
+                    )
+                }
             }
         }
         details.hoursSummary?.let { hours ->
@@ -1287,6 +1389,7 @@ private fun PlaceDetailsMenuItem(item: PlaceDetailsMenuItemUiModel) {
 @Composable
 private fun BoxScope.PlaceDetailsBottomBar(
     onOpenMap: () -> Unit,
+    contactEnabled: Boolean,
     onContact: () -> Unit,
 ) {
     Surface(
@@ -1322,6 +1425,7 @@ private fun BoxScope.PlaceDetailsBottomBar(
                 label = stringResource(R.string.details_contact),
                 contentDescription = stringResource(R.string.details_contact_content_description),
                 onClick = onContact,
+                enabled = contactEnabled,
                 primary = true,
             )
         }
@@ -1335,8 +1439,20 @@ private fun DetailsBottomAction(
     label: String,
     contentDescription: String,
     onClick: () -> Unit,
+    enabled: Boolean = true,
     primary: Boolean,
 ) {
+    val containerColor = when {
+        !enabled -> SextouColors.ButtonDisabledContainer
+        primary -> SextouColors.Primary
+        else -> Color.Transparent
+    }
+    val contentColor = when {
+        !enabled -> SextouColors.ButtonDisabledContent
+        primary -> SextouColors.OnPrimary
+        else -> SextouColors.TextPrimary
+    }
+
     Surface(
         modifier = modifier
             .height(PlaceDetailsLayout.BottomActionHeight)
@@ -1344,29 +1460,37 @@ private fun DetailsBottomAction(
                 this.contentDescription = contentDescription
             },
         onClick = onClick,
+        enabled = enabled,
         shape = PlaceDetailsCardShape,
-        color = if (primary) SextouColors.Primary else Color.Transparent,
-        contentColor = if (primary) SextouColors.OnPrimary else SextouColors.TextPrimary,
+        color = containerColor,
+        contentColor = contentColor,
         border = if (primary) null else BorderStroke(
             SextouDimensions.Border,
             Color.White.copy(alpha = 0.1f),
         ),
     ) {
         Row(
-            modifier = Modifier.fillMaxSize(),
-            horizontalArrangement = Arrangement.spacedBy(SextouSpacing.Lg),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = SextouSpacing.Lg),
+            horizontalArrangement = Arrangement.spacedBy(
+                space = SextouSpacing.Lg,
+                alignment = Alignment.CenterHorizontally,
+            ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Image(
                 painter = painter,
                 contentDescription = null,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier
+                    .size(16.dp)
+                    .alpha(if (enabled) 1f else SextouColors.ButtonDisabledContent.alpha),
             )
             Text(
                 text = label,
                 modifier = Modifier.padding(end = SextouSpacing.Sm),
                 style = SextouTextStyles.ActionButton,
-                color = if (primary) SextouColors.OnPrimary else SextouColors.TextPrimary,
+                color = contentColor,
                 textAlign = TextAlign.Center,
             )
         }
@@ -1406,9 +1530,10 @@ private fun PlaceDetailsErrorContent(onBack: () -> Unit) {
 }
 
 private fun PlaceDetailsUiModel.hasMetadata(): Boolean =
-    distanceText != null || priceLevel != null || hoursSummary != null
+    distanceMeters != null || distanceText != null || priceLevel != null || hoursSummary != null
 
 private fun priceDescription(priceLevel: Int): Int = when (priceLevel) {
+    0 -> R.string.details_price_free
     1 -> R.string.details_price_cheap
     2 -> R.string.details_price_bargain
     3 -> R.string.details_price_moderate

@@ -45,6 +45,7 @@ val appModule = module {
     viewModel {
         FeedViewModel(
             searchPlacesUseCase = get(),
+            getPlacePhotoUseCase = get(),
             observePlacesUseCase = get(),
             observeFavoritesUseCase = get(),
             observeVisitedPlacesUseCase = get(),

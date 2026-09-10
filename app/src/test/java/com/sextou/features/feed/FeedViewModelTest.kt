@@ -13,6 +13,7 @@ import com.sextou.domain.places.model.NearbySearchRequest
 import com.sextou.domain.places.model.PlaceDetails
 import com.sextou.domain.places.model.PlaceDetailsRequest
 import com.sextou.domain.places.model.PlacePhoto
+import com.sextou.domain.places.model.PlacePhotoReference
 import com.sextou.domain.places.model.PlacePhotoRequest
 import com.sextou.domain.places.model.PlaceStatus
 import com.sextou.domain.places.model.PlaceSummary
@@ -20,6 +21,7 @@ import com.sextou.domain.places.model.PlaceTextSearchRequest
 import com.sextou.domain.places.repository.PlaceStatusRepository
 import com.sextou.domain.places.repository.PlacesRepository
 import com.sextou.domain.places.usecase.ObservePlacesUseCase
+import com.sextou.domain.places.usecase.GetPlacePhotoUseCase
 import com.sextou.domain.places.usecase.SearchPlacesUseCase
 import com.sextou.domain.places.usecase.SetPlaceStatusUseCase
 import com.sextou.domain.visits.repository.VisitRepository
@@ -128,6 +130,53 @@ class FeedViewModelTest {
         assertFalse(viewModel.uiState.value.isLoading)
         assertFalse(viewModel.uiState.value.isError)
         assertEquals(listOf("ao-ponto"), viewModel.uiState.value.places.map(FeedPlaceUiModel::id))
+    }
+
+    @Test
+    fun feedRequestsPhotoMetadataFromThePlacesApi() {
+        val searchPlacesUseCase = FakeSearchPlacesUseCase {
+            Success(listOf(place(id = "place-1", name = "Place 1")))
+        }
+        val viewModel = feedViewModel(searchPlacesUseCase = searchPlacesUseCase)
+
+        viewModel.retry()
+
+        assertTrue(searchPlacesUseCase.includePhotosCalls.all { it })
+    }
+
+    @Test
+    fun successfulPhotoResolutionIsPublishedInTheFeedPlace() {
+        val reference = PlacePhotoReference(
+            placeId = "place-1",
+            index = 0,
+            width = 640,
+            height = 320,
+            attributionHtml = "<a>Google Maps</a>",
+            authors = emptyList(),
+            googleMapsUri = null,
+            flagContentUri = null,
+        )
+        val viewModel = feedViewModel(
+            searchPlacesUseCase = FakeSearchPlacesUseCase {
+                Success(listOf(place(id = "place-1", name = "Place 1", photos = listOf(reference))))
+            },
+            photoResult = Success(
+                PlacePhoto(
+                    uri = "https://example.invalid/place-1.jpg",
+                    attributionHtml = "<a>Google Maps</a>",
+                    authors = emptyList(),
+                    providerAttribution = "Google Maps",
+                ),
+            ),
+        )
+
+        viewModel.retry()
+        viewModel.requestPhoto("place-1")
+
+        assertEquals(
+            "https://example.invalid/place-1.jpg",
+            viewModel.uiState.value.places.single().photoUri,
+        )
     }
 
     @Test
@@ -249,6 +298,7 @@ private class FakeSearchPlacesUseCase(
     private val response: (String) -> Result<List<PlaceSummary>>,
 ) : SearchPlacesUseCase(NoOpPlacesRepository(), NoOpPlacesRepository()) {
     val calls = mutableListOf<String>()
+    val includePhotosCalls = mutableListOf<Boolean>()
 
     override suspend fun invoke(
         query: String,
@@ -256,11 +306,14 @@ private class FakeSearchPlacesUseCase(
         includePhotos: Boolean,
     ): Result<List<PlaceSummary>> {
         calls += query
+        includePhotosCalls += includePhotos
         return response(query)
     }
 }
 
-private class NoOpPlacesRepository : PlacesRepository.Remote, PlacesRepository.Local {
+private class NoOpPlacesRepository(
+    private val photoResult: Result<PlacePhoto> = Failure(null),
+) : PlacesRepository.Remote, PlacesRepository.Local {
     override suspend fun searchNearby(request: NearbySearchRequest): Result<List<PlaceSummary>> =
         Success(emptyList())
 
@@ -271,7 +324,7 @@ private class NoOpPlacesRepository : PlacesRepository.Remote, PlacesRepository.L
         error("Not used")
 
     override suspend fun getPhoto(request: PlacePhotoRequest): Result<PlacePhoto> =
-        error("Not used")
+        photoResult
 
     override fun observeAll(): Flow<List<PlaceSummary>> = flowOf(emptyList())
 
@@ -284,6 +337,7 @@ private fun feedViewModel(
     favoritePlaceIds: Set<String> = emptySet(),
     visitedPlaceIds: Set<String> = emptySet(),
     savedPlaces: List<PlaceSummary> = emptyList(),
+    photoResult: Result<PlacePhoto> = Failure(null),
 ): FeedViewModel {
     val statusRepository = FakeStatusRepository(favoritePlaceIds, visitedPlaceIds)
     val favoriteRepository = FakeFavoriteRepository(statusRepository)
@@ -291,6 +345,7 @@ private fun feedViewModel(
     val placesRepository = FakePlacesLocalRepository(savedPlaces)
     return FeedViewModel(
         searchPlacesUseCase = searchPlacesUseCase,
+        getPlacePhotoUseCase = GetPlacePhotoUseCase(NoOpPlacesRepository(photoResult)),
         observePlacesUseCase = ObservePlacesUseCase(placesRepository),
         observeFavoritesUseCase = ObserveFavoritesUseCase(favoriteRepository),
         observeVisitedPlacesUseCase = ObserveVisitedPlacesUseCase(visitedRepository),
@@ -360,6 +415,7 @@ private fun place(
     id: String,
     name: String,
     location: GeoPoint? = null,
+    photos: List<PlacePhotoReference> = emptyList(),
 ) = PlaceSummary(
     id = id,
     displayName = name,
@@ -374,4 +430,5 @@ private fun place(
     priceLevel = null,
     googleMapsUri = null,
     providerAttribution = "Google Maps",
+    photos = photos,
 )

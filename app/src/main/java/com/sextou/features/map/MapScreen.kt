@@ -85,6 +85,7 @@ fun MapScreen(
     onMapCenterChanged: (GeoPoint) -> Unit,
     onSearchAreaClicked: () -> Unit,
     onPlaceClicked: (String) -> Unit,
+    onPhotoRequested: (String) -> Unit,
     onTabSelected: (FeedTab) -> Unit,
     modifier: Modifier = Modifier,
     focusedPlaceId: String? = null,
@@ -404,6 +405,7 @@ fun MapScreen(
                 selectionRequest = selectionRequest,
                 onPlaceCentered = centerMapOnPlace,
                 onPlaceClicked = onPlaceClicked,
+                onPhotoRequested = onPhotoRequested,
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .padding(bottom = 112.dp),
@@ -477,6 +479,7 @@ private fun MapScreenPreview() {
             onMapCenterChanged = {},
             onSearchAreaClicked = {},
             onPlaceClicked = {},
+            onPhotoRequested = {},
             onTabSelected = {},
         )
     }

@@ -1,5 +1,6 @@
 package com.sextou.features.feed.components
 
+import android.text.Html
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -22,12 +23,18 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -39,6 +46,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
+import coil.compose.AsyncImage
 import com.sextou.R
 import com.sextou.designsystem.component.sectionheader.SextouSectionHeader
 import com.sextou.designsystem.component.statusbadge.SextouStatus
@@ -79,7 +88,9 @@ internal fun FeedContent(
     @androidx.annotation.StringRes actionErrorMessageResId: Int?,
     isFavoritesTab: Boolean,
     providerAttribution: String?,
+    photoRetryToken: Long,
     onPlaceClicked: (String) -> Unit,
+    onPhotoRequested: (String) -> Unit,
     onFavoriteClicked: (String) -> Unit,
     onVisitedClicked: (String) -> Unit,
     onRetry: () -> Unit,
@@ -210,9 +221,11 @@ internal fun FeedContent(
                 ) { place ->
                     FeedPlaceCard(
                         place = place,
+                        photoRetryToken = photoRetryToken,
                         isFavorite = place.id in favoritePlaceIds,
                         isVisited = place.id in visitedPlaceIds,
                         onClick = { onPlaceClicked(place.id) },
+                        onPhotoRequested = { onPhotoRequested(place.id) },
                         onFavoriteClick = { onFavoriteClicked(place.id) },
                         onVisitedClick = { onVisitedClicked(place.id) },
                         modifier = Modifier
@@ -248,9 +261,11 @@ internal fun FeedContent(
 @Composable
 private fun FeedPlaceCard(
     place: FeedPlaceUiModel,
+    photoRetryToken: Long,
     isFavorite: Boolean,
     isVisited: Boolean,
     onClick: () -> Unit,
+    onPhotoRequested: () -> Unit,
     onFavoriteClick: () -> Unit,
     onVisitedClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -278,8 +293,10 @@ private fun FeedPlaceCard(
             FeedPlaceArtwork(
                 place = place,
                 name = name,
+                photoRetryToken = photoRetryToken,
                 isFavorite = isFavorite,
                 isVisited = isVisited,
+                onPhotoRequested = onPhotoRequested,
                 onFavoriteClick = onFavoriteClick,
                 onVisitedClick = onVisitedClick,
             )
@@ -295,11 +312,22 @@ private fun FeedPlaceCard(
 private fun FeedPlaceArtwork(
     place: FeedPlaceUiModel,
     name: String,
+    photoRetryToken: Long,
     isFavorite: Boolean,
     isVisited: Boolean,
     onFavoriteClick: () -> Unit,
     onVisitedClick: () -> Unit,
+    onPhotoRequested: () -> Unit,
 ) {
+    val photoUri = place.photoUri?.takeIf(String::isNotBlank)
+    var photoLoadFailed by remember(place.id, photoUri) { mutableStateOf(false) }
+
+    LaunchedEffect(place.id, photoUri, photoRetryToken) {
+        if (photoUri == null && place.imageResId == null) {
+            onPhotoRequested()
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -307,18 +335,32 @@ private fun FeedPlaceArtwork(
             .clip(FeedImageShape)
             .background(SextouColors.SurfaceImage),
     ) {
-        if (place.imageResId != null) {
-            androidx.compose.foundation.Image(
-                painter = painterResource(place.imageResId),
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-            )
-        } else {
-            FeedPlacePlaceholder(
-                place = place,
-                name = name,
-            )
+        when {
+            photoUri != null && !photoLoadFailed -> {
+                AsyncImage(
+                    model = photoUri.toUri(),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                    onError = { photoLoadFailed = true },
+                )
+            }
+
+            place.imageResId != null -> {
+                androidx.compose.foundation.Image(
+                    painter = painterResource(place.imageResId),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                )
+            }
+
+            else -> {
+                FeedPlacePlaceholder(
+                    place = place,
+                    name = name,
+                )
+            }
         }
 
         Box(
@@ -326,6 +368,35 @@ private fun FeedPlaceArtwork(
                 .fillMaxSize()
                 .background(FeedImageScrim),
         )
+        if (photoUri != null && !photoLoadFailed) {
+            place.photoAttribution
+                ?.let { attribution ->
+                    Html.fromHtml(attribution, Html.FROM_HTML_MODE_LEGACY)
+                        .toString()
+                        .trim()
+                        .takeIf(String::isNotBlank)
+                }
+                ?.let { attributionText ->
+                    Text(
+                        text = attributionText,
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(end = SextouSpacing.Sm, bottom = SextouSpacing.Sm)
+                            .background(
+                                SextouColors.Scrim.copy(alpha = 0.86f),
+                                RoundedCornerShape(SextouCornerRadius.Chip),
+                            )
+                            .padding(
+                                horizontal = SextouSpacing.Xs,
+                                vertical = SextouSpacing.Xxs,
+                            ),
+                        style = SextouTextStyles.Metadata,
+                        color = SextouColors.TextPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+        }
         place.status?.let { status ->
             SextouStatusBadge(
                 status = when (status) {
@@ -704,9 +775,11 @@ private fun FeedPlaceCardPreview() {
     SextouTheme {
         FeedPlaceCard(
             place = FeedUiState.preview().places.first(),
+            photoRetryToken = 0L,
             isFavorite = false,
             isVisited = false,
             onClick = {},
+            onPhotoRequested = {},
             onFavoriteClick = {},
             onVisitedClick = {},
             modifier = Modifier.padding(SextouSpacing.Lg),

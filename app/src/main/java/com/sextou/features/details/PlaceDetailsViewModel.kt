@@ -7,6 +7,7 @@ import com.sextou.domain.Loading
 import com.sextou.domain.Success
 import com.sextou.domain.favorites.usecase.ObserveFavoritesUseCase
 import com.sextou.domain.ignored.usecase.ObserveIgnoredPlacesUseCase
+import com.sextou.domain.places.model.GeoPoint
 import com.sextou.domain.places.model.PlaceDetails
 import com.sextou.domain.places.model.PlaceOpeningHours
 import com.sextou.domain.places.model.PlacePhoto
@@ -25,6 +26,10 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 class PlaceDetailsViewModel(
     private val getPlaceDetailsUseCase: GetPlaceDetailsUseCase,
@@ -39,11 +44,29 @@ class PlaceDetailsViewModel(
     private var favoritePlaceIds: Set<String> = emptySet()
     private var visitedPlaceIds: Set<String> = emptySet()
     private var ignoredPlaceIds: Set<String> = emptySet()
+    private var searchLocation: GeoPoint? = null
     private var loadedPlaceId: String? = null
     private var pendingFallback: PlaceDetailsFallback? = null
     private var loadJob: Job? = null
 
     val uiState: StateFlow<PlaceDetailsUiState> = mutableUiState.asStateFlow()
+
+    fun onLocationChanged(location: GeoPoint?) {
+        if (searchLocation == location) return
+
+        searchLocation = location
+        mutableUiState.update { state ->
+            val place = state.place ?: return@update state
+            val distanceMeters = location?.let { referenceLocation ->
+                place.location?.let { placeLocation ->
+                    referenceLocation.distanceTo(placeLocation)
+                }
+            }
+            state.copy(
+                place = place.copy(distanceMeters = distanceMeters ?: place.distanceMeters),
+            )
+        }
+    }
 
     init {
         observeFavoritesUseCase()
@@ -107,7 +130,7 @@ class PlaceDetailsViewModel(
                         it.copy(
                             isLoading = false,
                             isError = false,
-                            place = result.data.toUiModel(),
+                            place = result.data.toUiModel().mergeWithFallback(fallbackUiModel),
                         )
                     }.also {
                         result.data.photos.firstOrNull()?.let { reference ->
@@ -160,7 +183,8 @@ class PlaceDetailsViewModel(
             category = primaryTypeDisplayName?.takeIf(String::isNotBlank)
                 ?: primaryType?.takeIf(String::isNotBlank),
             address = shortFormattedAddress ?: formattedAddress,
-            phone = nationalPhoneNumber ?: internationalPhoneNumber,
+            phone = nationalPhoneNumber?.takeIf(String::isNotBlank)
+                ?: internationalPhoneNumber?.takeIf(String::isNotBlank),
             website = websiteUri,
             summary = editorialSummary?.text ?: generativeSummary?.overview,
             hours = availableHours?.weekdayText.orEmpty(),
@@ -171,6 +195,9 @@ class PlaceDetailsViewModel(
             providerAttribution = providerAttribution,
             location = location,
             priceLevel = priceLevel,
+            distanceMeters = location?.let { placeLocation ->
+                searchLocation?.distanceTo(placeLocation)
+            },
             photoCount = photos.size,
             menuUri = websiteUri ?: googleMapsUri,
         )
@@ -189,11 +216,28 @@ class PlaceDetailsViewModel(
         providerAttribution = providerAttribution,
         location = location,
         priceLevel = priceLevel,
+        distanceMeters = location?.let { placeLocation ->
+            searchLocation?.distanceTo(placeLocation)
+        } ?: distanceMeters,
         photoUri = photoUri,
         photoAttribution = photoAttribution,
         photoCount = if (photoUri != null) 1 else 0,
         menuUri = googleMapsUri,
     )
+
+    private fun PlaceDetailsUiModel.mergeWithFallback(
+        fallback: PlaceDetailsUiModel?,
+    ): PlaceDetailsUiModel = if (fallback == null) {
+        this
+    } else {
+        copy(
+            location = location ?: fallback.location,
+            distanceMeters = distanceMeters ?: fallback.distanceMeters,
+            photoUri = photoUri ?: fallback.photoUri,
+            photoAttribution = photoAttribution ?: fallback.photoAttribution,
+            photoCount = photoCount.takeIf { it > 0 } ?: fallback.photoCount,
+        )
+    }
 
     private fun PlaceOpeningHours.toUiModel(): PlaceDetailsHoursScheduleUiModel? {
         val rows = weekdayText
@@ -252,7 +296,8 @@ class PlaceDetailsViewModel(
     }
 
     private fun PlacePhoto.toAttribution(): String? =
-        authors.joinToString(", ") { it.name }.takeIf(String::isNotBlank)
+        attributionHtml?.takeIf(String::isNotBlank)
+            ?: authors.joinToString(", ") { it.name }.takeIf(String::isNotBlank)
 
     private fun onStatusClicked(status: PlaceStatus) {
         val placeId = activePlaceId ?: return
@@ -313,7 +358,20 @@ class PlaceDetailsViewModel(
         return if (selected) this + placeId else this - placeId
     }
 
+    private fun GeoPoint.distanceTo(other: GeoPoint): Double {
+        val latitudeDelta = Math.toRadians(other.latitude - latitude)
+        val longitudeDelta = Math.toRadians(other.longitude - longitude)
+        val startLatitude = Math.toRadians(latitude)
+        val endLatitude = Math.toRadians(other.latitude)
+        val haversine = sin(latitudeDelta / 2) * sin(latitudeDelta / 2) +
+            cos(startLatitude) * cos(endLatitude) *
+            sin(longitudeDelta / 2) * sin(longitudeDelta / 2)
+
+        return EARTH_RADIUS_METERS * 2 * atan2(sqrt(haversine), sqrt(1 - haversine))
+    }
+
     private companion object {
         const val MAX_VISIBLE_HOURS_ROWS = 3
+        const val EARTH_RADIUS_METERS = 6_371_000.0
     }
 }

@@ -34,6 +34,7 @@ fun MapDestination(
         onMapCenterChanged = viewModel::onMapCenterChanged,
         onSearchAreaClicked = viewModel::onSearchAreaClicked,
         onPlaceClicked = onPlaceClicked,
+        onPhotoRequested = viewModel::requestPhoto,
         onTabSelected = onTabSelected,
     )
 }

@@ -38,6 +38,8 @@ data class FeedPlaceUiModel(
     @param:StringRes val priceDescriptionResId: Int = R.string.feed_price_description,
     val status: FeedPlaceStatus? = FeedPlaceStatus.OPEN,
     @param:DrawableRes val imageResId: Int? = null,
+    val photoUri: String? = null,
+    val photoAttribution: String? = null,
     @param:StringRes val placeholderEmojiResId: Int? = null,
     val searchableText: String = "",
 )
@@ -53,6 +55,7 @@ data class FeedUiState(
     val isStale: Boolean = false,
     @param:StringRes val errorMessageResId: Int? = null,
     @param:StringRes val actionErrorMessageResId: Int? = null,
+    val photoRetryToken: Long = 0L,
     val isFilterDialogVisible: Boolean = false,
     val openOnly: Boolean = false,
     val providerAttribution: String? = null,

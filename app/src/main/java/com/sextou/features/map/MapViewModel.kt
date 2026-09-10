@@ -10,6 +10,7 @@ import com.sextou.domain.ignored.usecase.ObserveIgnoredPlacesUseCase
 import com.sextou.domain.places.model.GeoPoint
 import com.sextou.domain.places.model.PlacePhoto
 import com.sextou.domain.places.model.PlacePhotoReference
+import com.sextou.domain.places.model.PlaceSummary
 import com.sextou.domain.places.usecase.GetPlacePhotoUseCase
 import com.sextou.domain.places.usecase.SearchPlacesUseCase
 import com.sextou.domain.routes.usecase.GetRouteUseCase
@@ -24,6 +25,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.util.ArrayDeque
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
@@ -48,7 +50,9 @@ class MapViewModel(
     private var searchJob: Job? = null
     private var photoJob: Job? = null
     private var routeJob: Job? = null
-    private var photoLoadGeneration = 0L
+    private val photoReferences = mutableMapOf<String, PlacePhotoReference>()
+    private val requestedPhotoPlaceIds = mutableSetOf<String>()
+    private val photoQueue = ArrayDeque<PhotoRequest>()
     private var routeDestination: GeoPoint? = null
     private var requestedRoute: RouteRequest? = null
 
@@ -87,8 +91,6 @@ class MapViewModel(
         loadedQuery = query
         loadedLocation = searchLocation
         searchJob?.cancel()
-        photoJob?.cancel()
-        val generation = ++photoLoadGeneration
         searchJob = viewModelScope.launch {
             mutableUiState.update { it.copy(isLoading = true, isError = false) }
             try {
@@ -100,32 +102,28 @@ class MapViewModel(
                     )
                 ) {
                     is Success -> {
-                        val mappedPlaces = result.data.mapNotNull { place ->
+                        rememberPhotoReferences(result.data)
+                        val mapPlaces = result.data.mapNotNull { place ->
                             place.location?.let { location ->
-                                MapPlaceMapping(
-                                    place = MapPlaceUiModel(
-                                        id = place.id,
-                                        name = place.displayName?.takeIf(String::isNotBlank) ?: place.id,
-                                        latitude = location.latitude,
-                                        longitude = location.longitude,
-                                        rating = place.rating,
-                                        ratingsCount = place.userRatingCount,
-                                        categoryText = place.primaryTypeDisplayName
-                                            ?.takeIf(String::isNotBlank)
-                                            ?: place.primaryType?.takeIf(String::isNotBlank),
-                                        address = place.formattedAddress,
-                                        googleMapsUri = place.googleMapsUri,
-                                        distanceMeters = searchLocation?.distanceTo(location),
-                                        priceLevel = place.priceLevel,
-                                        primaryType = place.primaryType,
-                                        placeTypes = place.types,
-                                    ),
-                                    photoReference = place.photos.firstOrNull()
-                                        ?: firstPhotoReference(place.id),
+                                MapPlaceUiModel(
+                                    id = place.id,
+                                    name = place.displayName?.takeIf(String::isNotBlank) ?: place.id,
+                                    latitude = location.latitude,
+                                    longitude = location.longitude,
+                                    rating = place.rating,
+                                    ratingsCount = place.userRatingCount,
+                                    categoryText = place.primaryTypeDisplayName
+                                        ?.takeIf(String::isNotBlank)
+                                        ?: place.primaryType?.takeIf(String::isNotBlank),
+                                    address = place.formattedAddress,
+                                    googleMapsUri = place.googleMapsUri,
+                                    distanceMeters = searchLocation?.distanceTo(location),
+                                    priceLevel = place.priceLevel,
+                                    primaryType = place.primaryType,
+                                    placeTypes = place.types,
                                 )
                             }
                         }
-                        val mapPlaces = mappedPlaces.map(MapPlaceMapping::place)
                         mutableUiState.update {
                             it.copy(
                                 places = mapPlaces,
@@ -133,7 +131,6 @@ class MapViewModel(
                                 isError = false,
                             )
                         }
-                        loadPhotoUris(mappedPlaces, generation)
                     }
 
                     is Failure -> mutableUiState.update {
@@ -154,38 +151,60 @@ class MapViewModel(
         }
     }
 
-    private fun loadPhotoUris(places: List<MapPlaceMapping>, generation: Long) {
-        if (places.isEmpty()) return
+    fun requestPhoto(placeId: String) {
+        if (placeId.isBlank() || uiState.value.places.none { it.id == placeId }) return
+
+        val reference = photoReferences[placeId] ?: return
+        if (!requestedPhotoPlaceIds.add(placeId)) return
+
+        photoQueue.addLast(PhotoRequest(placeId = placeId, reference = reference))
+        startPhotoJobIfNeeded()
+    }
+
+    private fun rememberPhotoReferences(places: List<PlaceSummary>) {
+        places.forEach { place ->
+            if (place.id.isNotBlank()) {
+                photoReferences[place.id] = place.photos.firstOrNull() ?: firstPhotoReference(place.id)
+            }
+        }
+    }
+
+    private fun startPhotoJobIfNeeded() {
+        if (photoJob?.isActive == true) return
 
         photoJob = viewModelScope.launch {
-            places.forEach { place ->
-                val reference = place.photoReference
-                if (!isActive || generation != photoLoadGeneration) return@launch
-
-                when (val result = getPlacePhotoUseCase(reference)) {
-                    is Success -> {
-                        val uri = result.data.uri.takeIf(String::isNotBlank)
-                        if (uri != null && isActive && generation == photoLoadGeneration) {
-                            mutableUiState.update { state ->
-                                state.copy(
-                                    places = state.places.map { currentPlace ->
-                                        if (currentPlace.id == place.place.id) {
-                                            currentPlace.copy(
-                                                photoAttribution = result.data.toAttribution(),
-                                                photoUri = uri,
-                                            )
-                                        } else {
-                                            currentPlace
-                                        }
-                                    },
-                                )
+            while (isActive) {
+                val request = photoQueue.pollFirst() ?: break
+                try {
+                    when (val result = getPlacePhotoUseCase(request.reference)) {
+                        is Success -> {
+                            val uri = result.data.uri.takeIf(String::isNotBlank)
+                            if (uri != null && isActive) {
+                                mutableUiState.update { state ->
+                                    state.copy(
+                                        places = state.places.map { currentPlace ->
+                                            if (currentPlace.id == request.placeId) {
+                                                currentPlace.copy(
+                                                    photoAttribution = result.data.toAttribution(),
+                                                    photoUri = uri,
+                                                )
+                                            } else {
+                                                currentPlace
+                                            }
+                                        },
+                                    )
+                                }
                             }
                         }
-                    }
 
-                    is Failure -> Unit
-                    is Loading<*>,
-                    -> Unit
+                        is Failure,
+                        is Loading<*>,
+                        -> Unit
+                    }
+                } catch (cancellation: CancellationException) {
+                    throw cancellation
+                } catch (_: Exception) {
+                    // A missing photo must not hide an establishment from the map.
                 }
             }
         }
@@ -195,9 +214,9 @@ class MapViewModel(
         attributionHtml?.takeIf(String::isNotBlank)
             ?: authors.joinToString(", ") { it.name }.takeIf(String::isNotBlank)
 
-    private data class MapPlaceMapping(
-        val place: MapPlaceUiModel,
-        val photoReference: PlacePhotoReference,
+    private data class PhotoRequest(
+        val placeId: String,
+        val reference: PlacePhotoReference,
     )
 
     private fun firstPhotoReference(placeId: String) = PlacePhotoReference(

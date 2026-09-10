@@ -28,6 +28,7 @@ fun FeedDestination(
         onFilterDialogDismissed = viewModel::onFilterDialogDismissed,
         onOpenOnlyChanged = viewModel::onOpenOnlyChanged,
         onPlaceClicked = onOpenPlace,
+        onPhotoRequested = viewModel::requestPhoto,
         onRetry = viewModel::retry,
     )
 }

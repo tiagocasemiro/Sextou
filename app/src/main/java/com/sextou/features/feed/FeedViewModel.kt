@@ -9,8 +9,11 @@ import com.sextou.domain.Success
 import com.sextou.domain.favorites.usecase.ObserveFavoritesUseCase
 import com.sextou.domain.places.model.BusinessStatus
 import com.sextou.domain.places.model.GeoPoint
+import com.sextou.domain.places.model.PlacePhoto
+import com.sextou.domain.places.model.PlacePhotoReference
 import com.sextou.domain.places.model.PlaceStatus
 import com.sextou.domain.places.model.PlaceSummary
+import com.sextou.domain.places.usecase.GetPlacePhotoUseCase
 import com.sextou.domain.places.usecase.ObservePlacesUseCase
 import com.sextou.domain.places.usecase.SearchPlacesUseCase
 import com.sextou.domain.places.usecase.SetPlaceStatusUseCase
@@ -26,6 +29,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.util.ArrayDeque
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
@@ -33,6 +37,7 @@ import kotlin.math.sqrt
 
 class FeedViewModel(
     private val searchPlacesUseCase: SearchPlacesUseCase,
+    private val getPlacePhotoUseCase: GetPlacePhotoUseCase,
     private val observePlacesUseCase: ObservePlacesUseCase,
     private val observeFavoritesUseCase: ObserveFavoritesUseCase,
     private val observeVisitedPlacesUseCase: ObserveVisitedPlacesUseCase,
@@ -42,6 +47,11 @@ class FeedViewModel(
     private var searchLocation: GeoPoint? = initialLocation
     private var allPlaces: List<FeedPlaceUiModel> = emptyList()
     private var searchJob: Job? = null
+    private var photoJob: Job? = null
+    private val resolvedPhotos = mutableMapOf<String, PlacePhoto>()
+    private val photoReferences = mutableMapOf<String, PlacePhotoReference>()
+    private val requestedPhotoPlaceIds = mutableSetOf<String>()
+    private val photoQueue = ArrayDeque<PhotoRequest>()
     private var initialRefreshStarted = false
 
     private val mutableUiState = MutableStateFlow(FeedUiState())
@@ -111,7 +121,24 @@ class FeedViewModel(
     }
 
     fun retry() {
+        requestedPhotoPlaceIds.clear()
+        photoQueue.clear()
+        photoJob?.cancel()
+        photoJob = null
+        mutableUiState.update { state ->
+            state.copy(photoRetryToken = state.photoRetryToken + 1)
+        }
         loadPlaces()
+    }
+
+    fun requestPhoto(placeId: String) {
+        if (placeId.isBlank() || resolvedPhotos[placeId]?.uri?.isNotBlank() == true) return
+
+        val reference = photoReferences[placeId] ?: return
+        if (!requestedPhotoPlaceIds.add(placeId)) return
+
+        photoQueue.addLast(PhotoRequest(placeId = placeId, reference = reference))
+        startPhotoJobIfNeeded()
     }
 
     fun onFavoriteClicked(placeId: String) {
@@ -198,8 +225,15 @@ class FeedViewModel(
             }
 
             try {
-                when (val result = searchPlacesUseCase(query, searchLocation)) {
+                when (
+                    val result = searchPlacesUseCase(
+                        query = query,
+                        location = searchLocation,
+                        includePhotos = true,
+                    )
+                ) {
                     is Success -> {
+                        rememberPhotoReferences(result.data)
                         val searchedPlaces = result.data.map { place ->
                             place.toUiModel(referenceLocation = searchLocation)
                         }
@@ -269,6 +303,7 @@ class FeedViewModel(
     }
 
     private fun onSavedPlacesChanged(places: List<PlaceSummary>) {
+        rememberPhotoReferences(places)
         val mappedPlaces = places.map { place ->
             place.toUiModel(referenceLocation = searchLocation)
         }
@@ -280,6 +315,90 @@ class FeedViewModel(
             )
         }
     }
+
+    private fun rememberPhotoReferences(places: List<PlaceSummary>) {
+        places.forEach { place ->
+            if (place.id.isNotBlank()) {
+                photoReferences[place.id] = place.photoReference()
+            }
+        }
+    }
+
+    private fun startPhotoJobIfNeeded() {
+        if (photoJob?.isActive == true) return
+
+        photoJob = viewModelScope.launch {
+            while (isActive) {
+                val request = photoQueue.pollFirst() ?: break
+                try {
+                    when (val result = getPlacePhotoUseCase(request.reference)) {
+                        is Success -> {
+                            val photo = result.data
+                            if (photo.uri.isNotBlank() && isActive) {
+                                resolvedPhotos[request.placeId] = photo
+                                updateResolvedPhoto(request.placeId, photo)
+                            }
+                        }
+
+                        is Failure,
+                        is Loading<*>,
+                        -> Unit
+                    }
+                } catch (cancellation: CancellationException) {
+                    throw cancellation
+                } catch (_: Exception) {
+                    // A missing photo must not hide an establishment from the feed.
+                }
+            }
+        }
+    }
+
+    private fun updateResolvedPhoto(placeId: String, photo: PlacePhoto) {
+        allPlaces = allPlaces.map { place ->
+            if (place.id == placeId) {
+                place.copy(
+                    photoUri = photo.uri,
+                    photoAttribution = photo.toAttribution(),
+                )
+            } else {
+                place
+            }
+        }
+        mutableUiState.update { state ->
+            state.copy(
+                places = state.places.map { place ->
+                    if (place.id == placeId) {
+                        place.copy(
+                            photoUri = photo.uri,
+                            photoAttribution = photo.toAttribution(),
+                        )
+                    } else {
+                        place
+                    }
+                },
+            )
+        }
+    }
+
+    private fun PlacePhoto.toAttribution(): String? =
+        attributionHtml?.takeIf(String::isNotBlank)
+            ?: authors.joinToString(", ") { it.name }.takeIf(String::isNotBlank)
+
+    private fun PlaceSummary.photoReference() = photos.firstOrNull() ?: PlacePhotoReference(
+        placeId = id,
+        index = 0,
+        width = 0,
+        height = 0,
+        attributionHtml = null,
+        authors = emptyList(),
+        googleMapsUri = null,
+        flagContentUri = null,
+    )
+
+    private data class PhotoRequest(
+        val placeId: String,
+        val reference: PlacePhotoReference,
+    )
 
     private fun filterPlaces(
         places: List<FeedPlaceUiModel>,
@@ -321,6 +440,8 @@ class FeedViewModel(
             priceDescriptionResId = R.string.feed_price_level_description,
             status = businessStatus.toFeedStatus(),
             providerAttribution = providerAttribution.takeIf(String::isNotBlank),
+            photoUri = resolvedPhotos[id]?.uri,
+            photoAttribution = resolvedPhotos[id]?.toAttribution(),
             searchableText = searchableText,
         )
     }

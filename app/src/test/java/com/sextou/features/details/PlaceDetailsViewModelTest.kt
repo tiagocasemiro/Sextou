@@ -10,10 +10,14 @@ import com.sextou.domain.ignored.repository.IgnoredPlaceRepository
 import com.sextou.domain.ignored.usecase.ObserveIgnoredPlacesUseCase
 import com.sextou.domain.places.model.GeoPoint
 import com.sextou.domain.places.model.NearbySearchRequest
+import com.sextou.domain.places.model.BusinessStatus
 import com.sextou.domain.places.model.PlaceDetails
 import com.sextou.domain.places.model.PlaceDetailsRequest
 import com.sextou.domain.places.model.PlacePhoto
+import com.sextou.domain.places.model.PlacePhotoReference
 import com.sextou.domain.places.model.PlacePhotoRequest
+import com.sextou.domain.places.model.PlaceAttribute
+import com.sextou.domain.places.model.PlaceAmenities
 import com.sextou.domain.places.model.PlaceStatus
 import com.sextou.domain.places.model.PlaceSummary
 import com.sextou.domain.places.model.PlaceTextSearchRequest
@@ -89,6 +93,66 @@ class PlaceDetailsViewModelTest {
         assertFalse(state.isLoading)
         assertTrue(state.isError)
         assertNull(state.place)
+    }
+
+    @Test
+    fun successfulDetailsExposeApiRatingPriceDistanceAndPhoto() {
+        val photoReference = PlacePhotoReference(
+            placeId = "place-1",
+            index = 0,
+            width = 640,
+            height = 320,
+            attributionHtml = "Google Maps",
+            authors = emptyList(),
+            googleMapsUri = null,
+            flagContentUri = null,
+        )
+        val repository = FakePlacesRepository(
+            detailsResult = Success(
+                samplePlaceDetails().copy(
+                    priceLevel = 3,
+                    photos = listOf(photoReference),
+                ),
+            ),
+            photoResult = Success(
+                PlacePhoto(
+                    uri = "https://example.invalid/place-1.jpg",
+                    attributionHtml = "Google Maps",
+                    authors = emptyList(),
+                    providerAttribution = "Google Maps",
+                ),
+            ),
+        )
+        val viewModel = placeDetailsViewModel(repository)
+        viewModel.onLocationChanged(GeoPoint(0.0, 0.0))
+
+        viewModel.load("place-1")
+
+        val place = viewModel.uiState.value.place
+        assertEquals(4.7, place?.rating)
+        assertEquals(123, place?.ratingsCount)
+        assertEquals(3, place?.priceLevel)
+        assertEquals(0.0, place?.distanceMeters ?: -1.0, 0.0)
+        assertEquals("https://example.invalid/place-1.jpg", place?.photoUri)
+    }
+
+    @Test
+    fun successfulDetailsExposeApiPhoneAndWebsiteContacts() {
+        val repository = FakePlacesRepository(
+            detailsResult = Success(
+                samplePlaceDetails().copy(
+                    nationalPhoneNumber = " ",
+                    internationalPhoneNumber = "+55 21 99999-9999",
+                    websiteUri = "https://example.com",
+                ),
+            ),
+        )
+        val viewModel = placeDetailsViewModel(repository)
+
+        viewModel.load("place-1")
+
+        assertEquals("+55 21 99999-9999", viewModel.uiState.value.place?.phone)
+        assertEquals("https://example.com", viewModel.uiState.value.place?.website)
     }
 
     @Test
@@ -235,6 +299,7 @@ private class TestIgnoredPlaceRepository(
 
 private class FakePlacesRepository(
     private val detailsResult: Result<PlaceDetails>,
+    private val photoResult: Result<PlacePhoto> = Failure(null),
 ) : PlacesRepository.Remote {
     override suspend fun searchNearby(request: NearbySearchRequest): Result<List<PlaceSummary>> =
         Failure(null)
@@ -246,5 +311,80 @@ private class FakePlacesRepository(
         detailsResult
 
     override suspend fun getPhoto(request: PlacePhotoRequest): Result<PlacePhoto> =
-        Failure(null)
+        photoResult
 }
+
+private fun samplePlaceDetails() = PlaceDetails(
+    id = "place-1",
+    resourceName = null,
+    displayName = "Place 1",
+    displayNameLanguageCode = "pt-BR",
+    formattedAddress = null,
+    shortFormattedAddress = null,
+    adrFormattedAddress = null,
+    addressComponents = emptyList(),
+    postalAddress = null,
+    location = GeoPoint(0.0, 0.0),
+    viewport = null,
+    plusCode = null,
+    businessStatus = BusinessStatus.OPERATIONAL,
+    primaryType = null,
+    primaryTypeDisplayName = null,
+    types = emptyList(),
+    internationalPhoneNumber = null,
+    nationalPhoneNumber = null,
+    websiteUri = null,
+    googleMapsUri = null,
+    googleMapsLinks = null,
+    iconMaskUrl = null,
+    iconBackgroundColor = null,
+    utcOffsetMinutes = null,
+    timeZoneId = null,
+    openingHours = null,
+    currentOpeningHours = null,
+    secondaryOpeningHours = emptyList(),
+    currentSecondaryOpeningHours = emptyList(),
+    priceLevel = null,
+    priceRange = null,
+    rating = 4.7,
+    userRatingCount = 123,
+    accessibility = null,
+    parking = null,
+    payment = null,
+    amenities = PlaceAmenities(
+        curbsidePickup = PlaceAttribute.UNKNOWN,
+        delivery = PlaceAttribute.UNKNOWN,
+        dineIn = PlaceAttribute.UNKNOWN,
+        takeout = PlaceAttribute.UNKNOWN,
+        reservable = PlaceAttribute.UNKNOWN,
+        outdoorSeating = PlaceAttribute.UNKNOWN,
+        liveMusic = PlaceAttribute.UNKNOWN,
+        allowsDogs = PlaceAttribute.UNKNOWN,
+        restroom = PlaceAttribute.UNKNOWN,
+        goodForChildren = PlaceAttribute.UNKNOWN,
+        goodForGroups = PlaceAttribute.UNKNOWN,
+        goodForWatchingSports = PlaceAttribute.UNKNOWN,
+        menuForChildren = PlaceAttribute.UNKNOWN,
+        servesBeer = PlaceAttribute.UNKNOWN,
+        servesWine = PlaceAttribute.UNKNOWN,
+        servesCocktails = PlaceAttribute.UNKNOWN,
+        servesCoffee = PlaceAttribute.UNKNOWN,
+        servesBreakfast = PlaceAttribute.UNKNOWN,
+        servesBrunch = PlaceAttribute.UNKNOWN,
+        servesLunch = PlaceAttribute.UNKNOWN,
+        servesDinner = PlaceAttribute.UNKNOWN,
+        servesDessert = PlaceAttribute.UNKNOWN,
+        servesVegetarianFood = PlaceAttribute.UNKNOWN,
+    ),
+    editorialSummary = null,
+    generativeSummary = null,
+    neighborhoodSummary = null,
+    reviewSummary = null,
+    reviews = emptyList(),
+    photos = emptyList(),
+    addressDescriptor = null,
+    containingPlaces = emptyList(),
+    subDestinations = emptyList(),
+    attributions = emptyList(),
+    providerAttribution = "Google Maps",
+)

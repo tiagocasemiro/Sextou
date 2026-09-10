@@ -51,6 +51,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import coil.compose.AsyncImage
 import com.sextou.R
 import com.sextou.designsystem.R as DesignSystemR
@@ -270,6 +271,7 @@ internal fun MapPlaceCarousel(
     selectionRequest: Int,
     onPlaceCentered: (MapPlaceUiModel) -> Unit,
     onPlaceClicked: (String) -> Unit,
+    onPhotoRequested: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()
@@ -334,6 +336,7 @@ internal fun MapPlaceCarousel(
                 MapPlaceCard(
                     place = place,
                     onClick = { onPlaceClicked(place.id) },
+                    onPhotoRequested = { onPhotoRequested(place.id) },
                 )
             }
         }
@@ -344,6 +347,7 @@ internal fun MapPlaceCarousel(
 private fun MapPlaceCard(
     place: MapPlaceUiModel,
     onClick: () -> Unit,
+    onPhotoRequested: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val cardContentDescription = stringResource(
@@ -363,7 +367,10 @@ private fun MapPlaceCard(
         border = BorderStroke(SextouDimensions.Border, SextouColors.Border),
     ) {
         Column {
-            MapPlaceArtwork(place = place)
+            MapPlaceArtwork(
+                place = place,
+                onPhotoRequested = onPhotoRequested,
+            )
             MapPlaceDetails(place = place)
         }
     }
@@ -372,8 +379,16 @@ private fun MapPlaceCard(
 @Composable
 private fun MapPlaceArtwork(
     place: MapPlaceUiModel,
+    onPhotoRequested: () -> Unit,
 ) {
-    val photoLoadFailed = remember(place.id, place.photoUri) { mutableStateOf(false) }
+    val photoUri = place.photoUri?.takeIf(String::isNotBlank)
+    val photoLoadFailed = remember(place.id, photoUri) { mutableStateOf(false) }
+
+    LaunchedEffect(place.id, photoUri) {
+        if (photoUri == null && place.imageResId == null) {
+            onPhotoRequested()
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -388,9 +403,9 @@ private fun MapPlaceArtwork(
             .background(SextouColors.SurfaceImage),
     ) {
         when {
-            place.photoUri != null && !photoLoadFailed.value -> {
+            photoUri != null && !photoLoadFailed.value -> {
                 AsyncImage(
-                    model = place.photoUri,
+                    model = photoUri.toUri(),
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
@@ -428,7 +443,7 @@ private fun MapPlaceArtwork(
                 .fillMaxSize()
                 .background(MapCardScrim),
         )
-        if (place.photoUri != null && !photoLoadFailed.value) {
+        if (photoUri != null && !photoLoadFailed.value) {
             place.photoAttribution?.let { attribution ->
                 val attributionText = attribution.toPlainText()
                 if (attributionText.isNotBlank()) {

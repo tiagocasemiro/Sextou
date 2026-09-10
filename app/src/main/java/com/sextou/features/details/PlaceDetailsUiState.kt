@@ -14,6 +14,7 @@ data class PlaceDetailsUiModel(
     val hoursSummary: String? = null,
     val hoursSchedule: PlaceDetailsHoursScheduleUiModel? = null,
     val distanceText: String? = null,
+    val distanceMeters: Double? = null,
     val rating: Double?,
     val ratingsCount: Int?,
     val providerAttribution: String,
@@ -28,6 +29,9 @@ data class PlaceDetailsUiModel(
     val movement: PlaceDetailsMovementUiModel? = null,
     val menuItems: List<PlaceDetailsMenuItemUiModel> = emptyList(),
 )
+
+internal fun PlaceDetailsUiModel.hasContactInformation(): Boolean =
+    phone?.isNotBlank() == true || website?.isNotBlank() == true
 
 data class PlaceDetailsHoursScheduleUiModel(
     val status: PlaceDetailsHoursStatusUiModel? = null,
@@ -92,4 +96,5 @@ data class PlaceDetailsFallback(
     val photoUri: String? = null,
     val photoAttribution: String? = null,
     val providerAttribution: String = "Google Maps",
+    val distanceMeters: Double? = null,
 )

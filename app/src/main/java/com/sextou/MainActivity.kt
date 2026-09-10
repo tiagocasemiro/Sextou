@@ -90,6 +90,7 @@ class MainActivity : ComponentActivity() {
             location = location.point,
             bearingDegrees = location.bearingDegrees,
         )
+        placeDetailsViewModel.onLocationChanged(location.point)
     }
 
     private companion object {

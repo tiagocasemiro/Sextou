@@ -135,6 +135,9 @@ private fun FeedPlaceUiModel.toDetailsFallback() = PlaceDetailsFallback(
     priceLevel = priceLevel,
     location = location,
     googleMapsUri = googleMapsUri,
+    distanceMeters = distanceMeters,
+    photoUri = photoUri,
+    photoAttribution = photoAttribution,
     providerAttribution = providerAttribution ?: "Google Maps",
 )
 
@@ -148,6 +151,7 @@ private fun MapPlaceUiModel.toDetailsFallback() = PlaceDetailsFallback(
     priceLevel = priceLevel,
     location = com.sextou.domain.places.model.GeoPoint(latitude, longitude),
     googleMapsUri = googleMapsUri,
+    distanceMeters = distanceMeters,
     photoUri = photoUri,
     photoAttribution = photoAttribution,
 )
