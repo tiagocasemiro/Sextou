@@ -40,7 +40,6 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.maps.android.compose.Circle
-import com.google.maps.android.compose.CameraMoveStartedReason
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
@@ -48,6 +47,9 @@ import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.Polyline
 import com.google.maps.android.compose.rememberCameraPositionState
+import com.sextou.designsystem.component.radiusselector.SextouRadiusSelector
+import com.sextou.designsystem.component.radiusselector.SextouRadiusSelectorDefaults
+import java.text.NumberFormat
 import com.sextou.R
 import com.sextou.designsystem.R as DesignSystemR
 import com.sextou.designsystem.theme.SextouColors
@@ -88,9 +90,42 @@ fun MapScreen(
     onPhotoRequested: (String) -> Unit,
     onTabSelected: (FeedTab) -> Unit,
     modifier: Modifier = Modifier,
+    onRadiusSelected: (Int?) -> Unit = {},
+    onCustomRadiusChanged: (Int) -> Unit = {},
+    onRadiusConfirmed: () -> Unit = {},
+    onRadiusDismissed: () -> Unit = {},
     focusedPlaceId: String? = null,
     focusedLocation: GeoPoint? = null,
 ) {
+    if (uiState.isRadiusDialogVisible) {
+        SextouRadiusSelector(
+            title = stringResource(R.string.map_radius_title),
+            options = listOf(
+                SextouRadiusSelectorDefaults.OptionData(500, stringResource(R.string.map_radius_500)),
+                SextouRadiusSelectorDefaults.OptionData(1_000, stringResource(R.string.map_radius_1000)),
+                SextouRadiusSelectorDefaults.OptionData(2_000, stringResource(R.string.map_radius_2000)),
+                SextouRadiusSelectorDefaults.OptionData(5_000, stringResource(R.string.map_radius_5000)),
+                SextouRadiusSelectorDefaults.OptionData(10_000, stringResource(R.string.map_radius_10000)),
+                SextouRadiusSelectorDefaults.OptionData(0, stringResource(R.string.map_radius_custom)),
+            ),
+            selectedOptionId = uiState.selectedRadiusMeters ?: 0,
+            customOptionId = 0,
+            customValue = uiState.customRadiusMeters / 1_000f,
+            customValueLabel = stringResource(R.string.map_radius_value,
+                NumberFormat.getNumberInstance().format(uiState.customRadiusMeters / 1_000.0)),
+            customValueDescription = stringResource(R.string.map_radius_title),
+            valueRange = 0.5f..50f,
+            steps = 98,
+            confirmLabel = stringResource(R.string.map_radius_confirm),
+            cancelLabel = stringResource(R.string.map_radius_cancel),
+            onSelectionChanged = { onRadiusSelected(it.takeUnless { value -> value == 0 }) },
+            onCustomValueChanged = { onCustomRadiusChanged((it * 1_000).toInt()) },
+            onConfirm = onRadiusConfirmed,
+            onCancel = onRadiusDismissed,
+            enabled = !uiState.isLoading,
+            errorText = if (uiState.isError) stringResource(R.string.map_error) else null,
+        )
+    }
     val firstPlace = uiState.places.firstOrNull()
     var selectedPlaceId by remember { mutableStateOf<String?>(null) }
     var selectionRequest by remember { mutableIntStateOf(0) }
@@ -210,9 +245,7 @@ fun MapScreen(
         snapshotFlow { cameraPositionState.isMoving }
             .distinctUntilChanged()
             .collect { isMoving ->
-                if (!isMoving &&
-                    cameraPositionState.cameraMoveStartedReason == CameraMoveStartedReason.GESTURE
-                ) {
+                if (!isMoving) {
                     val target = cameraPositionState.position.target
                     onMapCenterChanged(GeoPoint(target.latitude, target.longitude))
                 }
@@ -351,8 +384,12 @@ fun MapScreen(
                     }
                 }
             },
-            onSearchArea = onSearchAreaClicked,
-            isSearchAreaActionEnabled = uiState.isSearchAreaButtonVisible,
+            onSearchArea = {
+                val target = cameraPositionState.position.target
+                onMapCenterChanged(GeoPoint(target.latitude, target.longitude))
+                onSearchAreaClicked()
+            },
+            isSearchAreaActionEnabled = uiState.isSearchAreaButtonVisible && !uiState.isLoading,
             modifier = Modifier.align(Alignment.TopEnd),
         )
 
@@ -371,7 +408,7 @@ fun MapScreen(
             )
         }
 
-        if (uiState.isError && uiState.places.isEmpty()) {
+        if (uiState.isError || uiState.isLocalError) {
             Surface(
                 modifier = Modifier
                     .align(Alignment.Center)
@@ -381,7 +418,7 @@ fun MapScreen(
                 border = BorderStroke(SextouDimensions.Border, SextouColors.Border),
             ) {
                 Text(
-                    text = stringResource(R.string.map_error),
+                    text = stringResource(if (uiState.isError) R.string.map_error else R.string.map_local_error),
                     modifier = Modifier.padding(SextouSpacing.Lg),
                     style = SextouTextStyles.BodyLarge,
                     color = SextouColors.TextSecondary,

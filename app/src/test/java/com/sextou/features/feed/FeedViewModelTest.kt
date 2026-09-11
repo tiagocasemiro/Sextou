@@ -23,10 +23,21 @@ import com.sextou.domain.places.repository.PlacesRepository
 import com.sextou.domain.places.usecase.ObservePlacesUseCase
 import com.sextou.domain.places.usecase.GetPlacePhotoUseCase
 import com.sextou.domain.places.usecase.SavePlacesUseCase
-import com.sextou.domain.places.usecase.SearchPlacesUseCase
+import com.sextou.domain.places.usecase.LoadedPlacesUseCase
+import com.sextou.domain.places.repository.AutomaticRefreshRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import com.sextou.domain.places.usecase.SetPlaceStatusUseCase
 import com.sextou.domain.visits.repository.VisitRepository
 import com.sextou.domain.visits.usecase.ObserveVisitedPlacesUseCase
+import androidx.lifecycle.ViewModelStore
+import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.flow.first
+import java.util.concurrent.Executors
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -52,29 +63,75 @@ class FeedViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     @Test
-    fun queryFiltersPlacesByNameAndCategory() {
-        val viewModel = feedViewModel(
-            searchPlacesUseCase = FakeSearchPlacesUseCase { query ->
-                if (query.contains("espetinhos")) {
-                    Success(listOf(place(id = "espetaria-do-tonho", name = "Espetaria do Tonho")))
-                } else {
-                    Success(listOf(place(id = "ao-ponto", name = "Ao Ponto")))
+    fun `publishes on main while disk save runs on IO and survives ViewModel clearing`() = runBlocking {
+        Executors.newSingleThreadExecutor { Thread(it, "sextou-test-main") }.asCoroutineDispatcher().use { main ->
+            Executors.newSingleThreadExecutor { Thread(it, "sextou-test-io") }.asCoroutineDispatcher().use { io ->
+                Dispatchers.setMain(main)
+                val release = CompletableDeferred<Unit>()
+                val saved = CompletableDeferred<Long>()
+                val started = CompletableDeferred<Long>()
+                val scope = CoroutineScope(SupervisorJob() + io)
+                val store = ViewModelStore()
+                val mainThread = withContext(main) { Thread.currentThread().id }
+                val ioThread = withContext(io) { Thread.currentThread().id }
+                try {
+                    val local = object : PlacesRepository.Local by NoOpPlacesRepository() {
+                        override suspend fun saveMissing(places: List<PlaceSummary>): Result<Unit> {
+                            started.complete(Thread.currentThread().id)
+                            release.await()
+                            saved.complete(Thread.currentThread().id)
+                            return Success(Unit)
+                        }
+                    }
+                    val loaded = LoadedPlacesUseCase(
+                        FakeSearchPlacesRepository { Success(listOf(place("remote", "Remote"))) },
+                        local, RefreshMarker(), { 20260911L }, scope, io,
+                    )
+                    val statuses = FakeStatusRepository(emptySet(), emptySet())
+                    val viewModel = withContext(main) {
+                        FeedViewModel(
+                            loaded, GetPlacePhotoUseCase(NoOpPlacesRepository()),
+                            ObserveFavoritesUseCase(FakeFavoriteRepository(statuses)),
+                            ObserveVisitedPlacesUseCase(FakeVisitRepository(statuses)),
+                            SetPlaceStatusUseCase(statuses), GeoPoint(0.0, 0.0),
+                        ).also { store.put("feed", it); it.onScreenOpened() }
+                    }
+                    withTimeout(5_000) {
+                        withContext(main) {
+                            viewModel.uiState.first { it.places.any { place -> place.id == "remote" } }
+                            assertEquals(mainThread, Thread.currentThread().id)
+                            assertFalse(saved.isCompleted)
+                            store.clear()
+                        }
+                        assertEquals(ioThread, started.await())
+                        release.complete(Unit)
+                        assertEquals(ioThread, saved.await())
+                    }
+                } finally {
+                    release.complete(Unit)
+                    withContext(main) { store.clear() }
+                    scope.cancel()
                 }
-            },
-        )
+            }
+        }
+    }
 
-        viewModel.onQueryChanged("espetinhos")
-
-        assertEquals(
-            listOf("espetaria-do-tonho"),
-            viewModel.uiState.value.places.map(FeedPlaceUiModel::id),
+    @Test
+    fun queryFiltersPlacesByNameAndCategory() {
+        val repository = FakeSearchPlacesRepository { error("Typing must not search") }
+        val viewModel = feedViewModel(
+            searchRepository = repository,
+            savedPlaces = listOf(place("espetaria", "Espetinhos do Tonho"), place("cafe", "Ao Ponto")),
         )
+        viewModel.onQueryChanged("  ESPETINHOS  ")
+        assertEquals(listOf("espetaria"), viewModel.uiState.value.places.map { it.id })
+        assertTrue(repository.calls.isEmpty())
     }
 
     @Test
     fun blankQueryRestoresAllPlaces() {
         val viewModel = feedViewModel(
-            searchPlacesUseCase = FakeSearchPlacesUseCase {
+            searchRepository = FakeSearchPlacesRepository {
                 Success(
                     listOf(
                         place(id = "ao-ponto", name = "Ao Ponto"),
@@ -84,6 +141,7 @@ class FeedViewModelTest {
             },
         )
 
+        viewModel.retry()
         viewModel.onQueryChanged("bar")
         viewModel.onQueryChanged("   ")
 
@@ -93,7 +151,7 @@ class FeedViewModelTest {
     @Test
     fun favoriteAndVisitedActionsAreExclusive() {
         val viewModel = feedViewModel(
-            searchPlacesUseCase = FakeSearchPlacesUseCase { Success(emptyList()) },
+            searchRepository = FakeSearchPlacesRepository { Success(emptyList()) },
         )
 
         viewModel.onFavoriteClicked("ao-ponto")
@@ -111,7 +169,7 @@ class FeedViewModelTest {
     @Test
     fun tabSelectionIsReflectedInUiState() {
         val viewModel = feedViewModel(
-            searchPlacesUseCase = FakeSearchPlacesUseCase { Success(emptyList()) },
+            searchRepository = FakeSearchPlacesRepository { Success(emptyList()) },
         )
 
         viewModel.onTabSelected(FeedTab.FAVORITES)
@@ -122,7 +180,7 @@ class FeedViewModelTest {
     @Test
     fun successfulSearchPopulatesPlacesAndClearsPreviousError() {
         val viewModel = feedViewModel(
-            searchPlacesUseCase = FakeSearchPlacesUseCase {
+            searchRepository = FakeSearchPlacesRepository {
                 Success(listOf(place(id = "ao-ponto", name = "Ao Ponto")))
             },
         )
@@ -143,7 +201,7 @@ class FeedViewModelTest {
         )
         val savePlacesUseCase = BlockingSavePlacesUseCase()
         val viewModel = feedViewModel(
-            searchPlacesUseCase = FakeSearchPlacesUseCase { Success(remotePlaces) },
+            searchRepository = FakeSearchPlacesRepository { Success(remotePlaces) },
             savePlacesUseCase = savePlacesUseCase,
         )
 
@@ -162,14 +220,14 @@ class FeedViewModelTest {
 
     @Test
     fun feedRequestsPhotoMetadataFromThePlacesApi() {
-        val searchPlacesUseCase = FakeSearchPlacesUseCase {
+        val searchRepository = FakeSearchPlacesRepository {
             Success(listOf(place(id = "place-1", name = "Place 1")))
         }
-        val viewModel = feedViewModel(searchPlacesUseCase = searchPlacesUseCase)
+        val viewModel = feedViewModel(searchRepository = searchRepository)
 
         viewModel.retry()
 
-        assertTrue(searchPlacesUseCase.includePhotosCalls.all { it })
+        assertTrue(searchRepository.includePhotosCalls.all { it })
     }
 
     @Test
@@ -185,7 +243,7 @@ class FeedViewModelTest {
             flagContentUri = null,
         )
         val viewModel = feedViewModel(
-            searchPlacesUseCase = FakeSearchPlacesUseCase {
+            searchRepository = FakeSearchPlacesRepository {
                 Success(listOf(place(id = "place-1", name = "Place 1", photos = listOf(reference))))
             },
             photoResult = Success(
@@ -210,7 +268,7 @@ class FeedViewModelTest {
     @Test
     fun remotePlaceMappingDoesNotInventMissingMetadata() {
         val viewModel = feedViewModel(
-            searchPlacesUseCase = FakeSearchPlacesUseCase {
+            searchRepository = FakeSearchPlacesRepository {
                 Success(
                     listOf(
                         place(
@@ -224,6 +282,7 @@ class FeedViewModelTest {
             initialLocation = GeoPoint(0.0, 0.0),
         )
 
+        viewModel.onScreenOpened()
         val mappedPlace = viewModel.uiState.value.places.single()
 
         assertEquals(0.0, mappedPlace.distanceMeters ?: -1.0, 0.0)
@@ -237,7 +296,7 @@ class FeedViewModelTest {
     @Test
     fun failedSearchExposesDomainErrorWithoutKeepingLoadingState() {
         val viewModel = feedViewModel(
-            searchPlacesUseCase = FakeSearchPlacesUseCase {
+            searchRepository = FakeSearchPlacesRepository {
                 Failure(Error(message = "Serviço indisponível"))
             },
         )
@@ -254,7 +313,7 @@ class FeedViewModelTest {
     fun failedRefreshKeepsPreviousPlacesAndMarksResultsAsStale() {
         var calls = 0
         val viewModel = feedViewModel(
-            searchPlacesUseCase = FakeSearchPlacesUseCase {
+            searchRepository = FakeSearchPlacesRepository {
                 if (calls++ == 0) {
                     Success(listOf(place(id = "ao-ponto", name = "Ao Ponto")))
                 } else {
@@ -273,11 +332,12 @@ class FeedViewModelTest {
 
     @Test
     fun savedPlacesAreShownBeforeOneAutomaticRefreshAfterLocationArrives() {
-        val searchPlacesUseCase = FakeSearchPlacesUseCase {
+        val searchRepository = FakeSearchPlacesRepository {
             Success(listOf(place(id = "remote-place", name = "Remote Place")))
         }
         val viewModel = feedViewModel(
-            searchPlacesUseCase = searchPlacesUseCase,
+            searchRepository = searchRepository,
+            initialLocation = null,
             savedPlaces = listOf(place(id = "saved-place", name = "Saved Place")),
         )
 
@@ -286,10 +346,11 @@ class FeedViewModelTest {
             viewModel.uiState.value.places.map(FeedPlaceUiModel::id),
         )
 
+        viewModel.onScreenOpened()
         viewModel.onLocationChanged(GeoPoint(1.0, 1.0))
         viewModel.onLocationChanged(GeoPoint(2.0, 2.0))
 
-        assertEquals(1, searchPlacesUseCase.calls.size)
+        assertEquals(1, searchRepository.calls.size)
         assertEquals(
             setOf("saved-place", "remote-place"),
             viewModel.uiState.value.places.map(FeedPlaceUiModel::id).toSet(),
@@ -299,7 +360,7 @@ class FeedViewModelTest {
     @Test
     fun persistedSelectionsAreLoadedFromLocalRepositories() {
         val viewModel = feedViewModel(
-            searchPlacesUseCase = FakeSearchPlacesUseCase { Success(emptyList()) },
+            searchRepository = FakeSearchPlacesRepository { Success(emptyList()) },
             favoritePlaceIds = setOf("favorite-place"),
             visitedPlaceIds = setOf("visited-place"),
         )
@@ -318,24 +379,30 @@ class MainDispatcherRule : TestWatcher() {
     }
 
     override fun finished(description: Description) {
+        scopes.forEach { it.cancel() }
+        scopes.clear()
         Dispatchers.resetMain()
     }
 }
 
-private class FakeSearchPlacesUseCase(
+private val scopes = mutableListOf<CoroutineScope>()
+private fun applicationScope() = CoroutineScope(SupervisorJob() + Dispatchers.Main).also { scopes += it }
+private class RefreshMarker : AutomaticRefreshRepository.Local {
+    var day = 0L
+    override suspend fun lastSuccessDay(): Result<Long> = Success(day)
+    override suspend fun recordSuccessDay(day: Long): Result<Unit> { this.day = day; return Success(Unit) }
+}
+
+private class FakeSearchPlacesRepository(
     private val response: (String) -> Result<List<PlaceSummary>>,
-) : SearchPlacesUseCase(NoOpPlacesRepository()) {
+) : PlacesRepository.Remote by NoOpPlacesRepository() {
     val calls = mutableListOf<String>()
     val includePhotosCalls = mutableListOf<Boolean>()
 
-    override suspend fun invoke(
-        query: String,
-        location: GeoPoint?,
-        includePhotos: Boolean,
-    ): Result<List<PlaceSummary>> {
-        calls += query
-        includePhotosCalls += includePhotos
-        return response(query)
+    override suspend fun searchNearby(request: NearbySearchRequest): Result<List<PlaceSummary>> {
+        calls += ""
+        includePhotosCalls += request.includePhotos
+        return response("")
     }
 }
 
@@ -375,8 +442,8 @@ private class NoOpPlacesRepository(
 }
 
 private fun feedViewModel(
-    searchPlacesUseCase: SearchPlacesUseCase,
-    initialLocation: GeoPoint? = null,
+    searchRepository: PlacesRepository.Remote,
+    initialLocation: GeoPoint? = GeoPoint(0.0, 0.0),
     favoritePlaceIds: Set<String> = emptySet(),
     visitedPlaceIds: Set<String> = emptySet(),
     savedPlaces: List<PlaceSummary> = emptyList(),
@@ -388,10 +455,15 @@ private fun feedViewModel(
     val visitedRepository = FakeVisitRepository(statusRepository)
     val placesRepository = FakePlacesLocalRepository(savedPlaces)
     return FeedViewModel(
-        searchPlacesUseCase = searchPlacesUseCase,
+        loadedPlacesUseCase = LoadedPlacesUseCase(
+            remote = searchRepository,
+            local = object : PlacesRepository.Local by placesRepository {
+                override suspend fun saveMissing(places: List<PlaceSummary>): Result<Unit> = savePlacesUseCase(places)
+            },
+            automaticRefresh = RefreshMarker(), currentDay = { 20260911L },
+            applicationScope = applicationScope(), ioDispatcher = Dispatchers.Main,
+        ),
         getPlacePhotoUseCase = GetPlacePhotoUseCase(NoOpPlacesRepository(photoResult)),
-        savePlacesUseCase = savePlacesUseCase,
-        observePlacesUseCase = ObservePlacesUseCase(placesRepository),
         observeFavoritesUseCase = ObserveFavoritesUseCase(favoriteRepository),
         observeVisitedPlacesUseCase = ObserveVisitedPlacesUseCase(visitedRepository),
         setPlaceStatusUseCase = SetPlaceStatusUseCase(statusRepository),

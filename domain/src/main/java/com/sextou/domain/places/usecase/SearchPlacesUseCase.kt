@@ -13,13 +13,14 @@ import com.sextou.domain.places.repository.PlacesRepository
 
 open class SearchPlacesUseCase(
     private val repository: PlacesRepository.Remote,
-    private val radiusProvider: () -> Double = { SEARCH_RADII_METERS.random() },
 ) {
     open suspend operator fun invoke(
         query: String,
         location: GeoPoint?,
         includePhotos: Boolean = false,
+        radiusMeters: Double = 3_000.0,
     ): Result<List<PlaceSummary>> {
+        require(radiusMeters in 500.0..50_000.0)
         location?.validate()
 
         val result = when {
@@ -27,7 +28,7 @@ open class SearchPlacesUseCase(
                 repository.searchNearby(
                     NearbySearchRequest(
                         center = location,
-                        radiusMeters = radiusProvider(),
+                        radiusMeters = radiusMeters,
                         includedTypes = FEED_PLACE_TYPES,
                         maxResults = MAX_RESULTS,
                         rankPreference = PlaceRankPreference.POPULARITY,
@@ -44,7 +45,7 @@ open class SearchPlacesUseCase(
                     PlaceTextSearchRequest(
                         query = query.trim(),
                         locationBiasCenter = location,
-                        locationBiasRadiusMeters = location?.let { radiusProvider() },
+                        locationBiasRadiusMeters = location?.let { radiusMeters },
                         maxResults = MAX_RESULTS,
                         regionCode = REGION_CODE,
                         includePhotos = includePhotos,
@@ -75,15 +76,6 @@ open class SearchPlacesUseCase(
     private companion object {
         const val MAX_RESULTS = 20
         const val REGION_CODE = "BR"
-
-        val SEARCH_RADII_METERS = listOf(
-            500.0,
-            1_000.0,
-            2_000.0,
-            5_000.0,
-            10_000.0,
-            20_000.0,
-        )
 
         val FEED_PLACE_TYPES = setOf(
             "bar",

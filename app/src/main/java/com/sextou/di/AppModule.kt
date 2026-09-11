@@ -1,14 +1,17 @@
 package com.sextou.di
 
+import com.sextou.domain.places.usecase.LoadedPlacesUseCase
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.Dispatchers
+import org.koin.core.qualifier.named
+import java.util.Calendar
 import com.sextou.domain.favorites.usecase.ObserveFavoritesUseCase
 import com.sextou.domain.favorites.usecase.ToggleFavoriteUseCase
 import com.sextou.domain.ignored.usecase.ObserveIgnoredPlacesUseCase
 import com.sextou.domain.ignored.usecase.ToggleIgnoredPlaceUseCase
 import com.sextou.domain.places.usecase.GetPlaceDetailsUseCase
 import com.sextou.domain.places.usecase.GetPlacePhotoUseCase
-import com.sextou.domain.places.usecase.ObservePlacesUseCase
-import com.sextou.domain.places.usecase.SavePlacesUseCase
-import com.sextou.domain.places.usecase.SearchPlacesUseCase
 import com.sextou.domain.places.usecase.SetPlaceStatusUseCase
 import com.sextou.domain.routes.usecase.GetRouteUseCase
 import com.sextou.domain.visits.usecase.ObserveVisitedPlacesUseCase
@@ -23,16 +26,22 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 val appModule = module {
+    single(named("placesApplicationScope")) { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
+    single {
+        LoadedPlacesUseCase(
+            remote = get(), local = get(), automaticRefresh = get(),
+            currentDay = {
+                val calendar = Calendar.getInstance()
+                calendar.get(Calendar.YEAR) * 10_000L +
+                    (calendar.get(Calendar.MONTH) + 1) * 100L + calendar.get(Calendar.DAY_OF_MONTH)
+            },
+            applicationScope = get(named("placesApplicationScope")),
+            ioDispatcher = Dispatchers.IO,
+        )
+    }
     single<LocationProvider> {
         AndroidLocationProvider(context = androidContext())
     }
-    factory {
-        SearchPlacesUseCase(
-            repository = get(),
-        )
-    }
-    factory { ObservePlacesUseCase(repository = get()) }
-    factory { SavePlacesUseCase(repository = get()) }
     factory { GetPlaceDetailsUseCase(repository = get(), localRepository = get()) }
     factory { GetPlacePhotoUseCase(repository = get()) }
     factory { GetRouteUseCase(repository = get()) }
@@ -45,10 +54,8 @@ val appModule = module {
     factory { ToggleVisitedPlaceUseCase(repository = get()) }
     viewModel {
         FeedViewModel(
-            searchPlacesUseCase = get(),
+            loadedPlacesUseCase = get(),
             getPlacePhotoUseCase = get(),
-            savePlacesUseCase = get(),
-            observePlacesUseCase = get(),
             observeFavoritesUseCase = get(),
             observeVisitedPlacesUseCase = get(),
             setPlaceStatusUseCase = get(),
@@ -56,9 +63,8 @@ val appModule = module {
     }
     viewModel {
         MapViewModel(
-            searchPlacesUseCase = get(),
+            loadedPlacesUseCase = get(),
             getPlacePhotoUseCase = get(),
-            savePlacesUseCase = get(),
             getRouteUseCase = get(),
             observeFavoritesUseCase = get(),
             observeIgnoredPlacesUseCase = get(),

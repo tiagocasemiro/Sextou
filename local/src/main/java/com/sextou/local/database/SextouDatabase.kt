@@ -5,6 +5,7 @@ import androidx.room.RoomDatabase
 
 @Database(
     entities = [
+        AutomaticRefreshEntity::class,
         FavoriteEntity::class,
         VisitedPlaceEntity::class,
         IgnoredPlaceEntity::class,
@@ -13,10 +14,12 @@ import androidx.room.RoomDatabase
         PlacePhotoEntity::class,
         PlacePhotoAuthorEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = false,
 )
 abstract class SextouDatabase : RoomDatabase() {
+    abstract fun automaticRefreshDao(): AutomaticRefreshDao
+
     abstract fun favoriteDao(): FavoriteDao
 
     abstract fun visitedPlaceDao(): VisitedPlaceDao

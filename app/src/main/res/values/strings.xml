@@ -188,4 +188,15 @@
     <string name="details_preview_menu_beer_description">A mais gelada da rua</string>
     <string name="details_preview_menu_beer_price">R$ 12,00</string>
     <string name="details_provider_attribution">Dados e atribuição: %1$s</string>
+    <string name="map_radius_title">Raio de busca</string>
+    <string name="map_radius_500">500 m</string>
+    <string name="map_radius_1000">1 km</string>
+    <string name="map_radius_2000">2 km</string>
+    <string name="map_radius_5000">5 km</string>
+    <string name="map_radius_10000">10 km</string>
+    <string name="map_radius_custom">Personalizado</string>
+    <string name="map_radius_value">%1$s km</string>
+    <string name="map_radius_confirm">Buscar</string>
+    <string name="map_radius_cancel">Cancelar</string>
+    <string name="map_local_error">Não foi possível atualizar os dados locais.</string>
 </resources>

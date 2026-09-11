@@ -1,5 +1,6 @@
 package com.sextou.features.feed
 
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
@@ -11,6 +12,11 @@ fun FeedDestination(
     onOpenPlace: (String) -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    DisposableEffect(viewModel) {
+        viewModel.onScreenOpened()
+        onDispose { viewModel.onScreenClosed() }
+    }
 
     FeedScreen(
         uiState = uiState,

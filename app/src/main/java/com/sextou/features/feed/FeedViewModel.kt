@@ -14,9 +14,7 @@ import com.sextou.domain.places.model.PlacePhotoReference
 import com.sextou.domain.places.model.PlaceStatus
 import com.sextou.domain.places.model.PlaceSummary
 import com.sextou.domain.places.usecase.GetPlacePhotoUseCase
-import com.sextou.domain.places.usecase.ObservePlacesUseCase
-import com.sextou.domain.places.usecase.SavePlacesUseCase
-import com.sextou.domain.places.usecase.SearchPlacesUseCase
+import com.sextou.domain.places.usecase.LoadedPlacesUseCase
 import com.sextou.domain.places.usecase.SetPlaceStatusUseCase
 import com.sextou.domain.visits.usecase.ObserveVisitedPlacesUseCase
 import kotlinx.coroutines.CancellationException
@@ -37,10 +35,8 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 class FeedViewModel(
-    private val searchPlacesUseCase: SearchPlacesUseCase,
+    private val loadedPlacesUseCase: LoadedPlacesUseCase,
     private val getPlacePhotoUseCase: GetPlacePhotoUseCase,
-    private val savePlacesUseCase: SavePlacesUseCase,
-    private val observePlacesUseCase: ObservePlacesUseCase,
     private val observeFavoritesUseCase: ObserveFavoritesUseCase,
     private val observeVisitedPlacesUseCase: ObserveVisitedPlacesUseCase,
     private val setPlaceStatusUseCase: SetPlaceStatusUseCase,
@@ -55,6 +51,7 @@ class FeedViewModel(
     private val requestedPhotoPlaceIds = mutableSetOf<String>()
     private val photoQueue = ArrayDeque<PhotoRequest>()
     private var initialRefreshStarted = false
+    private var opening = false
 
     private val mutableUiState = MutableStateFlow(FeedUiState())
 
@@ -83,7 +80,7 @@ class FeedViewModel(
                 }
             }
             .launchIn(viewModelScope)
-        observePlacesUseCase()
+        loadedPlacesUseCase.places
             .onEach(::onSavedPlacesChanged)
             .catch { throwable ->
                 if (throwable is CancellationException) throw throwable
@@ -92,8 +89,19 @@ class FeedViewModel(
                 }
             }
             .launchIn(viewModelScope)
+        loadedPlacesUseCase.hasLocalFailure.onEach { failed ->
+            if (failed) mutableUiState.update { it.copy(actionErrorMessageResId = R.string.feed_local_error) }
+        }.launchIn(viewModelScope)
+    }
+
+    fun onScreenOpened() {
+        if (opening) return
+        opening = true
+        initialRefreshStarted = false
         startInitialRefreshIfPossible()
     }
+
+    fun onScreenClosed() { opening = false }
 
     fun onQueryChanged(query: String) {
         mutableUiState.update {
@@ -105,21 +113,12 @@ class FeedViewModel(
                 errorMessageResId = null,
             )
         }
-        if (query.isBlank()) {
-            startInitialRefreshIfPossible()
-        } else {
-            loadPlaces(query)
-        }
     }
 
     fun onLocationChanged(location: GeoPoint?) {
-        if (searchLocation == location) return
-        searchLocation = location
-        if (mutableUiState.value.query.isBlank()) {
-            startInitialRefreshIfPossible()
-        } else {
-            loadPlaces()
-        }
+        searchLocation = location?.takeIf { it.latitude in -90.0..90.0 && it.longitude in -180.0..180.0 }
+        onSavedPlacesChanged(loadedPlacesUseCase.places.value)
+        startInitialRefreshIfPossible()
     }
 
     fun retry() {
@@ -207,117 +206,28 @@ class FeedViewModel(
         mutableUiState.update { it.copy(openOnly = openOnly) }
     }
 
-    private fun loadPlaces(query: String = mutableUiState.value.query) {
-        loadPlaces(query = query, preserveSavedPlaces = query.isBlank())
-    }
-
-    private fun loadPlaces(
-        query: String,
-        preserveSavedPlaces: Boolean,
-    ) {
-        searchJob?.cancel()
+    private fun loadPlaces(automatic: Boolean = false) {
+        val location = searchLocation ?: return
+        if (searchJob?.isActive == true) return
         searchJob = viewModelScope.launch {
+            mutableUiState.update { it.copy(isLoading = true, isError = false, errorMessageResId = null) }
+            val result = if (automatic) loadedPlacesUseCase.open(location)
+                else loadedPlacesUseCase.searchManually(location, LoadedPlacesUseCase.AUTOMATIC_RADIUS_METERS)
             mutableUiState.update {
                 it.copy(
-                    isLoading = true,
-                    isError = false,
-                    isStale = false,
-                    errorMessageResId = null,
+                    isLoading = false,
+                    isError = result is Failure,
+                    isStale = result is Failure && it.places.isNotEmpty(),
+                    errorMessageResId = R.string.feed_generic_error.takeIf { result is Failure },
                 )
-            }
-
-            try {
-                when (
-                    val result = searchPlacesUseCase(
-                        query = query,
-                        location = searchLocation,
-                        includePhotos = true,
-                    )
-                ) {
-                    is Success -> {
-                        rememberPhotoReferences(result.data)
-                        val searchedPlaces = result.data.map { place ->
-                            place.toUiModel(referenceLocation = searchLocation)
-                        }
-                        val places = if (preserveSavedPlaces) {
-                            (searchedPlaces + allPlaces).distinctBy(FeedPlaceUiModel::id)
-                        } else {
-                            searchedPlaces
-                        }
-                        allPlaces = places
-                        mutableUiState.update { state ->
-                            state.copy(
-                                places = if (preserveSavedPlaces) {
-                                    filterPlaces(places, query)
-                                } else {
-                                    places
-                                },
-                                isLoading = false,
-                                isError = false,
-                                isStale = false,
-                                errorMessageResId = null,
-                                providerAttribution = places
-                                    .firstOrNull()
-                                    ?.providerAttribution,
-                            )
-                        }
-                        savePlacesInBackground(result.data)
-                    }
-
-                    is Failure -> mutableUiState.update {
-                        it.copy(
-                            isLoading = false,
-                            isError = true,
-                            isStale = it.places.isNotEmpty(),
-                            errorMessageResId = R.string.feed_generic_error,
-                        )
-                    }
-
-                    is Loading<*> -> mutableUiState.update {
-                        it.copy(isLoading = true)
-                    }
-                }
-            } catch (cancellation: CancellationException) {
-                throw cancellation
-            } catch (exception: Exception) {
-                mutableUiState.update {
-                    it.copy(
-                        isLoading = false,
-                        isError = true,
-                        isStale = it.places.isNotEmpty(),
-                        errorMessageResId = R.string.feed_generic_error,
-                    )
-                }
-            } finally {
-                if (isActive) {
-                    mutableUiState.update { state ->
-                        if (state.isLoading) state.copy(isLoading = false) else state
-                    }
-                }
-            }
-        }
-    }
-
-    private fun savePlacesInBackground(places: List<PlaceSummary>) {
-        if (places.isEmpty()) return
-
-        // The Room suspend transaction uses its query executor, keeping persistence off the UI thread.
-        viewModelScope.launch {
-            try {
-                savePlacesUseCase(places)
-            } catch (cancellation: CancellationException) {
-                throw cancellation
-            } catch (_: Exception) {
-                // A cache failure must not hide establishments already published from the API.
             }
         }
     }
 
     private fun startInitialRefreshIfPossible() {
-        if (initialRefreshStarted || searchLocation == null) return
-
+        if (!opening || initialRefreshStarted || searchLocation == null) return
         initialRefreshStarted = true
-        loadPlaces(query = "", preserveSavedPlaces = true)
+        loadPlaces(automatic = true)
     }
 
     private fun onSavedPlacesChanged(places: List<PlaceSummary>) {
@@ -422,14 +332,8 @@ class FeedViewModel(
         places: List<FeedPlaceUiModel>,
         query: String,
     ): List<FeedPlaceUiModel> {
-        val normalizedQuery = query.trim().lowercase()
-        return if (normalizedQuery.isEmpty()) {
-            places
-        } else {
-            places.filter { place ->
-                place.searchableText.lowercase().contains(normalizedQuery)
-            }
-        }
+        val ids = loadedPlacesUseCase.filter(query).mapTo(hashSetOf()) { it.id }
+        return places.filter { it.id in ids }
     }
 
     private fun PlaceSummary.toUiModel(referenceLocation: GeoPoint?): FeedPlaceUiModel {

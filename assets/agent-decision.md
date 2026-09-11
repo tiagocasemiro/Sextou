@@ -1263,3 +1263,13 @@ porque o módulo não embarca as fontes do arquivo de design.
 * O conteúdo interno de “Como chegar” e “Contato” passou a usar inset
   horizontal de 16dp e a ser centralizado dentro de cada botão. O grupo externo
   da barra mantém o recuo de 24dp em relação às bordas da tela.
+
+## 2026-09-11 — Carregamento diário e raio manual
+
+- `LoadedPlacesUseCase` é singleton com escopo de aplicação (SupervisorJob). Observa Room imediatamente, une por ID com prioridade remota da sessão e coordena aberturas concorrentes por Deferred compartilhado sob Mutex. Falhas não geram loop de tentativas; cada entrada efetiva pode tentar novamente.
+- Relógio injetado como fornecedor do dia civil yyyyMMdd; Calendar.getInstance resolve o fuso atual do aparelho a cada leitura, inclusive em Android 24 sem adicionar desugaring. O sucesso pertence ao dia em que a resposta chega.
+- Migration 3→4 cria apenas automatic_refresh. Marcador e saveMissing são independentes; resultados e bloqueio diário em memória são publicados antes da persistência. Falhas locais são observáveis e não escondem conteúdo. Não há trabalho periódico nem garantia após encerrar o processo.
+- Destinations delimitam a entrada/saída da composição; ViewModels aguardam a primeira localização válida por entrada. Digitação e GPS subsequente apenas atualizam apresentação; busca textual usa nome, categoria e tipos no domínio.
+- Handoff `.handoff/handoff-sextou-radius-selector.md` extraído do plano e DESIGN.md. Sem mockup de dimensões específicas, usa modal Material 3 com papéis Sextou, seleção única, corpo rolável e slider acessível. Mantido pacote `component/` conforme skill local específica. Nenhuma dependência nova.
+- O mapa mantém rascunho separado da última seleção confirmada e captura o centro ao abrir. Durante busca, bloqueia alteração, descarte e confirmação duplicada; falha mantém o diálogo para nova tentativa. Fotos resolvidas ficam em cache da ViewModel por ID.
+- Inspeção no dispositivo mostrou que o tema atual não mapeia surfaceContainerHigh, deixando o fallback Material arroxeado. O seletor usa os tokens existentes SurfaceElevated/TextPrimary, conforme a camada de produto de DESIGN.md, sem ampliar esta tarefa para remapear todo o tema. O centro é atualizado também após movimentos programáticos e lido novamente no clique, evitando confirmar uma área antiga após recentralização.

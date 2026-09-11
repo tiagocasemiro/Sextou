@@ -34,4 +34,10 @@
     <string name="design_system_quick_action_favoritar">FAVORITAR</string>
     <string name="design_system_quick_action_visitar">VISITAR</string>
     <string name="design_system_quick_action_ignorar">IGNORAR</string>
+    <string name="radius_preview_title">Raio de busca</string>
+    <string name="radius_preview_fixed">1 km</string>
+    <string name="radius_preview_custom">Personalizado</string>
+    <string name="radius_preview_value">%1$.1f km</string>
+    <string name="radius_preview_confirm">Buscar</string>
+    <string name="radius_preview_cancel">Cancelar</string>
 </resources>

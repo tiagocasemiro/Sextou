@@ -19,7 +19,11 @@ import com.sextou.domain.places.model.PlaceTextSearchRequest
 import com.sextou.domain.places.repository.PlacesRepository
 import com.sextou.domain.places.usecase.GetPlacePhotoUseCase
 import com.sextou.domain.places.usecase.SavePlacesUseCase
-import com.sextou.domain.places.usecase.SearchPlacesUseCase
+import com.sextou.domain.places.usecase.LoadedPlacesUseCase
+import com.sextou.domain.places.repository.AutomaticRefreshRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import com.sextou.domain.routes.model.RoutePath
 import com.sextou.domain.routes.repository.RouteRepository
 import com.sextou.domain.routes.usecase.GetRouteUseCase
@@ -36,22 +40,149 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.Before
+import com.sextou.domain.Failure
+import kotlinx.coroutines.CompletableDeferred
 import org.junit.rules.TestWatcher
 import org.junit.runner.Description
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class MapViewModelTest {
+    private lateinit var radiusRepository: RecordingSearchPlacesRepository
+
+    @Before
+    fun beforeEach() { radiusRepository = RecordingSearchPlacesRepository() }
+
+    private fun radiusViewModel() = mapViewModel(
+        searchRepository = radiusRepository,
+        initialLocation = GeoPoint(0.0, 0.0),
+    )
+
+    @Test
+    fun `typing map movement and provisional radius changes do not call remote`() {
+        val viewModel = radiusViewModel()
+        viewModel.onQueryChanged("bar")
+        viewModel.onMapCenterChanged(GeoPoint(0.01, 0.01))
+        viewModel.onSearchAreaClicked()
+        viewModel.onRadiusSelected(500)
+        viewModel.onCustomRadiusChanged(50_000)
+        assertTrue(radiusRepository.calls.isEmpty())
+    }
+
+    @Test
+    fun `first dialog uses custom three km and cancel discards draft`() {
+        val viewModel = radiusViewModel()
+        viewModel.onMapCenterChanged(GeoPoint(0.01, 0.01))
+        viewModel.onSearchAreaClicked()
+        assertNull(viewModel.uiState.value.selectedRadiusMeters)
+        assertEquals(3_000, viewModel.uiState.value.customRadiusMeters)
+        viewModel.onRadiusSelected(500)
+        viewModel.onRadiusDismissed()
+        viewModel.onSearchAreaClicked()
+        assertNull(viewModel.uiState.value.selectedRadiusMeters)
+        assertEquals(3_000, viewModel.uiState.value.customRadiusMeters)
+        assertTrue(radiusRepository.calls.isEmpty())
+    }
+
+    @Test
+    fun `confirmation uses captured center and restores last confirmed selection`() {
+        val viewModel = radiusViewModel()
+        val captured = GeoPoint(0.01, 0.01)
+        viewModel.onMapCenterChanged(captured)
+        viewModel.onSearchAreaClicked()
+        viewModel.onRadiusSelected(5_000)
+        viewModel.onMapCenterChanged(GeoPoint(0.02, 0.02))
+        viewModel.onRadiusConfirmed()
+        assertEquals(captured, radiusRepository.calls.single().location)
+        assertEquals(5_000.0, radiusRepository.calls.single().radiusMeters, 0.0)
+        viewModel.onSearchAreaClicked()
+        assertEquals(5_000, viewModel.uiState.value.selectedRadiusMeters)
+    }
+
+    @Test
+    fun `manual failure retains same area for retry and duplicate confirmation is blocked`() {
+        radiusRepository.result = Failure(null)
+        radiusRepository.gate = CompletableDeferred()
+        val viewModel = radiusViewModel()
+        val center = GeoPoint(0.01, 0.01)
+        viewModel.onMapCenterChanged(center)
+        viewModel.onSearchAreaClicked()
+        viewModel.onRadiusConfirmed()
+        viewModel.onRadiusConfirmed()
+        assertEquals(1, radiusRepository.calls.size)
+        assertTrue(viewModel.uiState.value.isManualSearchLoading)
+        radiusRepository.gate!!.complete(Unit)
+        assertTrue(viewModel.uiState.value.isRadiusDialogVisible)
+        assertTrue(viewModel.uiState.value.isSearchAreaButtonVisible)
+        assertTrue(viewModel.uiState.value.isError)
+        viewModel.onRadiusConfirmed()
+        assertEquals(listOf(center, center), radiusRepository.calls.map { it.location })
+    }
+
+    @Test
+    fun `custom slider confirms minimum and maximum values in meters`() {
+        val viewModel = radiusViewModel()
+        listOf(500, 50_000).forEachIndexed { index, radius ->
+            viewModel.onMapCenterChanged(GeoPoint(0.01 * (index + 1), 0.01))
+            viewModel.onSearchAreaClicked()
+            viewModel.onCustomRadiusChanged(radius)
+            viewModel.onRadiusConfirmed()
+        }
+        assertEquals(listOf(500.0, 50_000.0), radiusRepository.calls.map { it.radiusMeters })
+    }
+
+    @Test
+    fun `map action requires more than fifty meters and success resets reference`() {
+        val viewModel = radiusViewModel()
+        viewModel.onMapCenterChanged(GeoPoint(0.0001, 0.0))
+        assertFalse(viewModel.uiState.value.isSearchAreaButtonVisible)
+        viewModel.onMapCenterChanged(GeoPoint(0.001, 0.0))
+        assertTrue(viewModel.uiState.value.isSearchAreaButtonVisible)
+        viewModel.onSearchAreaClicked()
+        viewModel.onRadiusConfirmed()
+        assertFalse(viewModel.uiState.value.isSearchAreaButtonVisible)
+    }
+
+    @Test
+    fun `repeated entry notification does not retry failed automatic load until next entry`() {
+        radiusRepository.result = Failure(null)
+        val viewModel = radiusViewModel()
+        viewModel.onScreenOpened()
+        viewModel.onScreenOpened()
+        viewModel.onLocationChanged(GeoPoint(1.0, 1.0))
+        assertEquals(1, radiusRepository.calls.size)
+        viewModel.onScreenClosed()
+        viewModel.onScreenOpened()
+        assertEquals(2, radiusRepository.calls.size)
+    }
+
+    @Test
+    fun `map excludes invalid coordinates and filters locally`() {
+        radiusRepository.result = Success(listOf(
+            place("valid", GeoPoint(0.0, 0.0)),
+            place("invalid", GeoPoint(Double.NaN, 0.0)),
+        ))
+        val viewModel = radiusViewModel()
+        viewModel.onScreenOpened()
+        assertEquals(listOf("valid"), viewModel.uiState.value.places.map { it.id })
+        viewModel.onQueryChanged("absent")
+        assertTrue(viewModel.uiState.value.places.isEmpty())
+        viewModel.onQueryChanged("")
+        assertEquals(listOf("valid"), viewModel.uiState.value.places.map { it.id })
+        assertEquals(1, radiusRepository.calls.size)
+    }
+
     @get:Rule
     val mainDispatcherRule = MapMainDispatcherRule()
 
     @Test
     fun `loads map places using the current user location`() {
         val location = GeoPoint(latitude = -22.9, longitude = -43.2)
-        val searchPlacesUseCase = RecordingSearchPlacesUseCase(
+        val searchRepository = RecordingSearchPlacesRepository(
             result = Success(listOf(place(id = "place-1", location = GeoPoint(-22.91, -43.21)))),
         )
-        val viewModel = MapViewModel(
-            searchPlacesUseCase = searchPlacesUseCase,
+        val viewModel = mapViewModel(
+            searchRepository = searchRepository,
             getPlacePhotoUseCase = GetPlacePhotoUseCase(NoOpPlacesRepository()),
             savePlacesUseCase = SavePlacesUseCase(NoOpPlacesRepository()),
             getRouteUseCase = GetRouteUseCase(NoOpRouteRepository()),
@@ -60,10 +191,11 @@ class MapViewModelTest {
         )
 
         viewModel.onLocationChanged(location)
+        viewModel.onLocationChanged(GeoPoint(-22.9, -43.2))
         viewModel.load(query = "")
 
-        assertEquals(location, searchPlacesUseCase.calls.single().location)
-        assertEquals(true, searchPlacesUseCase.calls.single().includePhotos)
+        assertEquals(location, searchRepository.calls.single().location)
+        assertEquals(true, searchRepository.calls.single().includePhotos)
         assertEquals(
             MapUserLocationUiModel(latitude = -22.9, longitude = -43.2),
             viewModel.uiState.value.userLocation,
@@ -73,8 +205,8 @@ class MapViewModelTest {
 
     @Test
     fun `loads persisted favorite and ignored ids for marker rendering`() {
-        val viewModel = MapViewModel(
-            searchPlacesUseCase = RecordingSearchPlacesUseCase(),
+        val viewModel = mapViewModel(
+            searchRepository = RecordingSearchPlacesRepository(),
             getPlacePhotoUseCase = GetPlacePhotoUseCase(NoOpPlacesRepository()),
             savePlacesUseCase = SavePlacesUseCase(NoOpPlacesRepository()),
             getRouteUseCase = GetRouteUseCase(NoOpRouteRepository()),
@@ -95,8 +227,8 @@ class MapViewModelTest {
         val origin = GeoPoint(-22.9, -43.2)
         val destination = GeoPoint(-22.91, -43.21)
         val routeRepository = RecordingRouteRepository()
-        val viewModel = MapViewModel(
-            searchPlacesUseCase = RecordingSearchPlacesUseCase(),
+        val viewModel = mapViewModel(
+            searchRepository = RecordingSearchPlacesRepository(),
             getPlacePhotoUseCase = GetPlacePhotoUseCase(NoOpPlacesRepository()),
             savePlacesUseCase = SavePlacesUseCase(NoOpPlacesRepository()),
             getRouteUseCase = GetRouteUseCase(routeRepository),
@@ -115,12 +247,12 @@ class MapViewModelTest {
     }
 
     @Test
-    fun `reloads the active map query when the user location changes`() {
+    fun `waits for location then ignores further GPS and query changes`() {
         val firstLocation = GeoPoint(latitude = -22.9, longitude = -43.2)
         val secondLocation = GeoPoint(latitude = -22.91, longitude = -43.21)
-        val searchPlacesUseCase = RecordingSearchPlacesUseCase()
-        val viewModel = MapViewModel(
-            searchPlacesUseCase = searchPlacesUseCase,
+        val searchRepository = RecordingSearchPlacesRepository()
+        val viewModel = mapViewModel(
+            searchRepository = searchRepository,
             getPlacePhotoUseCase = GetPlacePhotoUseCase(NoOpPlacesRepository()),
             savePlacesUseCase = SavePlacesUseCase(NoOpPlacesRepository()),
             getRouteUseCase = GetRouteUseCase(NoOpRouteRepository()),
@@ -133,17 +265,17 @@ class MapViewModelTest {
         viewModel.onLocationChanged(secondLocation)
 
         assertEquals(
-            listOf(null, firstLocation, secondLocation),
-            searchPlacesUseCase.calls.map(LocationSearchCall::location),
+            listOf(firstLocation),
+            searchRepository.calls.map(LocationSearchCall::location),
         )
-        assertEquals("bar", searchPlacesUseCase.calls.last().query)
+        assertEquals("", searchRepository.calls.last().query)
     }
 
     @Test
     fun `shows the search area action after the map moves to another area`() {
         val location = GeoPoint(latitude = -22.9, longitude = -43.2)
-        val viewModel = MapViewModel(
-            searchPlacesUseCase = RecordingSearchPlacesUseCase(),
+        val viewModel = mapViewModel(
+            searchRepository = RecordingSearchPlacesRepository(),
             getPlacePhotoUseCase = GetPlacePhotoUseCase(NoOpPlacesRepository()),
             savePlacesUseCase = SavePlacesUseCase(NoOpPlacesRepository()),
             getRouteUseCase = GetRouteUseCase(NoOpRouteRepository()),
@@ -161,11 +293,11 @@ class MapViewModelTest {
     fun `searches the new map center when the search area action is clicked`() {
         val initialLocation = GeoPoint(latitude = -22.9, longitude = -43.2)
         val mapCenter = GeoPoint(latitude = -22.91, longitude = -43.21)
-        val searchPlacesUseCase = RecordingSearchPlacesUseCase(
+        val searchRepository = RecordingSearchPlacesRepository(
             result = Success(listOf(place(id = "place-1", location = mapCenter))),
         )
-        val viewModel = MapViewModel(
-            searchPlacesUseCase = searchPlacesUseCase,
+        val viewModel = mapViewModel(
+            searchRepository = searchRepository,
             getPlacePhotoUseCase = GetPlacePhotoUseCase(NoOpPlacesRepository()),
             savePlacesUseCase = SavePlacesUseCase(NoOpPlacesRepository()),
             getRouteUseCase = GetRouteUseCase(NoOpRouteRepository()),
@@ -174,13 +306,15 @@ class MapViewModelTest {
             initialLocation = initialLocation,
         )
 
+        viewModel.onLocationChanged(GeoPoint(-22.9, -43.2))
         viewModel.load(query = "")
         viewModel.onMapCenterChanged(mapCenter)
         viewModel.onSearchAreaClicked()
+        viewModel.onRadiusConfirmed()
 
         assertEquals(
             listOf(initialLocation, mapCenter),
-            searchPlacesUseCase.calls.map(LocationSearchCall::location),
+            searchRepository.calls.map(LocationSearchCall::location),
         )
         assertFalse(viewModel.uiState.value.isSearchAreaButtonVisible)
     }
@@ -207,7 +341,7 @@ class MapViewModelTest {
                 ),
             )
         }
-        val searchPlacesUseCase = RecordingSearchPlacesUseCase(
+        val searchRepository = RecordingSearchPlacesRepository(
             result = Success(
                 listOf(
                     place(
@@ -218,8 +352,8 @@ class MapViewModelTest {
                 ),
             ),
         )
-        val viewModel = MapViewModel(
-            searchPlacesUseCase = searchPlacesUseCase,
+        val viewModel = mapViewModel(
+            searchRepository = searchRepository,
             getPlacePhotoUseCase = GetPlacePhotoUseCase(photoRepository),
             savePlacesUseCase = SavePlacesUseCase(NoOpPlacesRepository()),
             getRouteUseCase = GetRouteUseCase(NoOpRouteRepository()),
@@ -227,9 +361,12 @@ class MapViewModelTest {
             observeIgnoredPlacesUseCase = ObserveIgnoredPlacesUseCase(EmptyIgnoredPlaceRepository()),
         )
 
+        viewModel.onLocationChanged(GeoPoint(-22.9, -43.2))
         viewModel.load(query = "")
         viewModel.requestPhoto("place-1")
 
+        viewModel.onQueryChanged("absent")
+        viewModel.onQueryChanged("")
         assertEquals(
             "https://example.invalid/place-1.jpg",
             viewModel.uiState.value.places.single().photoUri,
@@ -266,8 +403,8 @@ class MapViewModelTest {
                 ),
             )
         }
-        val viewModel = MapViewModel(
-            searchPlacesUseCase = RecordingSearchPlacesUseCase(
+        val viewModel = mapViewModel(
+            searchRepository = RecordingSearchPlacesRepository(
                 result = Success(
                     listOf(place(id = "place-1", location = GeoPoint(-22.91, -43.21))),
                 ),
@@ -279,9 +416,12 @@ class MapViewModelTest {
             observeIgnoredPlacesUseCase = ObserveIgnoredPlacesUseCase(EmptyIgnoredPlaceRepository()),
         )
 
+        viewModel.onLocationChanged(GeoPoint(-22.9, -43.2))
         viewModel.load(query = "")
         viewModel.requestPhoto("place-1")
 
+        viewModel.onQueryChanged("absent")
+        viewModel.onQueryChanged("")
         assertEquals(
             "https://example.invalid/place-1.jpg",
             viewModel.uiState.value.places.single().photoUri,
@@ -294,8 +434,8 @@ class MapViewModelTest {
 
     @Test
     fun `keeps photo uri empty when place has no available photo`() {
-        val viewModel = MapViewModel(
-            searchPlacesUseCase = RecordingSearchPlacesUseCase(
+        val viewModel = mapViewModel(
+            searchRepository = RecordingSearchPlacesRepository(
                 result = Success(
                     listOf(place(id = "place-1", location = GeoPoint(-22.91, -43.21))),
                 ),
@@ -307,6 +447,7 @@ class MapViewModelTest {
             observeIgnoredPlacesUseCase = ObserveIgnoredPlacesUseCase(EmptyIgnoredPlaceRepository()),
         )
 
+        viewModel.onLocationChanged(GeoPoint(-22.9, -43.2))
         viewModel.load(query = "")
 
         assertNull(viewModel.uiState.value.places.single().photoUri)
@@ -322,6 +463,8 @@ class MapMainDispatcherRule : TestWatcher() {
     }
 
     override fun finished(description: Description) {
+        scopes.forEach { it.cancel() }
+        scopes.clear()
         Dispatchers.resetMain()
     }
 }
@@ -330,23 +473,18 @@ private data class LocationSearchCall(
     val query: String,
     val location: GeoPoint?,
     val includePhotos: Boolean,
+    val radiusMeters: Double,
 )
 
-private class RecordingSearchPlacesUseCase(
-    private val result: Result<List<PlaceSummary>> = Success(emptyList()),
-) : SearchPlacesUseCase(NoOpPlacesRepository()) {
+private class RecordingSearchPlacesRepository(
+    var result: Result<List<PlaceSummary>> = Success(emptyList()),
+) : PlacesRepository.Remote by NoOpPlacesRepository() {
     val calls = mutableListOf<LocationSearchCall>()
+    var gate: CompletableDeferred<Unit>? = null
 
-    override suspend fun invoke(
-        query: String,
-        location: GeoPoint?,
-        includePhotos: Boolean,
-    ): Result<List<PlaceSummary>> {
-        calls += LocationSearchCall(
-            query = query,
-            location = location,
-            includePhotos = includePhotos,
-        )
+    override suspend fun searchNearby(request: NearbySearchRequest): Result<List<PlaceSummary>> {
+        calls += LocationSearchCall(query = "", location = request.center, includePhotos = request.includePhotos, radiusMeters = request.radiusMeters)
+        gate?.await()
         return result
     }
 }
@@ -444,3 +582,30 @@ private fun place(
     providerAttribution = "Google Maps",
     photos = photos,
 )
+
+private val scopes = mutableListOf<CoroutineScope>()
+private fun mapViewModel(
+    searchRepository: PlacesRepository.Remote,
+    getPlacePhotoUseCase: GetPlacePhotoUseCase = GetPlacePhotoUseCase(NoOpPlacesRepository()),
+    savePlacesUseCase: SavePlacesUseCase = SavePlacesUseCase(NoOpPlacesRepository()),
+    getRouteUseCase: GetRouteUseCase = GetRouteUseCase(NoOpRouteRepository()),
+    observeFavoritesUseCase: ObserveFavoritesUseCase = ObserveFavoritesUseCase(EmptyFavoriteRepository()),
+    observeIgnoredPlacesUseCase: ObserveIgnoredPlacesUseCase = ObserveIgnoredPlacesUseCase(EmptyIgnoredPlaceRepository()),
+    initialLocation: GeoPoint? = null,
+): MapViewModel {
+    val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main).also { scopes += it }
+    return MapViewModel(
+        loadedPlacesUseCase = LoadedPlacesUseCase(
+            searchRepository, NoOpPlacesRepository(), object : AutomaticRefreshRepository.Local {
+                var day = 0L
+                override suspend fun lastSuccessDay(): Result<Long> = Success(day)
+                override suspend fun recordSuccessDay(day: Long): Result<Unit> { this.day = day; return Success(Unit) }
+            }, { 20260911L }, scope, Dispatchers.Main,
+        ),
+        initialLocation = initialLocation,
+        getPlacePhotoUseCase = getPlacePhotoUseCase,
+        getRouteUseCase = getRouteUseCase,
+        observeFavoritesUseCase = observeFavoritesUseCase,
+        observeIgnoredPlacesUseCase = observeIgnoredPlacesUseCase,
+    )
+}

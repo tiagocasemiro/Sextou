@@ -1,5 +1,6 @@
 package com.sextou.features.map
 
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -19,7 +20,12 @@ fun MapDestination(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(query) {
-        viewModel.load(query)
+        viewModel.onQueryChanged(query)
+    }
+
+    DisposableEffect(viewModel) {
+        viewModel.onScreenOpened()
+        onDispose { viewModel.onScreenClosed() }
     }
 
     LaunchedEffect(focusedLocation) {
@@ -33,6 +39,10 @@ fun MapDestination(
         onQueryChanged = viewModel::onQueryChanged,
         onMapCenterChanged = viewModel::onMapCenterChanged,
         onSearchAreaClicked = viewModel::onSearchAreaClicked,
+        onRadiusSelected = viewModel::onRadiusSelected,
+        onCustomRadiusChanged = viewModel::onCustomRadiusChanged,
+        onRadiusConfirmed = viewModel::onRadiusConfirmed,
+        onRadiusDismissed = viewModel::onRadiusDismissed,
         onPlaceClicked = onPlaceClicked,
         onPhotoRequested = viewModel::requestPhoto,
         onTabSelected = onTabSelected,

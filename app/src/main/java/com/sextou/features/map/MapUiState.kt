@@ -41,5 +41,10 @@ data class MapUiState(
     val isRouteError: Boolean = false,
     val isLoading: Boolean = false,
     val isError: Boolean = false,
+    val isLocalError: Boolean = false,
+    val isRadiusDialogVisible: Boolean = false,
+    val isManualSearchLoading: Boolean = false,
+    val selectedRadiusMeters: Int? = null,
+    val customRadiusMeters: Int = 3_000,
     val isSearchAreaButtonVisible: Boolean = false,
 )

@@ -33,14 +33,14 @@ class SearchPlacesUseCaseTest {
         repository = RecordingPlacesRepository()
         useCase = SearchPlacesUseCase(
             repository = repository,
-            radiusProvider = { 5_000.0 },
         )
     }
 
     @Test
-    fun `uses one random radius with popularity when query is blank and location exists`() = runTest {
+    fun `uses the explicit radius with popularity when query is blank and location exists`() = runTest {
         useCase(
             query = "   ",
+            radiusMeters = 5_000.0,
             location = GeoPoint(latitude = -22.9, longitude = -43.2),
         )
 
@@ -64,6 +64,7 @@ class SearchPlacesUseCaseTest {
     fun `uses text search with a trimmed query and location bias`() = runTest {
         useCase(
             query = "  espetinho  ",
+            radiusMeters = 5_000.0,
             location = GeoPoint(latitude = -22.9, longitude = -43.2),
         )
 

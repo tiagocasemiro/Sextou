@@ -12,8 +12,7 @@ import com.sextou.domain.places.model.PlacePhoto
 import com.sextou.domain.places.model.PlacePhotoReference
 import com.sextou.domain.places.model.PlaceSummary
 import com.sextou.domain.places.usecase.GetPlacePhotoUseCase
-import com.sextou.domain.places.usecase.SavePlacesUseCase
-import com.sextou.domain.places.usecase.SearchPlacesUseCase
+import com.sextou.domain.places.usecase.LoadedPlacesUseCase
 import com.sextou.domain.routes.usecase.GetRouteUseCase
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -33,9 +32,8 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 class MapViewModel(
-    private val searchPlacesUseCase: SearchPlacesUseCase,
+    private val loadedPlacesUseCase: LoadedPlacesUseCase,
     private val getPlacePhotoUseCase: GetPlacePhotoUseCase,
-    private val savePlacesUseCase: SavePlacesUseCase,
     private val getRouteUseCase: GetRouteUseCase,
     private val observeFavoritesUseCase: ObserveFavoritesUseCase,
     private val observeIgnoredPlacesUseCase: ObserveIgnoredPlacesUseCase,
@@ -45,10 +43,15 @@ class MapViewModel(
         MapUiState(userLocation = initialLocation?.toUiModel()),
     )
     private var searchLocation: GeoPoint? = initialLocation
-    private var loadedQuery: String? = null
     private var loadedLocation: GeoPoint? = null
-    private var activeQuery = ""
     private var pendingSearchLocation: GeoPoint? = null
+    private var opening = false
+    private var openingRefreshStarted = false
+    private var dialogCenter: GeoPoint? = null
+    private var currentMapCenter: GeoPoint? = null
+    private var confirmedRadius: Int? = null
+    private var confirmedCustomRadius = 3_000
+    private val resolvedPhotos = mutableMapOf<String, PlacePhoto>()
     private var searchJob: Job? = null
     private var photoJob: Job? = null
     private var routeJob: Job? = null
@@ -61,6 +64,10 @@ class MapViewModel(
     val uiState: StateFlow<MapUiState> = mutableUiState.asStateFlow()
 
     init {
+        loadedPlacesUseCase.places.onEach { renderPlaces() }.launchIn(viewModelScope)
+        loadedPlacesUseCase.hasLocalFailure.onEach { failed ->
+            mutableUiState.update { it.copy(isLocalError = failed) }
+        }.launchIn(viewModelScope)
         observeFavoritesUseCase()
             .onEach { placeIds ->
                 mutableUiState.update { state -> state.copy(favoritePlaceIds = placeIds) }
@@ -76,97 +83,57 @@ class MapViewModel(
     }
 
     fun load(query: String) {
-        activeQuery = query
-        pendingSearchLocation = null
-        mutableUiState.update { state ->
-            state.copy(
-                query = query,
-                isSearchAreaButtonVisible = false,
-            )
-        }
-        if (loadedQuery == query &&
-            loadedLocation == searchLocation &&
-            (mutableUiState.value.isLoading || mutableUiState.value.places.isNotEmpty())
-        ) {
-            return
-        }
-        loadedQuery = query
-        loadedLocation = searchLocation
-        searchJob?.cancel()
+        onQueryChanged(query)
+        onScreenOpened()
+    }
+
+    fun onScreenOpened() {
+        if (opening) return
+        opening = true
+        openingRefreshStarted = false
+        startOpeningRefresh()
+    }
+
+    fun onScreenClosed() { opening = false }
+
+    private fun startOpeningRefresh() {
+        val location = searchLocation ?: return
+        if (!opening || openingRefreshStarted) return
+        openingRefreshStarted = true
+        if (loadedLocation == null) loadedLocation = location
         searchJob = viewModelScope.launch {
             mutableUiState.update { it.copy(isLoading = true, isError = false) }
-            try {
-                when (
-                    val result = searchPlacesUseCase(
-                        query,
-                        location = searchLocation,
-                        includePhotos = true,
-                    )
-                ) {
-                    is Success -> {
-                        rememberPhotoReferences(result.data)
-                        val mapPlaces = result.data.mapNotNull { place ->
-                            place.location?.let { location ->
-                                MapPlaceUiModel(
-                                    id = place.id,
-                                    name = place.displayName?.takeIf(String::isNotBlank) ?: place.id,
-                                    latitude = location.latitude,
-                                    longitude = location.longitude,
-                                    rating = place.rating,
-                                    ratingsCount = place.userRatingCount,
-                                    categoryText = place.primaryTypeDisplayName
-                                        ?.takeIf(String::isNotBlank)
-                                        ?: place.primaryType?.takeIf(String::isNotBlank),
-                                    address = place.formattedAddress,
-                                    googleMapsUri = place.googleMapsUri,
-                                    distanceMeters = searchLocation?.distanceTo(location),
-                                    priceLevel = place.priceLevel,
-                                    primaryType = place.primaryType,
-                                    placeTypes = place.types,
-                                )
-                            }
-                        }
-                        mutableUiState.update {
-                            it.copy(
-                                places = mapPlaces,
-                                isLoading = false,
-                                isError = false,
-                            )
-                        }
-                        savePlacesInBackground(result.data)
-                    }
-
-                    is Failure -> mutableUiState.update {
-                        it.copy(isLoading = false, isError = true)
-                    }
-
-                    is Loading<*> -> mutableUiState.update {
-                        it.copy(isLoading = true)
-                    }
-                }
-            } catch (cancellation: CancellationException) {
-                throw cancellation
-            } catch (_: Exception) {
-                mutableUiState.update {
-                    it.copy(isLoading = false, isError = true)
-                }
-            }
+            val result = loadedPlacesUseCase.open(location)
+            mutableUiState.update { it.copy(isLoading = false, isError = result is Failure) }
         }
     }
 
-    private fun savePlacesInBackground(places: List<PlaceSummary>) {
-        if (places.isEmpty()) return
-
-        // The Room suspend transaction uses its query executor, keeping persistence off the UI thread.
-        viewModelScope.launch {
-            try {
-                savePlacesUseCase(places)
-            } catch (cancellation: CancellationException) {
-                throw cancellation
-            } catch (_: Exception) {
-                // A cache failure must not hide establishments already published from the API.
+    private fun renderPlaces() {
+        rememberPhotoReferences(loadedPlacesUseCase.places.value)
+        val mapPlaces = loadedPlacesUseCase.filter(uiState.value.query).mapNotNull { place ->
+            place.location?.takeIf { it.latitude in -90.0..90.0 && it.longitude in -180.0..180.0 }?.let { location ->
+                MapPlaceUiModel(
+                    id = place.id,
+                    photoUri = resolvedPhotos[place.id]?.uri,
+                    photoAttribution = resolvedPhotos[place.id]?.toAttribution(),
+                    name = place.displayName?.takeIf(String::isNotBlank) ?: place.id,
+                    latitude = location.latitude,
+                    longitude = location.longitude,
+                    rating = place.rating,
+                    ratingsCount = place.userRatingCount,
+                    categoryText = place.primaryTypeDisplayName
+                        ?.takeIf(String::isNotBlank)
+                        ?: place.primaryType?.takeIf(String::isNotBlank),
+                    address = place.formattedAddress,
+                    googleMapsUri = place.googleMapsUri,
+                    distanceMeters = searchLocation?.distanceTo(location),
+                    priceLevel = place.priceLevel,
+                    primaryType = place.primaryType,
+                    placeTypes = place.types,
+                )
             }
         }
+        mutableUiState.update { it.copy(places = mapPlaces) }
     }
 
     fun requestPhoto(placeId: String) {
@@ -198,6 +165,7 @@ class MapViewModel(
                         is Success -> {
                             val uri = result.data.uri.takeIf(String::isNotBlank)
                             if (uri != null && isActive) {
+                                resolvedPhotos[request.placeId] = result.data
                                 mutableUiState.update { state ->
                                     state.copy(
                                         places = state.places.map { currentPlace ->
@@ -249,48 +217,78 @@ class MapViewModel(
     )
 
     fun onQueryChanged(query: String) {
-        load(query)
+        mutableUiState.update { it.copy(query = query) }
+        renderPlaces()
     }
 
     fun onMapCenterChanged(center: GeoPoint) {
-        val referenceLocation = loadedLocation ?: searchLocation
-        val movedToAnotherArea = referenceLocation == null ||
-            referenceLocation.distanceTo(center) > SEARCH_AREA_CHANGE_THRESHOLD_METERS
-
-        pendingSearchLocation = center.takeIf { movedToAnotherArea }
-        mutableUiState.update {
-            it.copy(isSearchAreaButtonVisible = movedToAnotherArea)
+        currentMapCenter = center
+        val reference = loadedLocation ?: searchLocation
+        if (reference == null) {
+            loadedLocation = center
+            return
         }
+        val moved = reference.distanceTo(center) > SEARCH_AREA_CHANGE_THRESHOLD_METERS
+        pendingSearchLocation = center.takeIf { moved }
+        mutableUiState.update { it.copy(isSearchAreaButtonVisible = moved) }
     }
 
     fun onSearchAreaClicked() {
-        val center = pendingSearchLocation ?: return
-
-        pendingSearchLocation = null
-        searchLocation = center
-        mutableUiState.update { it.copy(isSearchAreaButtonVisible = false) }
-        load(activeQuery)
+        if (uiState.value.isLoading || uiState.value.isRadiusDialogVisible) return
+        dialogCenter = pendingSearchLocation ?: return
+        mutableUiState.update {
+            it.copy(isRadiusDialogVisible = true, selectedRadiusMeters = confirmedRadius,
+                customRadiusMeters = confirmedCustomRadius)
+        }
     }
 
-    fun onLocationChanged(
-        location: GeoPoint?,
-        bearingDegrees: Float? = null,
-    ) {
-        val locationChanged = location != searchLocation
-        val currentUserLocation = mutableUiState.value.userLocation
-        val bearingChanged = currentUserLocation?.bearingDegrees != bearingDegrees
-        if (!locationChanged && !bearingChanged) return
+    fun onRadiusSelected(radiusMeters: Int?) {
+        if (!uiState.value.isRadiusDialogVisible || uiState.value.isManualSearchLoading) return
+        if (radiusMeters != null && radiusMeters !in FIXED_RADII_METERS) return
+        mutableUiState.update { it.copy(selectedRadiusMeters = radiusMeters) }
+    }
 
-        if (locationChanged) {
-            pendingSearchLocation = null
-            searchLocation = location
+    fun onCustomRadiusChanged(radiusMeters: Int) {
+        if (!uiState.value.isRadiusDialogVisible || uiState.value.isManualSearchLoading) return
+        val radius = ((radiusMeters + 250) / 500 * 500).coerceIn(500, 50_000)
+        mutableUiState.update { it.copy(customRadiusMeters = radius) }
+    }
+
+    fun onRadiusDismissed() {
+        if (uiState.value.isManualSearchLoading) return
+        dialogCenter = null
+        mutableUiState.update { it.copy(isRadiusDialogVisible = false) }
+    }
+
+    fun onRadiusConfirmed() {
+        val center = dialogCenter ?: return
+        val state = uiState.value
+        if (!state.isRadiusDialogVisible || state.isManualSearchLoading || state.isLoading) return
+        confirmedRadius = state.selectedRadiusMeters
+        confirmedCustomRadius = state.customRadiusMeters
+        val radius = (confirmedRadius ?: confirmedCustomRadius).toDouble()
+        mutableUiState.update { it.copy(isManualSearchLoading = true, isLoading = true, isError = false) }
+        searchJob = viewModelScope.launch {
+            val result = loadedPlacesUseCase.searchManually(center, radius)
+            if (result is Success) {
+                loadedLocation = center
+                dialogCenter = null
+            }
+            mutableUiState.update {
+                it.copy(isManualSearchLoading = false, isLoading = false, isError = result is Failure,
+                    isRadiusDialogVisible = result !is Success)
+            }
+            currentMapCenter?.let(::onMapCenterChanged)
         }
-        mutableUiState.update {
-            it.copy(userLocation = location?.toUiModel(bearingDegrees))
+    }
+
+    fun onLocationChanged(location: GeoPoint?, bearingDegrees: Float? = null) {
+        searchLocation = location?.takeIf {
+            it.latitude in -90.0..90.0 && it.longitude in -180.0..180.0
         }
-        if (locationChanged) {
-            loadedQuery?.let { load(activeQuery) }
-        }
+        mutableUiState.update { it.copy(userLocation = searchLocation?.toUiModel(bearingDegrees)) }
+        renderPlaces()
+        startOpeningRefresh()
         loadRouteIfPossible()
     }
 
@@ -388,6 +386,7 @@ class MapViewModel(
     }
 
     private companion object {
+        val FIXED_RADII_METERS = listOf(500, 1_000, 2_000, 5_000, 10_000)
         const val EARTH_RADIUS_METERS = 6_371_000.0
         const val SEARCH_AREA_CHANGE_THRESHOLD_METERS = 50.0
     }
