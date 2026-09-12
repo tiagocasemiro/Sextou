@@ -47,7 +47,13 @@ class SextouDatabaseMigrationTest {
     @Test
     fun `migrates version one while preserving existing data and creating place tables`() = runTest {
         database = Room.databaseBuilder(context, SextouDatabase::class.java, DATABASE_NAME)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+            .addMigrations(
+                MIGRATION_1_2,
+                MIGRATION_2_3,
+                MIGRATION_3_4,
+                MIGRATION_4_5,
+                MIGRATION_5_6,
+            )
             .build()
 
         assertEquals(listOf("favorite-1"), database!!.favoriteDao().observeIds().first())
@@ -59,7 +65,13 @@ class SextouDatabaseMigrationTest {
     @Test
     fun `version three migration preserves establishments and every selection and persists marker`() = runTest {
         database = Room.databaseBuilder(context, SextouDatabase::class.java, DATABASE_NAME)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build()
+            .addMigrations(
+                MIGRATION_1_2,
+                MIGRATION_2_3,
+                MIGRATION_3_4,
+                MIGRATION_4_5,
+                MIGRATION_5_6,
+            ).build()
         database!!.openHelper.writableDatabase.apply {
             execSQL("INSERT INTO places (placeId, displayName, businessStatus, providerAttribution) VALUES ('saved', 'Original', 'UNKNOWN', 'Google Maps')")
             execSQL("INSERT INTO visited_places (placeId, selectedAt) VALUES ('visited', 2)")
@@ -67,11 +79,18 @@ class SextouDatabaseMigrationTest {
         }
         database!!.close()
         database = Room.databaseBuilder(context, SextouDatabase::class.java, DATABASE_NAME)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+            .addMigrations(
+                MIGRATION_1_2,
+                MIGRATION_2_3,
+                MIGRATION_3_4,
+                MIGRATION_4_5,
+                MIGRATION_5_6,
+            )
             .build()
         assertEquals("Original", database!!.placesDao().findPlace("saved")?.displayName)
         assertEquals("NOT_AVAILABLE", database!!.placesDao().findPlace("saved")?.liveMusic)
         assertEquals("NOT_AVAILABLE", database!!.placesDao().findPlace("saved")?.goodForChildren)
+        assertEquals(null, database!!.placesDao().findPlace("saved")?.isOpen24Hours)
         assertEquals(listOf("favorite-1"), database!!.favoriteDao().observeIds().first())
         assertEquals(listOf("visited"), database!!.visitedPlaceDao().observeIds().first())
         assertEquals(listOf("ignored"), database!!.ignoredPlaceDao().observeIds().first())
@@ -79,7 +98,13 @@ class SextouDatabaseMigrationTest {
         database!!.automaticRefreshDao().recordSuccess(AutomaticRefreshEntity(successDay = 20260911L))
         database!!.close()
         database = Room.databaseBuilder(context, SextouDatabase::class.java, DATABASE_NAME)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+            .addMigrations(
+                MIGRATION_1_2,
+                MIGRATION_2_3,
+                MIGRATION_3_4,
+                MIGRATION_4_5,
+                MIGRATION_5_6,
+            )
             .build()
         assertEquals(20260911L, database!!.automaticRefreshDao().lastSuccessDay())
     }

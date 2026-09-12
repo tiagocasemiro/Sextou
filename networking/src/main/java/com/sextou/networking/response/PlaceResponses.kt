@@ -47,25 +47,29 @@ import com.sextou.domain.places.model.WeekTime
 import com.sextou.repository.DomainMapperResponse
 
 data class PlaceSummaryResponse(val place: Place) : DomainMapperResponse<PlaceSummary> {
-    override fun mapToDomain() = PlaceSummary(
-        id = requireNotNull(place.id),
-        displayName = place.displayName,
-        formattedAddress = place.formattedAddress,
-        location = place.location?.let { GeoPoint(it.latitude, it.longitude) },
-        primaryType = place.primaryType,
-        primaryTypeDisplayName = place.primaryTypeDisplayName,
-        types = place.placeTypes.orEmpty(),
-        businessStatus = place.businessStatus.toDomain(),
-        rating = place.rating,
-        userRatingCount = place.userRatingCount,
-        priceLevel = place.priceLevel,
-        googleMapsUri = place.googleMapsUri?.toString(),
-        providerAttribution = PROVIDER_ATTRIBUTION,
-        photos = place.toPhotoReferences(),
-        isOpen = place.currentOpeningHours?.zza(),
-        liveMusic = place.liveMusic.toDomain(),
-        goodForChildren = place.goodForChildren.toDomain(),
-    )
+    override fun mapToDomain(): PlaceSummary {
+        val openingHours = place.openingHours?.toDomain()
+        return PlaceSummary(
+            id = requireNotNull(place.id),
+            displayName = place.displayName,
+            formattedAddress = place.formattedAddress,
+            location = place.location?.let { GeoPoint(it.latitude, it.longitude) },
+            primaryType = place.primaryType,
+            primaryTypeDisplayName = place.primaryTypeDisplayName,
+            types = place.placeTypes.orEmpty(),
+            businessStatus = place.businessStatus.toDomain(),
+            rating = place.rating,
+            userRatingCount = place.userRatingCount,
+            priceLevel = place.priceLevel,
+            googleMapsUri = place.googleMapsUri?.toString(),
+            providerAttribution = PROVIDER_ATTRIBUTION,
+            photos = place.toPhotoReferences(),
+            isOpen = place.currentOpeningHours?.zza(),
+            liveMusic = place.liveMusic.toDomain(),
+            goodForChildren = place.goodForChildren.toDomain(),
+            isOpen24Hours = openingHours?.isOpen24Hours,
+        )
+    }
 }
 
 data class PlaceDetailsResponse(val place: Place) : DomainMapperResponse<PlaceDetails> {

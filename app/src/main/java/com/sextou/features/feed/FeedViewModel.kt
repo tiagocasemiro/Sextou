@@ -387,6 +387,9 @@ class FeedViewModel(
                 FeedOtherFilter.matches(
                     place,
                     selectedFilterOptions,
+                ) && FeedCategoryFilter.matches(
+                    place,
+                    selectedFilterOptions,
                 )
         }
     }
@@ -431,6 +434,7 @@ class FeedViewModel(
             isOpen = isOpen,
             goodForChildren = goodForChildren.toBooleanOrNull(),
             liveMusic = liveMusic.toBooleanOrNull(),
+            isOpen24Hours = isOpen24Hours,
         )
     }
 

@@ -97,6 +97,7 @@ private fun PlaceWithRelations.toDomain() = PlaceSummary(
         .map { photo -> photo.toDomain(place.placeId) },
     liveMusic = place.liveMusic.toPlaceAttribute(),
     goodForChildren = place.goodForChildren.toPlaceAttribute(),
+    isOpen24Hours = place.isOpen24Hours,
 )
 
 private fun com.sextou.local.database.PlacePhotoWithAuthors.toDomain(
@@ -146,6 +147,7 @@ private fun PlaceSummary.toEntity() = PlaceEntity(
     providerAttribution = providerAttribution,
     liveMusic = liveMusic.name,
     goodForChildren = goodForChildren.name,
+    isOpen24Hours = isOpen24Hours,
 )
 
 private fun PlaceSummary.toTypeEntities() = types

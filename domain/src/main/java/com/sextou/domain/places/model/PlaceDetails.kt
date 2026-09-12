@@ -100,7 +100,14 @@ data class PlaceOpeningHours(
     val weekdayText: List<String>,
     val periods: List<OpeningPeriod>,
     val specialDays: List<SpecialDay>,
-)
+) {
+    /** Google represents an always-open schedule with a midnight opening and no close. */
+    val isOpen24Hours: Boolean
+        get() = periods.any { period ->
+            val opening = period.open ?: return@any false
+            opening.hour == 0 && opening.minute == 0 && period.close == null
+        }
+}
 
 data class OpeningPeriod(val open: WeekTime?, val close: WeekTime?)
 

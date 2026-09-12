@@ -1401,3 +1401,22 @@ status documental para indicar a gravação; a implementação segue pendente.
 - A máscara de busca do Places passou a solicitar os três sinais e a feature
   converte-os para o modelo do Feed. Nenhuma ação de filtro inicia uma nova
   consulta; resultados remotos já carregados são filtrados localmente.
+
+## 2026-09-12 — Funcionamento do filtro de categorias no Feed
+
+- A solicitação amplia explicitamente o escopo do painel para aplicar as seis
+  categorias aos resultados carregados. Múltiplas categorias usam união (OR),
+  enquanto categorias, tipos, preços e outros filtros entre grupos usam
+  interseção (AND). O rascunho continua sem efeito até `Aplicar filtros`.
+- `Karaokê`, `Podrões` e `Adegas` são derivados dos tipos oficiais retornados
+  pelo Places; `Espaço Kids` usa `GOOD_FOR_CHILDREN`; e `Ao vivo` aceita o
+  atributo `LIVE_MUSIC` ou o tipo `live_music_venue`. Tipos de depósito de
+  bebidas não são classificados como adega.
+- `24h` é derivado do horário regular: o Places representa funcionamento
+  contínuo por um período que abre à meia-noite e não possui fechamento. Esse
+  sinal é solicitado na busca, propagado pelo domínio e cacheado no Room; a
+  migration `5→6` adiciona a coluna nullable para que dados antigos não sejam
+  classificados sem evidência.
+- A regra permanece em um matcher puro da feature `feed`, com cobertura dos
+  seis catálogos e da integração da ViewModel. Nenhuma interação do painel
+  inicia consulta remota.

@@ -20,4 +20,5 @@ data class PlaceEntity(
     val providerAttribution: String,
     val liveMusic: String = "NOT_AVAILABLE",
     val goodForChildren: String = "NOT_AVAILABLE",
+    val isOpen24Hours: Boolean? = null,
 )

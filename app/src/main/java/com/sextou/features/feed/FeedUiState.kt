@@ -46,6 +46,7 @@ data class FeedPlaceUiModel(
     val isOpen: Boolean? = null,
     val goodForChildren: Boolean? = null,
     val liveMusic: Boolean? = null,
+    val isOpen24Hours: Boolean? = null,
 )
 
 data class FeedUiState(
@@ -74,6 +75,9 @@ data class FeedUiState(
             }
             .filter { place ->
                 FeedOtherFilter.matches(place, confirmedFilterOptions)
+            }
+            .filter { place ->
+                FeedCategoryFilter.matches(place, confirmedFilterOptions)
             }
             .filter { selectedTab != FeedTab.FAVORITES || it.id in favoritePlaceIds }
 

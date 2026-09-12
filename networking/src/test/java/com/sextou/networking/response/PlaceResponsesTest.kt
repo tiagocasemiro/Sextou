@@ -1,9 +1,13 @@
 package com.sextou.networking.response
 
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.libraries.places.api.model.DayOfWeek
+import com.google.android.libraries.places.api.model.LocalTime
 import com.google.android.libraries.places.api.model.PhotoMetadata
+import com.google.android.libraries.places.api.model.Period
 import com.google.android.libraries.places.api.model.Place
 import com.google.android.libraries.places.api.model.OpeningHours
+import com.google.android.libraries.places.api.model.TimeOfWeek
 import com.sextou.domain.places.model.PlaceAttribute
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -28,6 +32,33 @@ class PlaceResponsesTest {
         assertTrue(summary.isOpen == true)
         assertEquals(PlaceAttribute.YES, summary.liveMusic)
         assertEquals(PlaceAttribute.YES, summary.goodForChildren)
+    }
+
+    @Test
+    fun summaryMapsAnAlwaysOpenRegularSchedule() {
+        val place = Place.builder()
+            .setId("place-1")
+            .setOpeningHours(
+                OpeningHours.builder()
+                    .setPeriods(
+                        listOf(
+                            Period.builder()
+                                .setOpen(
+                                    TimeOfWeek.newInstance(
+                                        DayOfWeek.SUNDAY,
+                                        LocalTime.newInstance(0, 0),
+                                    ),
+                                )
+                                .build(),
+                        ),
+                    )
+                    .build(),
+            )
+            .build()
+
+        val summary = PlaceSummaryResponse(place).mapToDomain()
+
+        assertTrue(summary.isOpen24Hours == true)
     }
 
     @Test

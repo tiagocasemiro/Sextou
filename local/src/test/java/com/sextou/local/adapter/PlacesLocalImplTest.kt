@@ -48,6 +48,7 @@ class PlacesLocalImplTest {
         val place = samplePlace(
             liveMusic = PlaceAttribute.YES,
             goodForChildren = PlaceAttribute.NO,
+            isOpen24Hours = true,
         )
 
         assertEquals(Success(Unit), repository.saveAll(listOf(place)))
@@ -68,6 +69,7 @@ class PlacesLocalImplTest {
                 providerAttribution = "Google Maps",
                 liveMusic = "YES",
                 goodForChildren = "NO",
+                isOpen24Hours = true,
             ),
             database.placesDao().findPlace("place-1"),
         )
@@ -185,6 +187,7 @@ private fun samplePlace(
     photos: List<PlacePhotoReference> = listOf(samplePhoto(placeId = id)),
     liveMusic: PlaceAttribute = PlaceAttribute.NOT_AVAILABLE,
     goodForChildren: PlaceAttribute = PlaceAttribute.NOT_AVAILABLE,
+    isOpen24Hours: Boolean? = null,
 ) = PlaceSummary(
     id = id,
     displayName = "Bar do Bairro",
@@ -202,6 +205,7 @@ private fun samplePlace(
     photos = photos,
     liveMusic = liveMusic,
     goodForChildren = goodForChildren,
+    isOpen24Hours = isOpen24Hours,
 )
 
 private fun samplePhoto(

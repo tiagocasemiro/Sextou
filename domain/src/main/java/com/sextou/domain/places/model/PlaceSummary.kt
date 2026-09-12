@@ -19,4 +19,6 @@ data class PlaceSummary(
     val isOpen: Boolean? = null,
     val liveMusic: PlaceAttribute = PlaceAttribute.NOT_AVAILABLE,
     val goodForChildren: PlaceAttribute = PlaceAttribute.NOT_AVAILABLE,
+    /** Whether the regular schedule explicitly represents a place open 24 hours. */
+    val isOpen24Hours: Boolean? = null,
 )

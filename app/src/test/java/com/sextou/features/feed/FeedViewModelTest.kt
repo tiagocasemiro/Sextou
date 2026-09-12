@@ -930,6 +930,98 @@ class FeedViewModelTest {
     }
 
     @Test
+    fun editingCategoryFilterDoesNotChangePlacesBeforeApplying() {
+        val viewModel = feedViewModel(
+            searchRepository = FakeSearchPlacesRepository {
+                error("Filter interaction must not search")
+            },
+            savedPlaces = listOf(
+                place(id = "karaoke", name = "Karaokê", primaryType = "karaoke"),
+                place(id = "bar", name = "Bar", primaryType = "bar"),
+            ),
+        )
+
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.CATEGORY_KARAOKE, true)
+
+        assertEquals(
+            listOf("karaoke", "bar"),
+            viewModel.uiState.value.places.map(FeedPlaceUiModel::id),
+        )
+    }
+
+    @Test
+    fun applyingCategoryFilterShowsOnlyMatchingPlaces() {
+        val viewModel = feedViewModel(
+            searchRepository = FakeSearchPlacesRepository {
+                error("Filter interaction must not search")
+            },
+            savedPlaces = listOf(
+                place(id = "karaoke", name = "Karaokê", primaryType = "karaoke"),
+                place(id = "bar", name = "Bar", primaryType = "bar"),
+            ),
+        )
+
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.CATEGORY_KARAOKE, true)
+        viewModel.onFiltersApplied()
+
+        assertEquals(
+            listOf("karaoke"),
+            viewModel.uiState.value.visiblePlaces.map(FeedPlaceUiModel::id),
+        )
+    }
+
+    @Test
+    fun applyingMultipleCategoriesShowsTheirUnion() {
+        val viewModel = feedViewModel(
+            searchRepository = FakeSearchPlacesRepository {
+                error("Filter interaction must not search")
+            },
+            savedPlaces = listOf(
+                place(id = "karaoke", name = "Karaokê", primaryType = "karaoke"),
+                place(id = "kids", name = "Bar Kids", goodForChildren = PlaceAttribute.YES),
+                place(id = "bar", name = "Bar", primaryType = "bar"),
+            ),
+        )
+
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.CATEGORY_KARAOKE, true)
+        viewModel.onFilterOptionChanged(FeedFilterOption.CATEGORY_KIDS, true)
+        viewModel.onFiltersApplied()
+
+        assertEquals(
+            listOf("karaoke", "kids"),
+            viewModel.uiState.value.visiblePlaces.map(FeedPlaceUiModel::id),
+        )
+    }
+
+    @Test
+    fun clearingCategoryFilterRestoresAllPlaces() {
+        val viewModel = feedViewModel(
+            searchRepository = FakeSearchPlacesRepository {
+                error("Filter interaction must not search")
+            },
+            savedPlaces = listOf(
+                place(id = "karaoke", name = "Karaokê", primaryType = "karaoke"),
+                place(id = "bar", name = "Bar", primaryType = "bar"),
+            ),
+        )
+
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.CATEGORY_KARAOKE, true)
+        viewModel.onFiltersApplied()
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.CATEGORY_KARAOKE, false)
+        viewModel.onFiltersApplied()
+
+        assertEquals(
+            listOf("karaoke", "bar"),
+            viewModel.uiState.value.visiblePlaces.map(FeedPlaceUiModel::id),
+        )
+    }
+
+    @Test
     fun applyingAnEmptyTypeFilterRestoresAllPlaces() {
         val viewModel = feedViewModel(
             searchRepository = FakeSearchPlacesRepository {
@@ -1254,6 +1346,7 @@ private fun place(
     isOpen: Boolean? = null,
     goodForChildren: PlaceAttribute = PlaceAttribute.NOT_AVAILABLE,
     liveMusic: PlaceAttribute = PlaceAttribute.NOT_AVAILABLE,
+    isOpen24Hours: Boolean? = null,
 ) = PlaceSummary(
     id = id,
     displayName = name,
@@ -1272,4 +1365,5 @@ private fun place(
     isOpen = isOpen,
     goodForChildren = goodForChildren,
     liveMusic = liveMusic,
+    isOpen24Hours = isOpen24Hours,
 )

@@ -52,6 +52,7 @@ class GetPlaceDetailsUseCase(
         photos = photos,
         liveMusic = amenities.liveMusic,
         goodForChildren = amenities.goodForChildren,
+        isOpen24Hours = openingHours?.isOpen24Hours,
     )
 
     private companion object {

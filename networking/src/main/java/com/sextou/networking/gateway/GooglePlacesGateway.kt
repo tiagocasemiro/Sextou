@@ -202,6 +202,7 @@ class GooglePlacesGateway(
             Place.Field.PRIMARY_TYPE_DISPLAY_NAME,
             Place.Field.TYPES,
             Place.Field.BUSINESS_STATUS,
+            Place.Field.OPENING_HOURS,
             Place.Field.CURRENT_OPENING_HOURS,
             Place.Field.GOOD_FOR_CHILDREN,
             Place.Field.LIVE_MUSIC,
