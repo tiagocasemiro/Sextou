@@ -41,6 +41,7 @@ data class FeedPlaceUiModel(
     val photoUri: String? = null,
     val photoAttribution: String? = null,
     @param:StringRes val placeholderEmojiResId: Int? = null,
+    val placeTypes: Set<String> = emptySet(),
     val searchableText: String = "",
 )
 
@@ -62,6 +63,9 @@ data class FeedUiState(
 ) {
     val visiblePlaces: List<FeedPlaceUiModel>
         get() = places
+            .filter { place ->
+                FeedPlaceTypeFilter.matches(place.placeTypes, confirmedFilterOptions)
+            }
             .filter { selectedTab != FeedTab.FAVORITES || it.id in favoritePlaceIds }
 
     companion object

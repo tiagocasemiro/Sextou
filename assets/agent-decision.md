@@ -1349,3 +1349,21 @@ status documental para indicar a gravação; a implementação segue pendente.
   com sucesso. O Lint mantém avisos preexistentes e mensagens de metadados
   Kotlin 2.3.0 incompatíveis com o analisador 2.0.0, sem erro introduzido
   pelos arquivos do painel.
+
+## 2026-09-12 — Funcionamento do filtro de tipo de local no Feed
+
+- A solicitação atual amplia explicitamente o plano do painel, que antes
+  cobria somente interface e estado, para filtrar localmente os resultados
+  quando opções de `Tipo de local` são confirmadas.
+- O filtro usa `primaryType` e todos os valores de `types` já retornados pela
+  Places API e preservados no modelo de apresentação; não consulta a API nem
+  altera os demais grupos de filtros. Múltiplas opções de tipo usam união
+  (OR), e o rascunho só altera os resultados depois de `Aplicar filtros`.
+- O catálogo foi mapeado para tipos oficiais: `bar` para Boteco raiz,
+  `barbecue_restaurant` e tipos de comida rápida/retirada para Espetinho /
+  Podrão, `wine_bar`/`winery` para Adega, `karaoke` para Karaokê e
+  `meal_takeaway`/tipos equivalentes de comida rápida para Trailer de comida.
+  `liquor_store`, `warehouse_store` e `wholesaler` permanecem fora de Adega
+  porque o documento de tipos do produto os separa como depósito de bebidas.
+- A regra ficou na feature `feed`, em um matcher puro coberto por testes
+  unitários, sem alterar `domain`, `networking` ou `local`.

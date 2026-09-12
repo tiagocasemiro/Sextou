@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.util.ArrayDeque
+import java.util.Locale
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
@@ -110,7 +111,7 @@ class FeedViewModel(
         mutableUiState.update {
             it.copy(
                 query = query,
-                places = filterPlaces(allPlaces, query),
+                places = filterPlaces(allPlaces, query, it.confirmedFilterOptions),
                 isError = false,
                 isStale = false,
                 errorMessageResId = null,
@@ -238,6 +239,7 @@ class FeedViewModel(
 
             state.copy(
                 confirmedFilterOptions = draft.toSet(),
+                places = filterPlaces(allPlaces, state.query, draft),
                 draftFilterOptions = null,
             )
         }
@@ -275,7 +277,7 @@ class FeedViewModel(
         allPlaces = mappedPlaces
         mutableUiState.update { state ->
             state.copy(
-                places = filterPlaces(mappedPlaces, state.query),
+                places = filterPlaces(mappedPlaces, state.query, state.confirmedFilterOptions),
                 providerAttribution = mappedPlaces.firstOrNull()?.providerAttribution,
             )
         }
@@ -368,9 +370,15 @@ class FeedViewModel(
     private fun filterPlaces(
         places: List<FeedPlaceUiModel>,
         query: String,
+        selectedFilterOptions: Set<FeedFilterOption>,
     ): List<FeedPlaceUiModel> {
         val ids = loadedPlacesUseCase.filter(query).mapTo(hashSetOf()) { it.id }
-        return places.filter { it.id in ids }
+        return places.filter { place ->
+            place.id in ids && FeedPlaceTypeFilter.matches(
+                place.placeTypes,
+                selectedFilterOptions,
+            )
+        }
     }
 
     private fun PlaceSummary.toUiModel(referenceLocation: GeoPoint?): FeedPlaceUiModel {
@@ -382,6 +390,13 @@ class FeedViewModel(
             category?.let(::add)
             addAll(types)
         }.joinToString(" ").lowercase()
+        val placeTypes = buildSet {
+            listOfNotNull(primaryType)
+                .plus(types)
+                .map { it.trim().lowercase(Locale.ROOT) }
+                .filter { it.isNotBlank() }
+                .forEach(::add)
+        }
 
         return FeedPlaceUiModel(
             id = id,
@@ -401,6 +416,7 @@ class FeedViewModel(
             providerAttribution = providerAttribution.takeIf(String::isNotBlank),
             photoUri = resolvedPhotos[id]?.uri,
             photoAttribution = resolvedPhotos[id]?.toAttribution(),
+            placeTypes = placeTypes,
             searchableText = searchableText,
         )
     }

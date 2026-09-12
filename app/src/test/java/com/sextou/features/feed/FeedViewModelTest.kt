@@ -687,6 +687,130 @@ class FeedViewModelTest {
             viewModel.uiState.value.places.map(FeedPlaceUiModel::id),
         )
     }
+
+    @Test
+    fun editingTypeFilterDoesNotChangePlacesBeforeApplying() {
+        val viewModel = feedViewModel(
+            searchRepository = FakeSearchPlacesRepository {
+                error("Filter interaction must not search")
+            },
+            savedPlaces = listOf(
+                place(id = "bar", name = "Bar", primaryType = "bar"),
+                place(id = "restaurant", name = "Restaurant", primaryType = "restaurant"),
+            ),
+        )
+
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.TYPE_BOTECO, true)
+
+        assertEquals(
+            listOf("bar", "restaurant"),
+            viewModel.uiState.value.places.map(FeedPlaceUiModel::id),
+        )
+    }
+
+    @Test
+    fun applyingTypeFilterShowsOnlyMatchingPlaces() {
+        val viewModel = feedViewModel(
+            searchRepository = FakeSearchPlacesRepository {
+                error("Filter interaction must not search")
+            },
+            savedPlaces = listOf(
+                place(id = "bar", name = "Bar", primaryType = "bar"),
+                place(id = "restaurant", name = "Restaurant", primaryType = "restaurant"),
+            ),
+        )
+
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.TYPE_BOTECO, true)
+        viewModel.onFiltersApplied()
+
+        assertEquals(
+            listOf("bar"),
+            viewModel.uiState.value.visiblePlaces.map(FeedPlaceUiModel::id),
+        )
+    }
+
+    @Test
+    fun applyingMultipleTypeFiltersShowsTheirUnion() {
+        val viewModel = feedViewModel(
+            searchRepository = FakeSearchPlacesRepository {
+                error("Filter interaction must not search")
+            },
+            savedPlaces = listOf(
+                place(id = "bar", name = "Bar", primaryType = "bar"),
+                place(
+                    id = "karaoke",
+                    name = "Karaokê",
+                    primaryType = "karaoke",
+                    types = listOf("karaoke"),
+                ),
+                place(id = "restaurant", name = "Restaurant", primaryType = "restaurant"),
+            ),
+        )
+
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.TYPE_BOTECO, true)
+        viewModel.onFilterOptionChanged(FeedFilterOption.TYPE_KARAOKE, true)
+        viewModel.onFiltersApplied()
+
+        assertEquals(
+            listOf("bar", "karaoke"),
+            viewModel.uiState.value.visiblePlaces.map(FeedPlaceUiModel::id),
+        )
+    }
+
+    @Test
+    fun applyingAnEmptyTypeFilterRestoresAllPlaces() {
+        val viewModel = feedViewModel(
+            searchRepository = FakeSearchPlacesRepository {
+                error("Filter interaction must not search")
+            },
+            savedPlaces = listOf(
+                place(id = "bar", name = "Bar", primaryType = "bar"),
+                place(id = "restaurant", name = "Restaurant", primaryType = "restaurant"),
+            ),
+        )
+
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.TYPE_BOTECO, true)
+        viewModel.onFiltersApplied()
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.TYPE_BOTECO, false)
+        viewModel.onFiltersApplied()
+
+        assertEquals(
+            listOf("bar", "restaurant"),
+            viewModel.uiState.value.visiblePlaces.map(FeedPlaceUiModel::id),
+        )
+    }
+
+    @Test
+    fun typeFilterUsesSecondaryPlaceTypesAsWell() {
+        val viewModel = feedViewModel(
+            searchRepository = FakeSearchPlacesRepository {
+                error("Filter interaction must not search")
+            },
+            savedPlaces = listOf(
+                place(
+                    id = "restaurant-bar",
+                    name = "Restaurant Bar",
+                    primaryType = "restaurant",
+                    types = listOf("restaurant", "bar"),
+                ),
+                place(id = "restaurant", name = "Restaurant", primaryType = "restaurant"),
+            ),
+        )
+
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.TYPE_BOTECO, true)
+        viewModel.onFiltersApplied()
+
+        assertEquals(
+            listOf("restaurant-bar"),
+            viewModel.uiState.value.visiblePlaces.map(FeedPlaceUiModel::id),
+        )
+    }
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -859,14 +983,16 @@ private fun place(
     name: String,
     location: GeoPoint? = null,
     photos: List<PlacePhotoReference> = emptyList(),
+    primaryType: String? = "bar",
+    types: List<String> = listOfNotNull(primaryType),
 ) = PlaceSummary(
     id = id,
     displayName = name,
     formattedAddress = null,
     location = location,
-    primaryType = "bar",
+    primaryType = primaryType,
     primaryTypeDisplayName = "Bar",
-    types = listOf("bar"),
+    types = types,
     businessStatus = BusinessStatus.OPERATIONAL,
     rating = null,
     userRatingCount = null,
