@@ -1,0 +1,21 @@
+package com.sextou.features.feed
+
+enum class FeedFilterOption {
+    TYPE_BOTECO,
+    TYPE_SKEWER,
+    TYPE_WINE_STORE,
+    TYPE_KARAOKE,
+    TYPE_FOOD_TRAILER,
+    PRICE_LOW,
+    PRICE_MEDIUM,
+    PRICE_HIGH,
+    OPEN_NOW,
+    KIDS_SPACE,
+    LIVE_MUSIC,
+    CATEGORY_KARAOKE,
+    CATEGORY_KIDS,
+    CATEGORY_STREET_FOOD,
+    CATEGORY_WINE_STORE,
+    CATEGORY_LIVE_MUSIC,
+    CATEGORY_24_HOURS,
+}

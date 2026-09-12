@@ -56,14 +56,13 @@ data class FeedUiState(
     @param:StringRes val errorMessageResId: Int? = null,
     @param:StringRes val actionErrorMessageResId: Int? = null,
     val photoRetryToken: Long = 0L,
-    val isFilterDialogVisible: Boolean = false,
-    val openOnly: Boolean = false,
+    val confirmedFilterOptions: Set<FeedFilterOption> = emptySet(),
+    val draftFilterOptions: Set<FeedFilterOption>? = null,
     val providerAttribution: String? = null,
 ) {
     val visiblePlaces: List<FeedPlaceUiModel>
         get() = places
             .filter { selectedTab != FeedTab.FAVORITES || it.id in favoritePlaceIds }
-            .filter { !openOnly || it.status != FeedPlaceStatus.CLOSED }
 
     companion object
 }

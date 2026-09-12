@@ -368,6 +368,325 @@ class FeedViewModelTest {
         assertEquals(setOf("favorite-place"), viewModel.uiState.value.favoritePlaceIds)
         assertEquals(setOf("visited-place"), viewModel.uiState.value.visitedPlaceIds)
     }
+
+    @Test
+    fun firstOpeningStartsWithEmptyDraft() {
+        val viewModel = feedViewModel(
+            searchRepository = FakeSearchPlacesRepository {
+                error("Filter interaction must not search")
+            },
+        )
+
+        viewModel.onFilterClicked()
+
+        assertEquals(emptySet<FeedFilterOption>(), viewModel.uiState.value.draftFilterOptions)
+        assertTrue(viewModel.uiState.value.confirmedFilterOptions.isEmpty())
+    }
+
+    @Test
+    fun openingTwicePreservesTheExistingDraft() {
+        val viewModel = feedViewModel(
+            searchRepository = FakeSearchPlacesRepository {
+                error("Filter interaction must not search")
+            },
+        )
+
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.TYPE_BOTECO, true)
+        viewModel.onFilterClicked()
+
+        assertEquals(
+            setOf(FeedFilterOption.TYPE_BOTECO),
+            viewModel.uiState.value.draftFilterOptions,
+        )
+    }
+
+    @Test
+    fun selectingTwoOptionsFromTheSameGroupKeepsBothSelections() {
+        val viewModel = feedViewModel(
+            searchRepository = FakeSearchPlacesRepository {
+                error("Filter interaction must not search")
+            },
+        )
+
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.TYPE_BOTECO, true)
+        viewModel.onFilterOptionChanged(FeedFilterOption.TYPE_SKEWER, true)
+
+        assertEquals(
+            setOf(
+                FeedFilterOption.TYPE_BOTECO,
+                FeedFilterOption.TYPE_SKEWER,
+            ),
+            viewModel.uiState.value.draftFilterOptions,
+        )
+    }
+
+    @Test
+    fun unselectingOneOptionDoesNotRemoveTheOthers() {
+        val viewModel = feedViewModel(
+            searchRepository = FakeSearchPlacesRepository {
+                error("Filter interaction must not search")
+            },
+        )
+
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.TYPE_BOTECO, true)
+        viewModel.onFilterOptionChanged(FeedFilterOption.TYPE_SKEWER, true)
+        viewModel.onFilterOptionChanged(FeedFilterOption.TYPE_BOTECO, false)
+
+        assertEquals(
+            setOf(FeedFilterOption.TYPE_SKEWER),
+            viewModel.uiState.value.draftFilterOptions,
+        )
+    }
+
+    @Test
+    fun editingDraftDoesNotChangeConfirmedSelection() {
+        val viewModel = feedViewModel(
+            searchRepository = FakeSearchPlacesRepository {
+                error("Filter interaction must not search")
+            },
+        )
+
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.TYPE_BOTECO, true)
+        viewModel.onFiltersApplied()
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.PRICE_LOW, true)
+
+        assertEquals(
+            setOf(FeedFilterOption.TYPE_BOTECO),
+            viewModel.uiState.value.confirmedFilterOptions,
+        )
+        assertEquals(
+            setOf(FeedFilterOption.TYPE_BOTECO, FeedFilterOption.PRICE_LOW),
+            viewModel.uiState.value.draftFilterOptions,
+        )
+    }
+
+    @Test
+    fun applyingConfirmsDraftAndClosesThePanel() {
+        val viewModel = feedViewModel(
+            searchRepository = FakeSearchPlacesRepository {
+                error("Filter interaction must not search")
+            },
+        )
+
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.CATEGORY_KARAOKE, true)
+        viewModel.onFiltersApplied()
+
+        assertEquals(
+            setOf(FeedFilterOption.CATEGORY_KARAOKE),
+            viewModel.uiState.value.confirmedFilterOptions,
+        )
+        assertNull(viewModel.uiState.value.draftFilterOptions)
+    }
+
+    @Test
+    fun applyingAfterThePanelIsClosedDoesNothing() {
+        val viewModel = feedViewModel(
+            searchRepository = FakeSearchPlacesRepository {
+                error("Filter interaction must not search")
+            },
+        )
+
+        viewModel.onFiltersApplied()
+
+        assertTrue(viewModel.uiState.value.confirmedFilterOptions.isEmpty())
+        assertNull(viewModel.uiState.value.draftFilterOptions)
+    }
+
+    @Test
+    fun closingDiscardsDraftAndPreservesConfirmedSelection() {
+        val viewModel = feedViewModel(
+            searchRepository = FakeSearchPlacesRepository {
+                error("Filter interaction must not search")
+            },
+        )
+
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.TYPE_BOTECO, true)
+        viewModel.onFiltersApplied()
+
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.PRICE_LOW, true)
+        viewModel.onFilterDialogDismissed()
+        viewModel.onFilterClicked()
+
+        assertEquals(
+            setOf(FeedFilterOption.TYPE_BOTECO),
+            viewModel.uiState.value.draftFilterOptions,
+        )
+        assertEquals(
+            setOf(FeedFilterOption.TYPE_BOTECO),
+            viewModel.uiState.value.confirmedFilterOptions,
+        )
+    }
+
+    @Test
+    fun reopeningRestoresTheLastConfirmedSelection() {
+        val viewModel = feedViewModel(
+            searchRepository = FakeSearchPlacesRepository {
+                error("Filter interaction must not search")
+            },
+        )
+
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.OPEN_NOW, true)
+        viewModel.onFiltersApplied()
+        viewModel.onFilterClicked()
+
+        assertEquals(
+            setOf(FeedFilterOption.OPEN_NOW),
+            viewModel.uiState.value.draftFilterOptions,
+        )
+    }
+
+    @Test
+    fun applyingAnEmptyDraftClearsPreviousConfirmation() {
+        val viewModel = feedViewModel(
+            searchRepository = FakeSearchPlacesRepository {
+                error("Filter interaction must not search")
+            },
+        )
+
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.OPEN_NOW, true)
+        viewModel.onFiltersApplied()
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.OPEN_NOW, false)
+        viewModel.onFiltersApplied()
+
+        assertTrue(viewModel.uiState.value.confirmedFilterOptions.isEmpty())
+        assertNull(viewModel.uiState.value.draftFilterOptions)
+    }
+
+    @Test
+    fun changingAnOptionWhileThePanelIsClosedDoesNothing() {
+        val viewModel = feedViewModel(
+            searchRepository = FakeSearchPlacesRepository {
+                error("Filter interaction must not search")
+            },
+        )
+
+        viewModel.onFilterOptionChanged(FeedFilterOption.OPEN_NOW, true)
+
+        assertTrue(viewModel.uiState.value.confirmedFilterOptions.isEmpty())
+        assertNull(viewModel.uiState.value.draftFilterOptions)
+    }
+
+    @Test
+    fun leavingTheScreenDiscardsDraftAndPreservesConfirmedSelection() {
+        val viewModel = feedViewModel(
+            searchRepository = FakeSearchPlacesRepository {
+                error("Filter interaction must not search")
+            },
+        )
+
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.TYPE_BOTECO, true)
+        viewModel.onFiltersApplied()
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.PRICE_LOW, true)
+        viewModel.onScreenClosed()
+
+        assertEquals(
+            setOf(FeedFilterOption.TYPE_BOTECO),
+            viewModel.uiState.value.confirmedFilterOptions,
+        )
+        assertNull(viewModel.uiState.value.draftFilterOptions)
+    }
+
+    @Test
+    fun savedPlaceEmissionsPreserveFilterSelections() {
+        val localPlaces = FakePlacesLocalRepository(
+            listOf(place(id = "saved-place", name = "Saved Place")),
+        )
+        val viewModel = feedViewModel(
+            searchRepository = FakeSearchPlacesRepository {
+                error("Filter interaction must not search")
+            },
+            localPlacesRepository = localPlaces,
+        )
+
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.TYPE_BOTECO, true)
+        viewModel.onFiltersApplied()
+        localPlaces.emit(listOf(place(id = "new-place", name = "New Place")))
+
+        assertEquals(
+            setOf(FeedFilterOption.TYPE_BOTECO),
+            viewModel.uiState.value.confirmedFilterOptions,
+        )
+        assertNull(viewModel.uiState.value.draftFilterOptions)
+    }
+
+    @Test
+    fun filterInteractionsDoNotMakeRemoteCalls() {
+        val searchRepository = FakeSearchPlacesRepository {
+            error("Filter interaction must not search")
+        }
+        val viewModel = feedViewModel(searchRepository = searchRepository)
+
+        viewModel.onFilterClicked()
+        FeedFilterOption.entries.forEach { option ->
+            viewModel.onFilterOptionChanged(option, true)
+        }
+        viewModel.onFiltersApplied()
+        viewModel.onFilterClicked()
+        viewModel.onFilterDialogDismissed()
+
+        assertTrue(searchRepository.calls.isEmpty())
+    }
+
+    @Test
+    fun queryChangesPreserveFilterSelectionsAndTextualResults() {
+        val viewModel = feedViewModel(
+            searchRepository = FakeSearchPlacesRepository {
+                error("Filter interaction must not search")
+            },
+            savedPlaces = listOf(
+                place(id = "bar-do-ze", name = "Bar do Zé"),
+                place(id = "adega", name = "Adega Central"),
+            ),
+        )
+
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.TYPE_BOTECO, true)
+        viewModel.onFiltersApplied()
+        viewModel.onQueryChanged("adega")
+
+        assertEquals(listOf("adega"), viewModel.uiState.value.places.map(FeedPlaceUiModel::id))
+        assertEquals(
+            setOf(FeedFilterOption.TYPE_BOTECO),
+            viewModel.uiState.value.confirmedFilterOptions,
+        )
+    }
+
+    @Test
+    fun applyingFiltersDoesNotChangePlaceIds() {
+        val savedPlaces = listOf(
+            place(id = "place-1", name = "Place 1"),
+            place(id = "place-2", name = "Place 2"),
+        )
+        val viewModel = feedViewModel(
+            searchRepository = FakeSearchPlacesRepository {
+                error("Filter interaction must not search")
+            },
+            savedPlaces = savedPlaces,
+        )
+
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.PRICE_MEDIUM, true)
+        viewModel.onFiltersApplied()
+
+        assertEquals(
+            savedPlaces.map(PlaceSummary::id),
+            viewModel.uiState.value.places.map(FeedPlaceUiModel::id),
+        )
+    }
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -447,13 +766,14 @@ private fun feedViewModel(
     favoritePlaceIds: Set<String> = emptySet(),
     visitedPlaceIds: Set<String> = emptySet(),
     savedPlaces: List<PlaceSummary> = emptyList(),
+    localPlacesRepository: FakePlacesLocalRepository? = null,
     photoResult: Result<PlacePhoto> = Failure(null),
     savePlacesUseCase: SavePlacesUseCase = SavePlacesUseCase(NoOpPlacesRepository()),
 ): FeedViewModel {
     val statusRepository = FakeStatusRepository(favoritePlaceIds, visitedPlaceIds)
     val favoriteRepository = FakeFavoriteRepository(statusRepository)
     val visitedRepository = FakeVisitRepository(statusRepository)
-    val placesRepository = FakePlacesLocalRepository(savedPlaces)
+    val placesRepository = localPlacesRepository ?: FakePlacesLocalRepository(savedPlaces)
     return FeedViewModel(
         loadedPlacesUseCase = LoadedPlacesUseCase(
             remote = searchRepository,
@@ -477,6 +797,10 @@ private class FakePlacesLocalRepository(
     private val places = MutableStateFlow(initialPlaces)
 
     override fun observeAll(): Flow<List<PlaceSummary>> = places
+
+    fun emit(places: List<PlaceSummary>) {
+        this.places.value = places
+    }
 
     override suspend fun saveAll(places: List<PlaceSummary>): Result<Unit> = Success(Unit)
 

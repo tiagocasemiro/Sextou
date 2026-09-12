@@ -40,7 +40,9 @@ class MapViewModel(
     initialLocation: GeoPoint? = null,
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(
-        MapUiState(userLocation = initialLocation?.toUiModel()),
+        MapUiState(
+            userLocation = initialLocation?.toUiModel(),
+        ),
     )
     private var searchLocation: GeoPoint? = initialLocation
     private var loadedLocation: GeoPoint? = null
@@ -222,10 +224,13 @@ class MapViewModel(
     }
 
     fun onMapCenterChanged(center: GeoPoint) {
+        if (center.latitude !in -90.0..90.0 || center.longitude !in -180.0..180.0) return
         currentMapCenter = center
         val reference = loadedLocation ?: searchLocation
         if (reference == null) {
             loadedLocation = center
+            pendingSearchLocation = null
+            mutableUiState.update { it.copy(isSearchAreaButtonVisible = false) }
             return
         }
         val moved = reference.distanceTo(center) > SEARCH_AREA_CHANGE_THRESHOLD_METERS
@@ -257,7 +262,13 @@ class MapViewModel(
     fun onRadiusDismissed() {
         if (uiState.value.isManualSearchLoading) return
         dialogCenter = null
-        mutableUiState.update { it.copy(isRadiusDialogVisible = false) }
+        mutableUiState.update {
+            it.copy(
+                isRadiusDialogVisible = false,
+                selectedRadiusMeters = confirmedRadius,
+                customRadiusMeters = confirmedCustomRadius,
+            )
+        }
     }
 
     fun onRadiusConfirmed() {
@@ -272,6 +283,7 @@ class MapViewModel(
             val result = loadedPlacesUseCase.searchManually(center, radius)
             if (result is Success) {
                 loadedLocation = center
+                pendingSearchLocation = null
                 dialogCenter = null
             }
             mutableUiState.update {
@@ -286,9 +298,14 @@ class MapViewModel(
         searchLocation = location?.takeIf {
             it.latitude in -90.0..90.0 && it.longitude in -180.0..180.0
         }
-        mutableUiState.update { it.copy(userLocation = searchLocation?.toUiModel(bearingDegrees)) }
+        mutableUiState.update {
+            it.copy(
+                userLocation = searchLocation?.toUiModel(bearingDegrees),
+            )
+        }
         renderPlaces()
         startOpeningRefresh()
+        currentMapCenter?.let(::onMapCenterChanged)
         loadRouteIfPossible()
     }
 

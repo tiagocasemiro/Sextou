@@ -17,11 +17,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-/** Shared for the application lifetime. Remote session versions take precedence over disk. */
+/**
+ * Shared for the application lifetime. Inject a scope on the presentation dispatcher so
+ * publication resumes there after I/O. Remote session versions take precedence over disk.
+ */
 class LoadedPlacesUseCase(
     remote: PlacesRepository.Remote,
     private val local: PlacesRepository.Local,
@@ -46,8 +50,9 @@ class LoadedPlacesUseCase(
     val hasLocalFailure: StateFlow<Boolean> = mutableLocalFailure.asStateFlow()
 
     init {
-        applicationScope.launch(ioDispatcher) {
+        applicationScope.launch {
             local.observeAll()
+                .flowOn(ioDispatcher)
                 .catch { throwable ->
                     if (throwable is CancellationException) throw throwable
                     mutableLocalFailure.value = true

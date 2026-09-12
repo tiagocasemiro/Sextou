@@ -136,11 +136,32 @@ class MapViewModelTest {
         val viewModel = radiusViewModel()
         viewModel.onMapCenterChanged(GeoPoint(0.0001, 0.0))
         assertFalse(viewModel.uiState.value.isSearchAreaButtonVisible)
-        viewModel.onMapCenterChanged(GeoPoint(0.001, 0.0))
+        val center = GeoPoint(0.001, 0.0)
+        viewModel.onMapCenterChanged(center)
         assertTrue(viewModel.uiState.value.isSearchAreaButtonVisible)
         viewModel.onSearchAreaClicked()
         viewModel.onRadiusConfirmed()
         assertFalse(viewModel.uiState.value.isSearchAreaButtonVisible)
+        viewModel.onMapCenterChanged(GeoPoint(0.0011, 0.0))
+        assertFalse(viewModel.uiState.value.isSearchAreaButtonVisible)
+        viewModel.onMapCenterChanged(GeoPoint(0.002, 0.0))
+        assertTrue(viewModel.uiState.value.isSearchAreaButtonVisible)
+    }
+
+    @Test
+    fun `map without GPS waits for a moved camera center before manual search`() {
+        val viewModel = mapViewModel(searchRepository = radiusRepository)
+        val initialCenter = GeoPoint(-22.9, -43.2)
+        val center = GeoPoint(-22.899, -43.2)
+        viewModel.onMapCenterChanged(initialCenter)
+        assertFalse(viewModel.uiState.value.isSearchAreaButtonVisible)
+        viewModel.onMapCenterChanged(center)
+        assertTrue(viewModel.uiState.value.isSearchAreaButtonVisible)
+        viewModel.onSearchAreaClicked()
+        assertTrue(viewModel.uiState.value.isRadiusDialogVisible)
+        assertTrue(radiusRepository.calls.isEmpty())
+        viewModel.onRadiusConfirmed()
+        assertEquals(center, radiusRepository.calls.single().location)
     }
 
     @Test

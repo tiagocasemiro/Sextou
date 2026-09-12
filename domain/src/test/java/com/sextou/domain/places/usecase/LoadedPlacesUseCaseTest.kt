@@ -11,11 +11,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.*
 import org.junit.Before
 import org.junit.Test
 import kotlin.test.*
+import kotlin.coroutines.ContinuationInterceptor
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class LoadedPlacesUseCaseTest {
@@ -156,6 +158,46 @@ class LoadedPlacesUseCaseTest {
     }
 
     @Test
+    fun `returns remote data to presentation while saving on the injected IO dispatcher`() = runTest {
+        val presentation = StandardTestDispatcher(testScheduler, "presentation")
+        val io = StandardTestDispatcher(testScheduler, "io")
+        val application = CoroutineScope(backgroundScope.coroutineContext + presentation)
+        val subject = LoadedPlacesUseCase(remote, local, marker, { day }, application, io)
+        remote.result = Success(listOf(place("remote")))
+        local.gate = CompletableDeferred()
+
+        val screen = async(presentation) {
+            assertEquals(Success(Unit), subject.open(location))
+            assertSame(presentation, currentCoroutineContext()[ContinuationInterceptor])
+            assertEquals(listOf("remote"), subject.places.value.map { it.id })
+        }
+        runCurrent()
+
+        assertTrue(screen.isCompleted)
+        screen.await()
+        assertSame(io, local.saveDispatcher)
+        assertFalse(local.saved)
+        local.gate!!.complete(Unit)
+        runCurrent()
+        assertTrue(local.saved)
+    }
+
+    @Test
+    fun `manual results are available before database save finishes`() = runTest {
+        local.gate = CompletableDeferred()
+        remote.result = Success(listOf(place("manual")))
+        val subject = subject()
+
+        assertEquals(Success(Unit), subject.searchManually(location, 2_000.0))
+        assertEquals(listOf("manual"), subject.places.value.map { it.id })
+        assertFalse(local.saved)
+        local.gate!!.complete(Unit)
+        runCurrent()
+        assertTrue(local.saved)
+        assertEquals(0L, marker.day)
+    }
+
+    @Test
     fun `failed persistence is signaled and does not remove remote data or daily success`() = runTest {
         local.fail = true
         remote.result = Success(listOf(place("remote")))
@@ -250,9 +292,11 @@ class LoadedPlacesUseCaseTest {
         var gate: CompletableDeferred<Unit>? = null
         var saved = false
         var fail = false
+        var saveDispatcher: ContinuationInterceptor? = null
         override fun observeAll() = data
         override suspend fun saveAll(places: List<PlaceSummary>): Result<Unit> = error("Must preserve existing rows")
         override suspend fun saveMissing(places: List<PlaceSummary>): Result<Unit> {
+            saveDispatcher = currentCoroutineContext()[ContinuationInterceptor]
             gate?.await()
             if (fail) throw IllegalStateException("Disk failure")
             saved = true

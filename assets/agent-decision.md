@@ -1273,3 +1273,79 @@ porque o módulo não embarca as fontes do arquivo de design.
 - Handoff `.handoff/handoff-sextou-radius-selector.md` extraído do plano e DESIGN.md. Sem mockup de dimensões específicas, usa modal Material 3 com papéis Sextou, seleção única, corpo rolável e slider acessível. Mantido pacote `component/` conforme skill local específica. Nenhuma dependência nova.
 - O mapa mantém rascunho separado da última seleção confirmada e captura o centro ao abrir. Durante busca, bloqueia alteração, descarte e confirmação duplicada; falha mantém o diálogo para nova tentativa. Fotos resolvidas ficam em cache da ViewModel por ID.
 - Inspeção no dispositivo mostrou que o tema atual não mapeia surfaceContainerHigh, deixando o fallback Material arroxeado. O seletor usa os tokens existentes SurfaceElevated/TextPrimary, conforme a camada de produto de DESIGN.md, sem ampliar esta tarefa para remapear todo o tema. O centro é atualizado também após movimentos programáticos e lido novamente no clique, evitando confirmar uma área antiga após recentralização.
+
+## 2026-09-11 — Busca na área atual e entrega antes da persistência
+
+- A skill local `architecture` orientou a composição: o escopo compartilhado de
+  estabelecimentos usa `Dispatchers.Main.immediate` na DI. A observação e o
+  mapeamento do banco usam `flowOn(ioDispatcher)`, e a publicação retoma o
+  escopo principal. As ViewModels continuam coletando em `viewModelScope`.
+- A gravação continua em coroutines independentes no escopo da aplicação com
+  dispatcher de I/O, sem bloquear a entrega dos resultados e sem criar uma
+  thread dedicada por requisição. Os testes verificam retorno antes do término
+  da gravação e uso do dispatcher de persistência injetado.
+- O pedido permite selecionar outro raio na área atual. Removida a exigência
+  de deslocar o mapa mais de 50 metros: o popup pode abrir assim que houver um
+  centro válido, inclusive sem GPS, e continua disponível após uma busca.
+- Reutilizado o seletor existente com 500 m, 1 km, 2 km, 5 km, 10 km e
+  personalizado (500 m a 50 km, em passos de 500 m). Mantidas a busca automática
+  de 3 km por dia civil compartilhada entre feed e mapa e a política existente
+  de nova tentativa em outra entrada quando a API falhar.
+- Validação: 119 testes unitários passaram (`domain`, `local` e `app`), APK
+  debug gerado com o JDK 17 Zulu já instalado e `git diff --check` sem erros.
+  O Lint terminou com 0 erros e 29 avisos, mas emitiu incompatibilidades de
+  metadados Kotlin 2.3.0 com seu analisador 2.0.0; isso limita essa análise.
+  O JDK GraalVM padrão falhou no `jlink`, conforme o problema já documentado;
+  nenhuma configuração de build ou dependência foi alterada.
+
+## 2026-09-12 — Limiar de deslocamento do mapa mantido no fluxo manual
+
+O botão “Buscar nesta área” permanece desabilitado até o centro do mapa se
+afastar mais de 50 metros da referência carregada ou da última busca manual
+bem-sucedida. O centro capturado ao abrir o diálogo continua sendo usado na
+confirmação; falhas preservam a área pendente para nova tentativa e um sucesso
+redefine a referência. Cancelar restaura a última seleção de raio confirmada.
+Esta decisão atualiza a observação intermediária do mesmo dia que havia
+removido esse limiar.
+
+
+## 2026-09-12 — Plano do painel de filtros salvo
+
+Salvo o plano aprovado em `assets/plano-painel-filtros-feed.md`, com etapas
+por subagente, contratos, exemplos e critérios de validação. Preservado o
+escopo escolhido pelo usuário: somente interface e estado de seleção, sem
+filtragem funcional dos estabelecimentos nesta entrega. Atualizado apenas o
+status documental para indicar a gravação; a implementação segue pendente.
+
+## 2026-09-12 — Painel de filtros do Feed implementado
+
+- O handoff `.handoff/handoff-sextou-filter-sheet.md` foi extraído do nó
+  `209:29`/painel `209:619` do Figma e usado como referência para o novo
+  componente genérico `SextouFilterSheet` no módulo `design-system`.
+  O painel usa `ModalBottomSheet` expandido, corpo rolável, `FlowRow` para
+  chips, cartões de preço e linhas de interruptor com alvos de pelo menos
+  48 dp.
+- A seleção é controlada pelo consumidor: `FeedUiState` mantém
+  `confirmedFilterOptions` e um `draftFilterOptions` nulo quando o painel
+  está fechado. O painel confirma ou descarta somente o rascunho; nenhuma ação
+  de filtro chama UseCase, altera a lista ou consulta a API nesta entrega.
+  Ao sair do Feed, o rascunho é descartado e a confirmação é preservada.
+- Os estados selecionados foram definidos como decisão de implementação,
+  pois não apareciam no nó visual fornecido: usam `SextouColors.Primary`,
+  conteúdo `OnPrimary`, borda de destaque e semântica de seleção. Os ícones
+  de fechar e confirmar foram convertidos dos assets exportados do Figma para
+  `VectorDrawable` no módulo compartilhado.
+- A tipografia segue os tokens atualmente disponíveis no tema Sextou. A ação
+  reutiliza `SextouButton` em 48 dp, documentando a adaptação do botão de
+  52 px observado no Figma. Os rótulos de produção e dos previews ficam em
+  recursos; o catálogo específico das 17 opções permanece na feature Feed.
+- A validação unitária cobre o ciclo completo de rascunho, confirmação,
+  descarte, reabertura, emissões locais, ausência de chamadas remotas e
+  preservação dos IDs. Não foi feita validação visual em emulador nesta
+  sessão; os quatro previews obrigatórios foram adicionados ao componente.
+- Verificação final com JDK 17 Zulu: testes de `app`, `domain` e
+  `networking` passaram; o `design-system:testDebugUnitTest` terminou como
+  `NO-SOURCE`; os APKs/AARs debug foram montados e os dois Lints terminaram
+  com sucesso. O Lint mantém avisos preexistentes e mensagens de metadados
+  Kotlin 2.3.0 incompatíveis com o analisador 2.0.0, sem erro introduzido
+  pelos arquivos do painel.

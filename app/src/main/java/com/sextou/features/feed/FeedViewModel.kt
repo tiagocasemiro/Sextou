@@ -101,7 +101,10 @@ class FeedViewModel(
         startInitialRefreshIfPossible()
     }
 
-    fun onScreenClosed() { opening = false }
+    fun onScreenClosed() {
+        opening = false
+        mutableUiState.update { it.copy(draftFilterOptions = null) }
+    }
 
     fun onQueryChanged(query: String) {
         mutableUiState.update {
@@ -195,15 +198,49 @@ class FeedViewModel(
     }
 
     fun onFilterClicked() {
-        mutableUiState.update { it.copy(isFilterDialogVisible = true) }
+        mutableUiState.update { state ->
+            if (state.draftFilterOptions != null) {
+                state
+            } else {
+                state.copy(
+                    draftFilterOptions = state.confirmedFilterOptions.toSet(),
+                )
+            }
+        }
     }
 
     fun onFilterDialogDismissed() {
-        mutableUiState.update { it.copy(isFilterDialogVisible = false) }
+        mutableUiState.update { it.copy(draftFilterOptions = null) }
     }
 
-    fun onOpenOnlyChanged(openOnly: Boolean) {
-        mutableUiState.update { it.copy(openOnly = openOnly) }
+    fun onFilterOptionChanged(
+        option: FeedFilterOption,
+        selected: Boolean,
+    ) {
+        mutableUiState.update { state ->
+            val draft = state.draftFilterOptions
+                ?: return@update state
+
+            state.copy(
+                draftFilterOptions = if (selected) {
+                    draft + option
+                } else {
+                    draft - option
+                },
+            )
+        }
+    }
+
+    fun onFiltersApplied() {
+        mutableUiState.update { state ->
+            val draft = state.draftFilterOptions
+                ?: return@update state
+
+            state.copy(
+                confirmedFilterOptions = draft.toSet(),
+                draftFilterOptions = null,
+            )
+        }
     }
 
     private fun loadPlaces(automatic: Boolean = false) {

@@ -26,7 +26,7 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 val appModule = module {
-    single(named("placesApplicationScope")) { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
+    single(named("placesApplicationScope")) { CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate) }
     single {
         LoadedPlacesUseCase(
             remote = get(), local = get(), automaticRefresh = get(),

@@ -35,6 +35,16 @@ object SextouDimensions {
     val ButtonMediumHorizontalPadding = 20.dp
     val ButtonSmallHorizontalPadding = 16.dp
     val ButtonIcon = 20.dp
+    val FilterSheetHorizontalPadding = 20.dp
+    val FilterSheetHandleWidth = 40.dp
+    val FilterSheetHandleHeight = 4.dp
+    val FilterSheetHandleAreaHeight = 20.dp
+    val FilterSheetCloseButton = 32.dp
+    val FilterSheetCloseIcon = 15.dp
+    val FilterSheetSelectionIcon = 16.dp
+    val FilterSheetChipHeight = 38.dp
+    val FilterSheetPriceCardHeight = 58.dp
+    val FilterSheetOptionTouchTarget = 48.dp
     val ProfileButton = 40.dp
     val ProfileIcon = 18.dp
     val ProfileBadge = 14.dp
