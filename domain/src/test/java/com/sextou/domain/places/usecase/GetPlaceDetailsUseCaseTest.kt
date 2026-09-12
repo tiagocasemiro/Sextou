@@ -7,6 +7,7 @@ import com.sextou.domain.places.model.BusinessStatus
 import com.sextou.domain.places.model.GeoPoint
 import com.sextou.domain.places.model.PlaceDetails
 import com.sextou.domain.places.model.PlaceDetailsRequest
+import com.sextou.domain.places.model.PlaceAttribute
 import com.sextou.domain.places.model.PlacePhoto
 import com.sextou.domain.places.model.PlacePhotoRequest
 import com.sextou.domain.places.model.PlaceSummary
@@ -51,6 +52,22 @@ class GetPlaceDetailsUseCaseTest {
         assertEquals(listOf("place-1"), localRepository.savedPlaces.map(PlaceSummary::id))
         assertEquals(4.7, localRepository.savedPlaces.single().rating ?: 0.0, 0.0)
         assertEquals(123, localRepository.savedPlaces.single().userRatingCount)
+    }
+
+    @Test
+    fun validPlaceIdPreservesEntertainmentAttributesInTheLocalSummary() = kotlinx.coroutines.test.runTest {
+        val details = samplePlaceDetails().copy(
+            amenities = samplePlaceDetails().amenities.copy(
+                liveMusic = PlaceAttribute.YES,
+                goodForChildren = PlaceAttribute.YES,
+            ),
+        )
+        repository.detailsResult = Success(details)
+
+        GetPlaceDetailsUseCase(repository, localRepository).invoke("place-1")
+
+        assertEquals(PlaceAttribute.YES, localRepository.savedPlaces.single().liveMusic)
+        assertEquals(PlaceAttribute.YES, localRepository.savedPlaces.single().goodForChildren)
     }
 }
 

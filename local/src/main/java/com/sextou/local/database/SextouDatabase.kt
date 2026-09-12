@@ -14,7 +14,7 @@ import androidx.room.RoomDatabase
         PlacePhotoEntity::class,
         PlacePhotoAuthorEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = false,
 )
 abstract class SextouDatabase : RoomDatabase() {

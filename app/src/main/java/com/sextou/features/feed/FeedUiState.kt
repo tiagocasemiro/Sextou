@@ -43,6 +43,9 @@ data class FeedPlaceUiModel(
     @param:StringRes val placeholderEmojiResId: Int? = null,
     val placeTypes: Set<String> = emptySet(),
     val searchableText: String = "",
+    val isOpen: Boolean? = null,
+    val goodForChildren: Boolean? = null,
+    val liveMusic: Boolean? = null,
 )
 
 data class FeedUiState(
@@ -65,6 +68,12 @@ data class FeedUiState(
         get() = places
             .filter { place ->
                 FeedPlaceTypeFilter.matches(place.placeTypes, confirmedFilterOptions)
+            }
+            .filter { place ->
+                FeedPriceFilter.matches(place.priceLevel, confirmedFilterOptions)
+            }
+            .filter { place ->
+                FeedOtherFilter.matches(place, confirmedFilterOptions)
             }
             .filter { selectedTab != FeedTab.FAVORITES || it.id in favoritePlaceIds }
 

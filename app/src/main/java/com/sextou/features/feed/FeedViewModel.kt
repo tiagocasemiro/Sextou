@@ -11,6 +11,7 @@ import com.sextou.domain.places.model.BusinessStatus
 import com.sextou.domain.places.model.GeoPoint
 import com.sextou.domain.places.model.PlacePhoto
 import com.sextou.domain.places.model.PlacePhotoReference
+import com.sextou.domain.places.model.PlaceAttribute
 import com.sextou.domain.places.model.PlaceStatus
 import com.sextou.domain.places.model.PlaceSummary
 import com.sextou.domain.places.usecase.GetPlacePhotoUseCase
@@ -374,10 +375,19 @@ class FeedViewModel(
     ): List<FeedPlaceUiModel> {
         val ids = loadedPlacesUseCase.filter(query).mapTo(hashSetOf()) { it.id }
         return places.filter { place ->
-            place.id in ids && FeedPlaceTypeFilter.matches(
-                place.placeTypes,
-                selectedFilterOptions,
-            )
+            place.id in ids &&
+                FeedPlaceTypeFilter.matches(
+                    place.placeTypes,
+                    selectedFilterOptions,
+                ) &&
+                FeedPriceFilter.matches(
+                    place.priceLevel,
+                    selectedFilterOptions,
+                ) &&
+                FeedOtherFilter.matches(
+                    place,
+                    selectedFilterOptions,
+                )
         }
     }
 
@@ -418,6 +428,9 @@ class FeedViewModel(
             photoAttribution = resolvedPhotos[id]?.toAttribution(),
             placeTypes = placeTypes,
             searchableText = searchableText,
+            isOpen = isOpen,
+            goodForChildren = goodForChildren.toBooleanOrNull(),
+            liveMusic = liveMusic.toBooleanOrNull(),
         )
     }
 
@@ -449,4 +462,12 @@ class FeedViewModel(
     private companion object {
         const val EARTH_RADIUS_METERS = 6_371_000.0
     }
+}
+
+private fun PlaceAttribute.toBooleanOrNull(): Boolean? = when (this) {
+    PlaceAttribute.YES -> true
+    PlaceAttribute.NO -> false
+    PlaceAttribute.UNKNOWN,
+    PlaceAttribute.NOT_AVAILABLE,
+    -> null
 }

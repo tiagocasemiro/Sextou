@@ -18,4 +18,6 @@ data class PlaceEntity(
     val priceLevel: Int?,
     val googleMapsUri: String?,
     val providerAttribution: String,
+    val liveMusic: String = "NOT_AVAILABLE",
+    val goodForChildren: String = "NOT_AVAILABLE",
 )

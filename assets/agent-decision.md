@@ -1367,3 +1367,37 @@ status documental para indicar a gravação; a implementação segue pendente.
   porque o documento de tipos do produto os separa como depósito de bebidas.
 - A regra ficou na feature `feed`, em um matcher puro coberto por testes
   unitários, sem alterar `domain`, `networking` ou `local`.
+
+## 2026-09-12 — Funcionamento do filtro de faixa de preço no Feed
+
+- A solicitação amplia explicitamente o plano do painel, que antes cobria
+  somente interface e estado, para filtrar localmente os resultados quando
+  opções de `Faixa de preço` são confirmadas.
+- O `priceLevel` retornado pelo Places SDK usa a faixa 0–4. O catálogo visual
+  foi agrupado em `$` (`0` e `1`, grátis/baratinho), `$$` (`2`, médio) e `$$$`
+  (`3` e `4`, caprichado). Um `priceLevel` nulo permanece visível sem seleção
+  de preço, mas é excluído quando alguma faixa é escolhida porque não há dados
+  suficientes para classificá-lo.
+- Múltiplas faixas selecionadas usam união (OR); os grupos de filtros são
+  combinados por interseção (AND). A regra foi mantida na feature `feed`, em
+  `FeedPriceFilter`, sem alterar `domain`, `networking` ou `local`, e não
+  adiciona consultas remotas.
+
+## 2026-09-12 — Funcionamento dos outros filtros no Feed
+
+- A solicitação amplia o escopo do painel para aplicar os três interruptores
+  de `Outros filtros` aos resultados carregados. `Aberto agora`, `Espaço kids`
+  e `Música ao vivo` são combinados por interseção; editar o rascunho continua
+  sem alterar a lista até `Aplicar filtros`.
+- `Aberto agora` aceita somente `isOpen == true` retornado junto de
+  `CURRENT_OPENING_HOURS`; `false` e ausência de informação ficam fora quando
+  o filtro é selecionado. O estado atual não é persistido no Room, evitando
+  reutilizar uma afirmação temporal como verdade offline.
+- `Espaço kids` e `Música ao vivo` usam exclusivamente os atributos
+  estruturados `GOOD_FOR_CHILDREN` e `LIVE_MUSIC`. `YES` é positivo; `NO`,
+  `UNKNOWN` e `NOT_AVAILABLE` não são tratados como correspondência. Os dois
+  atributos são cacheados com o estabelecimento para que a informação
+  estruturada sobreviva à leitura local; a migration `4→5` cria suas colunas.
+- A máscara de busca do Places passou a solicitar os três sinais e a feature
+  converte-os para o modelo do Feed. Nenhuma ação de filtro inicia uma nova
+  consulta; resultados remotos já carregados são filtrados localmente.

@@ -3,10 +3,33 @@ package com.sextou.networking.response
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.libraries.places.api.model.PhotoMetadata
 import com.google.android.libraries.places.api.model.Place
+import com.google.android.libraries.places.api.model.OpeningHours
+import com.sextou.domain.places.model.PlaceAttribute
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PlaceResponsesTest {
+    @Test
+    fun summaryMapsOtherFilterSignalsFromPlacesFields() {
+        val place = Place.builder()
+            .setId("place-1")
+            .setCurrentOpeningHours(
+                OpeningHours.builder()
+                    .zza(true)
+                    .build(),
+            )
+            .setLiveMusic(Place.BooleanPlaceAttributeValue.TRUE)
+            .setGoodForChildren(Place.BooleanPlaceAttributeValue.TRUE)
+            .build()
+
+        val summary = PlaceSummaryResponse(place).mapToDomain()
+
+        assertTrue(summary.isOpen == true)
+        assertEquals(PlaceAttribute.YES, summary.liveMusic)
+        assertEquals(PlaceAttribute.YES, summary.goodForChildren)
+    }
+
     @Test
     fun summaryMapsTheFirstPartyPhotoMetadataToAPlacePhotoReference() {
         val place = Place.builder()

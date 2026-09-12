@@ -15,6 +15,7 @@ import com.sextou.domain.places.model.PlaceDetailsRequest
 import com.sextou.domain.places.model.PlacePhoto
 import com.sextou.domain.places.model.PlacePhotoReference
 import com.sextou.domain.places.model.PlacePhotoRequest
+import com.sextou.domain.places.model.PlaceAttribute
 import com.sextou.domain.places.model.PlaceStatus
 import com.sextou.domain.places.model.PlaceSummary
 import com.sextou.domain.places.model.PlaceTextSearchRequest
@@ -666,10 +667,11 @@ class FeedViewModelTest {
     }
 
     @Test
-    fun applyingFiltersDoesNotChangePlaceIds() {
+    fun applyingPriceFilterShowsOnlyMatchingPlaces() {
         val savedPlaces = listOf(
-            place(id = "place-1", name = "Place 1"),
-            place(id = "place-2", name = "Place 2"),
+            place(id = "place-1", name = "Place 1", priceLevel = 1),
+            place(id = "place-2", name = "Place 2", priceLevel = 2),
+            place(id = "place-3", name = "Place 3", priceLevel = 3),
         )
         val viewModel = feedViewModel(
             searchRepository = FakeSearchPlacesRepository {
@@ -683,8 +685,175 @@ class FeedViewModelTest {
         viewModel.onFiltersApplied()
 
         assertEquals(
-            savedPlaces.map(PlaceSummary::id),
+            listOf("place-2"),
+            viewModel.uiState.value.visiblePlaces.map(FeedPlaceUiModel::id),
+        )
+    }
+
+    @Test
+    fun editingPriceFilterDoesNotChangePlacesBeforeApplying() {
+        val viewModel = feedViewModel(
+            searchRepository = FakeSearchPlacesRepository {
+                error("Filter interaction must not search")
+            },
+            savedPlaces = listOf(
+                place(id = "cheap", name = "Cheap", priceLevel = 1),
+                place(id = "medium", name = "Medium", priceLevel = 2),
+            ),
+        )
+
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.PRICE_LOW, true)
+
+        assertEquals(
+            listOf("cheap", "medium"),
             viewModel.uiState.value.places.map(FeedPlaceUiModel::id),
+        )
+    }
+
+    @Test
+    fun applyingMultiplePriceFiltersShowsTheirUnion() {
+        val viewModel = feedViewModel(
+            searchRepository = FakeSearchPlacesRepository {
+                error("Filter interaction must not search")
+            },
+            savedPlaces = listOf(
+                place(id = "free", name = "Free", priceLevel = 0),
+                place(id = "cheap", name = "Cheap", priceLevel = 1),
+                place(id = "medium", name = "Medium", priceLevel = 2),
+                place(id = "expensive", name = "Expensive", priceLevel = 3),
+                place(id = "very-expensive", name = "Very expensive", priceLevel = 4),
+            ),
+        )
+
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.PRICE_LOW, true)
+        viewModel.onFilterOptionChanged(FeedFilterOption.PRICE_HIGH, true)
+        viewModel.onFiltersApplied()
+
+        assertEquals(
+            listOf("free", "cheap", "expensive", "very-expensive"),
+            viewModel.uiState.value.visiblePlaces.map(FeedPlaceUiModel::id),
+        )
+    }
+
+    @Test
+    fun applyingAnEmptyPriceFilterRestoresAllPlaces() {
+        val viewModel = feedViewModel(
+            searchRepository = FakeSearchPlacesRepository {
+                error("Filter interaction must not search")
+            },
+            savedPlaces = listOf(
+                place(id = "cheap", name = "Cheap", priceLevel = 1),
+                place(id = "medium", name = "Medium", priceLevel = 2),
+                place(id = "unknown", name = "Unknown"),
+            ),
+        )
+
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.PRICE_MEDIUM, true)
+        viewModel.onFiltersApplied()
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.PRICE_MEDIUM, false)
+        viewModel.onFiltersApplied()
+
+        assertEquals(
+            listOf("cheap", "medium", "unknown"),
+            viewModel.uiState.value.visiblePlaces.map(FeedPlaceUiModel::id),
+        )
+    }
+
+    @Test
+    fun queryChangesReapplyConfirmedPriceFilter() {
+        val viewModel = feedViewModel(
+            searchRepository = FakeSearchPlacesRepository {
+                error("Filter interaction must not search")
+            },
+            savedPlaces = listOf(
+                place(id = "cheap", name = "Cheap Place", priceLevel = 1),
+                place(id = "medium", name = "Medium Place", priceLevel = 2),
+            ),
+        )
+
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.PRICE_MEDIUM, true)
+        viewModel.onFiltersApplied()
+        viewModel.onQueryChanged("medium")
+
+        assertEquals(
+            listOf("medium"),
+            viewModel.uiState.value.visiblePlaces.map(FeedPlaceUiModel::id),
+        )
+    }
+
+    @Test
+    fun savedPlaceEmissionsReapplyConfirmedPriceFilter() {
+        val localPlaces = FakePlacesLocalRepository(
+            listOf(
+                place(id = "cheap", name = "Cheap", priceLevel = 1),
+                place(id = "medium", name = "Medium", priceLevel = 2),
+            ),
+        )
+        val viewModel = feedViewModel(
+            searchRepository = FakeSearchPlacesRepository {
+                error("Filter interaction must not search")
+            },
+            localPlacesRepository = localPlaces,
+        )
+
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.PRICE_MEDIUM, true)
+        viewModel.onFiltersApplied()
+        localPlaces.emit(
+            listOf(
+                place(id = "cheap", name = "Cheap", priceLevel = 1),
+                place(id = "medium", name = "Medium", priceLevel = 2),
+                place(id = "high", name = "High", priceLevel = 3),
+            ),
+        )
+
+        assertEquals(
+            listOf("medium"),
+            viewModel.uiState.value.visiblePlaces.map(FeedPlaceUiModel::id),
+        )
+    }
+
+    @Test
+    fun priceFilterCombinesWithTypeFilterUsingIntersection() {
+        val viewModel = feedViewModel(
+            searchRepository = FakeSearchPlacesRepository {
+                error("Filter interaction must not search")
+            },
+            savedPlaces = listOf(
+                place(
+                    id = "cheap-bar",
+                    name = "Cheap bar",
+                    priceLevel = 1,
+                    primaryType = "bar",
+                ),
+                place(
+                    id = "expensive-bar",
+                    name = "Expensive bar",
+                    priceLevel = 3,
+                    primaryType = "bar",
+                ),
+                place(
+                    id = "cheap-restaurant",
+                    name = "Cheap restaurant",
+                    priceLevel = 1,
+                    primaryType = "restaurant",
+                ),
+            ),
+        )
+
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.TYPE_BOTECO, true)
+        viewModel.onFilterOptionChanged(FeedFilterOption.PRICE_HIGH, true)
+        viewModel.onFiltersApplied()
+
+        assertEquals(
+            listOf("expensive-bar"),
+            viewModel.uiState.value.visiblePlaces.map(FeedPlaceUiModel::id),
         )
     }
 
@@ -808,6 +977,102 @@ class FeedViewModelTest {
 
         assertEquals(
             listOf("restaurant-bar"),
+            viewModel.uiState.value.visiblePlaces.map(FeedPlaceUiModel::id),
+        )
+    }
+
+    @Test
+    fun editingOtherFilterDoesNotChangePlacesBeforeApplying() {
+        val viewModel = feedViewModel(
+            searchRepository = FakeSearchPlacesRepository {
+                error("Filter interaction must not search")
+            },
+            savedPlaces = listOf(
+                place(id = "open", name = "Open", isOpen = true),
+                place(id = "closed", name = "Closed", isOpen = false),
+            ),
+        )
+
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.OPEN_NOW, true)
+
+        assertEquals(
+            listOf("open", "closed"),
+            viewModel.uiState.value.places.map(FeedPlaceUiModel::id),
+        )
+    }
+
+    @Test
+    fun applyingOtherFiltersShowsOnlyPlacesMatchingEverySelectedOption() {
+        val viewModel = feedViewModel(
+            searchRepository = FakeSearchPlacesRepository {
+                error("Filter interaction must not search")
+            },
+            savedPlaces = listOf(
+                place(
+                    id = "all-signals",
+                    name = "All signals",
+                    isOpen = true,
+                    goodForChildren = PlaceAttribute.YES,
+                    liveMusic = PlaceAttribute.YES,
+                ),
+                place(
+                    id = "closed",
+                    name = "Closed",
+                    isOpen = false,
+                    goodForChildren = PlaceAttribute.YES,
+                    liveMusic = PlaceAttribute.YES,
+                ),
+                place(
+                    id = "no-kids",
+                    name = "No kids",
+                    isOpen = true,
+                    goodForChildren = PlaceAttribute.NO,
+                    liveMusic = PlaceAttribute.YES,
+                ),
+                place(
+                    id = "unknown-music",
+                    name = "Unknown music",
+                    isOpen = true,
+                    goodForChildren = PlaceAttribute.YES,
+                    liveMusic = PlaceAttribute.UNKNOWN,
+                ),
+            ),
+        )
+
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.OPEN_NOW, true)
+        viewModel.onFilterOptionChanged(FeedFilterOption.KIDS_SPACE, true)
+        viewModel.onFilterOptionChanged(FeedFilterOption.LIVE_MUSIC, true)
+        viewModel.onFiltersApplied()
+
+        assertEquals(
+            listOf("all-signals"),
+            viewModel.uiState.value.visiblePlaces.map(FeedPlaceUiModel::id),
+        )
+    }
+
+    @Test
+    fun applyingAnOtherFilterAndThenClearingItRestoresPlaces() {
+        val viewModel = feedViewModel(
+            searchRepository = FakeSearchPlacesRepository {
+                error("Filter interaction must not search")
+            },
+            savedPlaces = listOf(
+                place(id = "open", name = "Open", isOpen = true),
+                place(id = "closed", name = "Closed", isOpen = false),
+            ),
+        )
+
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.OPEN_NOW, true)
+        viewModel.onFiltersApplied()
+        viewModel.onFilterClicked()
+        viewModel.onFilterOptionChanged(FeedFilterOption.OPEN_NOW, false)
+        viewModel.onFiltersApplied()
+
+        assertEquals(
+            listOf("open", "closed"),
             viewModel.uiState.value.visiblePlaces.map(FeedPlaceUiModel::id),
         )
     }
@@ -983,8 +1248,12 @@ private fun place(
     name: String,
     location: GeoPoint? = null,
     photos: List<PlacePhotoReference> = emptyList(),
+    priceLevel: Int? = null,
     primaryType: String? = "bar",
     types: List<String> = listOfNotNull(primaryType),
+    isOpen: Boolean? = null,
+    goodForChildren: PlaceAttribute = PlaceAttribute.NOT_AVAILABLE,
+    liveMusic: PlaceAttribute = PlaceAttribute.NOT_AVAILABLE,
 ) = PlaceSummary(
     id = id,
     displayName = name,
@@ -996,8 +1265,11 @@ private fun place(
     businessStatus = BusinessStatus.OPERATIONAL,
     rating = null,
     userRatingCount = null,
-    priceLevel = null,
+    priceLevel = priceLevel,
     googleMapsUri = null,
     providerAttribution = "Google Maps",
     photos = photos,
+    isOpen = isOpen,
+    goodForChildren = goodForChildren,
+    liveMusic = liveMusic,
 )

@@ -7,6 +7,7 @@ import com.sextou.domain.Success
 import com.sextou.domain.places.model.BusinessStatus
 import com.sextou.domain.places.model.GeoPoint
 import com.sextou.domain.places.model.PlaceAuthor
+import com.sextou.domain.places.model.PlaceAttribute
 import com.sextou.domain.places.model.PlacePhotoReference
 import com.sextou.domain.places.model.PlaceSummary
 import com.sextou.local.database.PlaceEntity
@@ -44,7 +45,10 @@ class PlacesLocalImplTest {
 
     @Test
     fun `persists place fields and nested values in normalized tables`() = runTest {
-        val place = samplePlace()
+        val place = samplePlace(
+            liveMusic = PlaceAttribute.YES,
+            goodForChildren = PlaceAttribute.NO,
+        )
 
         assertEquals(Success(Unit), repository.saveAll(listOf(place)))
         assertEquals(
@@ -62,6 +66,8 @@ class PlacesLocalImplTest {
                 priceLevel = 2,
                 googleMapsUri = "https://maps.google.com/?q=place-1",
                 providerAttribution = "Google Maps",
+                liveMusic = "YES",
+                goodForChildren = "NO",
             ),
             database.placesDao().findPlace("place-1"),
         )
@@ -177,6 +183,8 @@ private fun samplePlace(
     id: String = "place-1",
     types: List<String> = listOf("bar", "restaurant"),
     photos: List<PlacePhotoReference> = listOf(samplePhoto(placeId = id)),
+    liveMusic: PlaceAttribute = PlaceAttribute.NOT_AVAILABLE,
+    goodForChildren: PlaceAttribute = PlaceAttribute.NOT_AVAILABLE,
 ) = PlaceSummary(
     id = id,
     displayName = "Bar do Bairro",
@@ -192,6 +200,8 @@ private fun samplePlace(
     googleMapsUri = "https://maps.google.com/?q=place-1",
     providerAttribution = "Google Maps",
     photos = photos,
+    liveMusic = liveMusic,
+    goodForChildren = goodForChildren,
 )
 
 private fun samplePhoto(

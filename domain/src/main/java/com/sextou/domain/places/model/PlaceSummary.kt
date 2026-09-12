@@ -15,4 +15,8 @@ data class PlaceSummary(
     val googleMapsUri: String?,
     val providerAttribution: String,
     val photos: List<PlacePhotoReference> = emptyList(),
+    /** Current status from the online Places response; it is not a cache value. */
+    val isOpen: Boolean? = null,
+    val liveMusic: PlaceAttribute = PlaceAttribute.NOT_AVAILABLE,
+    val goodForChildren: PlaceAttribute = PlaceAttribute.NOT_AVAILABLE,
 )

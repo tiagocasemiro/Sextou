@@ -3,6 +3,7 @@ package com.sextou.local.di
 import com.sextou.domain.places.repository.AutomaticRefreshRepository
 import com.sextou.local.adapter.AutomaticRefreshLocalImpl
 import com.sextou.local.database.MIGRATION_3_4
+import com.sextou.local.database.MIGRATION_4_5
 import androidx.room.Room
 import com.sextou.domain.favorites.repository.FavoriteRepository
 import com.sextou.domain.ignored.repository.IgnoredPlaceRepository
@@ -27,7 +28,7 @@ fun localModule() = module {
             androidContext(),
             SextouDatabase::class.java,
             DATABASE_NAME,
-        ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build()
+        ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build()
     }
     factory<AutomaticRefreshRepository.Local> {
         AutomaticRefreshLocalImpl(get<SextouDatabase>().automaticRefreshDao())

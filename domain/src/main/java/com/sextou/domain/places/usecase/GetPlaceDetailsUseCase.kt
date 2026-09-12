@@ -50,6 +50,8 @@ class GetPlaceDetailsUseCase(
         googleMapsUri = googleMapsUri,
         providerAttribution = providerAttribution,
         photos = photos,
+        liveMusic = amenities.liveMusic,
+        goodForChildren = amenities.goodForChildren,
     )
 
     private companion object {

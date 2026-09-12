@@ -7,6 +7,7 @@ import com.sextou.domain.Success
 import com.sextou.domain.places.model.BusinessStatus
 import com.sextou.domain.places.model.GeoPoint
 import com.sextou.domain.places.model.PlaceAuthor
+import com.sextou.domain.places.model.PlaceAttribute
 import com.sextou.domain.places.model.PlacePhotoReference
 import com.sextou.domain.places.model.PlaceSummary
 import com.sextou.domain.places.repository.PlacesRepository
@@ -94,6 +95,8 @@ private fun PlaceWithRelations.toDomain() = PlaceSummary(
     photos = photos
         .sortedBy { photo -> photo.photo.photoIndex }
         .map { photo -> photo.toDomain(place.placeId) },
+    liveMusic = place.liveMusic.toPlaceAttribute(),
+    goodForChildren = place.goodForChildren.toPlaceAttribute(),
 )
 
 private fun com.sextou.local.database.PlacePhotoWithAuthors.toDomain(
@@ -123,6 +126,10 @@ private fun PlacePhotoAuthorEntity.toDomain() = PlaceAuthor(
 private fun String.toBusinessStatus(): BusinessStatus =
     BusinessStatus.values().firstOrNull { status -> status.name == this } ?: BusinessStatus.UNKNOWN
 
+private fun String.toPlaceAttribute(): PlaceAttribute =
+    PlaceAttribute.values().firstOrNull { attribute -> attribute.name == this }
+        ?: PlaceAttribute.NOT_AVAILABLE
+
 private fun PlaceSummary.toEntity() = PlaceEntity(
     placeId = id,
     displayName = displayName,
@@ -137,6 +144,8 @@ private fun PlaceSummary.toEntity() = PlaceEntity(
     priceLevel = priceLevel,
     googleMapsUri = googleMapsUri,
     providerAttribution = providerAttribution,
+    liveMusic = liveMusic.name,
+    goodForChildren = goodForChildren.name,
 )
 
 private fun PlaceSummary.toTypeEntities() = types

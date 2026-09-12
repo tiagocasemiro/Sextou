@@ -62,6 +62,9 @@ data class PlaceSummaryResponse(val place: Place) : DomainMapperResponse<PlaceSu
         googleMapsUri = place.googleMapsUri?.toString(),
         providerAttribution = PROVIDER_ATTRIBUTION,
         photos = place.toPhotoReferences(),
+        isOpen = place.currentOpeningHours?.zza(),
+        liveMusic = place.liveMusic.toDomain(),
+        goodForChildren = place.goodForChildren.toDomain(),
     )
 }
 
